@@ -39,6 +39,11 @@ class ToffoliDecompType(Enum):
     ZERO_ANCILLA_TDEPTH_4 = auto()
     ZERO_ANCILLA_TDEPTH_4_COMPUTE = auto()
 
+    # experimental T gate removed ---------------------------------------------------------
+    ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE = auto()
+    ZERO_ANCILLA_TDEPTH_4_T_GATE = auto()
+    ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_T_GATE = auto()
+
     # Relative phase Toffoli (Figure 18/19 from arxiv:2010.00255)
     ZERO_ANCILLA_CNOT_3 = auto
     ZERO_ANCILLA_CNOT_3_INV = auto
@@ -501,6 +506,34 @@ class ToffoliDecomposition():
             ]
 
             return moments
+
+        # -------------------------------------------------------------------------------------------------------------
+
+        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE:
+            # This is a logical AND, and the Hadamard cannot be placed anywhere,
+            # TODO: Check where this is placed
+
+            moments = [
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2])]),
+                cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2])]),
+                # cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+
+                # cirq.Moment([cirq.T.on(self.qubits[2])]),
+                cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2])]),
+                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.H.on(self.target_qubit)])
+            ]
+
+            return moments
+
+        # -------------------------------------------------------------------------------------------------------------
 
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_CNOT_3:
             moments = [

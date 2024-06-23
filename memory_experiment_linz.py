@@ -15,6 +15,28 @@ import sys
 from typing import Iterator
 
 
+def results(
+    decomp: str,
+    nr_qubits: int,
+    stop: int,
+    bbcircuit: bb.BucketBrigade,
+    decomp_scenario: bb.BucketBrigadeDecompType
+):
+    print("\n")
+    process = psutil.Process(os.getpid())
+    # print("\npid", os.getpid())
+
+    """
+    rss: aka “Resident Set Size”, this is the non-swapped physical memory a
+    process has used. On UNIX it matches “top“‘s RES column).
+    vms: aka “Virtual Memory Size”, this is the total amount of virtual
+    memory used by the process. On UNIX it matches “top“‘s VIRT column.
+    """
+    print("--> mem bucket brigade: {:<8} | qbits: {:<1} | time: {:<20} | rss: {:<10} | vms: {:<10}".format(
+        decomp, nr_qubits, stop, process.memory_info().rss, process.memory_info().vms), flush=True)
+    if decomp == "decomp":
+        check_depth_of_circuit(bbcircuit, decomp_scenario)
+
 def check_depth_of_circuit(
     bbcircuit: bb.BucketBrigade,
     decomp_scenario: bb.BucketBrigadeDecompType
@@ -56,6 +78,14 @@ def main(decomp, nr, times=1):
             ],
             False
         )
+        decomp_scenario_modded = bb.BucketBrigadeDecompType(
+            [
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE,     # fan_in_decomp
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,                    # mem_decomp
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,          # fan_out_decomp
+            ],
+            False
+        )
     else:
         """
             Bucket brigade - NO DECOMP
@@ -83,56 +113,12 @@ def main(decomp, nr, times=1):
 
                 start = time.time()
                 bbcircuit = bb.BucketBrigade(
-                    qubits, decomp_scenario=decomp_scenario)
-                print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
-                                                        qubit_order=bbcircuit.qubit_order))
+                    qubits, decomp_scenario=decomp_scenario_modded)
+                # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
+                #                                         qubit_order=bbcircuit.qubit_order))
                 stop = time.time() - start
-
-                # moment_index: Iterator[tuple[int, cirq.Gate]] = []
-                # for i, moment in enumerate(bbcircuit.circuit):
-                #     print("moment: ", moment)
-                #     if cirq.T in moment:
-                #         moment_index.append((i, cirq.T))
-                #     if cirq.T**2 in moment:
-                #         moment_index.append((i, cirq.T**2))
-
-                # print("moments: ")
-                # print(moment_index)
-
-                # bbcircuit.circuit.batch_remove(moment_index)
-
-                # # # print all operations in the circuit list
-                # operations = bbcircuit.circuit.all_operations()
-
-                # moment_index: Iterator[tuple[int, cirq.Gate]] = []
-                # for i, op in enumerate(operations):
-                #     # the T gate or the T**-1 gate
-                #     if op.gate == cirq.T or op.gate == cirq.T**-1:
-                #         moment_index.append((i, op))
-                #     # if op.gate == cirq.T or op.gate == cirq.T**-1:
-                #     #     # pass
-                #     #     print(op)
-                #     #     # bbcircuit.circuit.batch_remove(operations[i:i + 3])
-
-                # print("moments2: ")
-                # print(moment_index)
-                # bbcircuit.circuit.batch_remove(moment_index)
-
-                print(bbcircuit.circuit.to_text_diagram(
-                    use_unicode_characters=False, qubit_order=bbcircuit.qubit_order))
-                process = psutil.Process(os.getpid())
-                # print("\npid", os.getpid())
-
-                """
-                rss: aka “Resident Set Size”, this is the non-swapped physical memory a
-                process has used. On UNIX it matches “top“‘s RES column).
-                vms: aka “Virtual Memory Size”, this is the total amount of virtual
-                memory used by the process. On UNIX it matches “top“‘s VIRT column.
-                """
-                print("--> mem bucket brigade: {:<8} | qbits: {:<1} | time: {:<20} | rss: {:<10} | vms: {:<10}".format(
-                    decomp, nr_qubits, stop, process.memory_info().rss, process.memory_info().vms), flush=True)
-                if decomp == "decomp":
-                    check_depth_of_circuit(bbcircuit, decomp_scenario)
+                
+                results(decomp, nr_qubits, stop, bbcircuit, decomp_scenario)
 
                 # simulate the circuit
                 # print("Simulating the circuit...")
@@ -147,6 +133,22 @@ def main(decomp, nr, times=1):
             break
         else:
             os.waitpid(forked_pid, 0)
+            for i in range(nr, nr + 1):
+
+                nr_qubits = i
+                qubits.clear()
+                for i in range(nr_qubits):
+                    qubits.append(cirq.NamedQubit("a" + str(i)))
+
+                start = time.time()
+                bbcircuit = bb.BucketBrigade(
+                    qubits, decomp_scenario=decomp_scenario)
+                
+                print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
+                                                        qubit_order=bbcircuit.qubit_order))
+                stop = time.time() - start
+
+                results(decomp, nr_qubits, stop, bbcircuit, decomp_scenario)
 
 
 def run():

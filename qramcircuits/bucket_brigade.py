@@ -321,9 +321,9 @@ class BucketBrigade():
         # that depends only on the decomposition_type
         [dec_fan_in, dec_fan_out, dec_mem] = self.decomp_scenario.get_decomp_types()
         local_toffoli = max(
-            ToffoliDecomposition(dec_fan_in, None).number_of_ancilla(),
-            ToffoliDecomposition(dec_fan_out, None).number_of_ancilla(),
-            ToffoliDecomposition(dec_mem, None).number_of_ancilla())
+            ToffoliDecomposition(dec_fan_in, None).number_of_ancilla() or 0,
+            ToffoliDecomposition(dec_fan_out, None).number_of_ancilla() or 0,
+            ToffoliDecomposition(dec_mem, None).number_of_ancilla() or 0)
         formula_from_paper += local_toffoli
 
         # The total number of qubits from the circuit
