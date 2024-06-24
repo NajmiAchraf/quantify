@@ -101,9 +101,9 @@ class MemoryExperiment:
             """
             self.decomp_scenario_modded = bb.BucketBrigadeDecompType(
                 [
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE,     # fan_in_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE,     # mem_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE,     # fan_out_decomp
+                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # fan_in_decomp
+                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # mem_decomp
+                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # fan_out_decomp
                 ],
                 False
             )

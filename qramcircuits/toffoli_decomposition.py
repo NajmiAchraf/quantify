@@ -40,7 +40,7 @@ class ToffoliDecompType(Enum):
     ZERO_ANCILLA_TDEPTH_4_COMPUTE = auto()
 
     # experimental T gate removed ---------------------------------------------------------
-    ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE = auto()
+    ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2 = auto()
 
     # Relative phase Toffoli (Figure 18/19 from arxiv:2010.00255)
     ZERO_ANCILLA_CNOT_3 = auto
@@ -507,7 +507,7 @@ class ToffoliDecomposition():
 
         # -------------------------------------------------------------------------------------------------------------
 
-        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE:
+        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2:
             # This is a logical AND, and the Hadamard cannot be placed anywhere,
             # TODO: Check where this is placed
 
