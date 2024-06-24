@@ -12,7 +12,7 @@ import psutil
 import sys
 
 
-def spent_time(start: int) -> str:
+def spent_time(start: float) -> str:
     elapsed_time = time.time() - start
     formatted_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
     milliseconds = (elapsed_time - int(elapsed_time)) * 1000
@@ -21,6 +21,12 @@ def spent_time(start: int) -> str:
 
 
 class MemoryExperiment:
+
+    forked_pid:int
+    decomp_scenario: bb.BucketBrigadeDecompType
+    decomp_scenario_modded: bb.BucketBrigadeDecompType
+    bbcircuit: bb.BucketBrigade
+
     def __init__(self):
         if len(sys.argv) == 5:
             self.decomp = "decomp" if sys.argv[1].lower() in ["y", "yes", "decomp"] else "no_decomp"
@@ -41,11 +47,6 @@ class MemoryExperiment:
             self.end_range_qubits = int(input("End range of qubits: "))
             while self.end_range_qubits < self.start_range_qubits:
                 self.end_range_qubits = int(input("End range of qubits: "))
-
-        self.forked_pid:int = None
-        self.decomp_scenario: bb.BucketBrigadeDecompType = None
-        self.decomp_scenario_modded: bb.BucketBrigadeDecompType = None
-        self.bbcircuit: bb.BucketBrigade = None
 
         self.main()
         self.run()
@@ -78,7 +79,7 @@ class MemoryExperiment:
             self.decomp_scenario = self.bb_decompose(ToffoliDecompType.NO_DECOMP)
 
 
-    def bb_decompose(self, toffoli_decomp_type:bb.BucketBrigadeDecompType):
+    def bb_decompose(self, toffoli_decomp_type:ToffoliDecompType):
         return bb.BucketBrigadeDecompType(
             [
                 toffoli_decomp_type,    # fan_in_decomp
@@ -130,7 +131,7 @@ class MemoryExperiment:
             self.results(stop)
 
 
-    def results(self, stop: int):
+    def results(self, stop: str):
         process = psutil.Process(os.getpid())
         # print("\npid", os.getpid())
 
