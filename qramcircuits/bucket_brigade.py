@@ -219,7 +219,14 @@ class BucketBrigade():
                                              self.decomp_scenario.dec_mem,
                                              permutation)
         )
-        if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A, ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B, ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4]:
+        if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
+                                            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+
+                                            # add for optimise_h_and_cnot
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_T_GATE,
+                                            ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 
             # If necessary, parallelise the Toffoli decompositions

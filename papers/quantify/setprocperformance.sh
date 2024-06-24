@@ -8,5 +8,5 @@ sudo cpufreq-set --cpu 4 --governor performance
 sudo cpufreq-set --cpu 5 --governor performance
 sudo cpufreq-set --cpu 6 --governor performance
 sudo cpufreq-set --cpu 7 --governor performance
-
+		
 cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
