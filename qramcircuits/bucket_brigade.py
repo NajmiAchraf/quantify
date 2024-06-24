@@ -225,7 +225,7 @@ class BucketBrigade():
 
                                             # add for optimise_h_and_cnot
                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                                            ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE_V2,
                                             ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 

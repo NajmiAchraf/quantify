@@ -11,6 +11,15 @@ import os
 import psutil
 import sys
 
+
+def spent_time(start: int) -> str:
+    elapsed_time = time.time() - start
+    formatted_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+    milliseconds = (elapsed_time - int(elapsed_time)) * 1000
+    final_output = f"{formatted_time}:{int(milliseconds)}"
+    return final_output
+
+
 class MemoryExperiment:
     def __init__(self):
         if len(sys.argv) == 5:
@@ -33,28 +42,6 @@ class MemoryExperiment:
             while self.end_range_qubits < self.start_range_qubits:
                 self.end_range_qubits = int(input("End range of qubits: "))
 
-        '''
-        self.decomp = sys.argv[1] if len(sys.argv) >= 2 else input("Decomposition? (y/n): ")
-        self.decomp = "decomp" if self.decomp.lower() in ["y", "yes", "decomp"] else "no_decomp"
-
-        self.print_circuit = sys.argv[2] if len(sys.argv) >= 3 else input("Print circuit? (y/n): ")
-        self.print_circuit = True if self.print_circuit.lower() in ["y", "yes"] else False
-
-        if len(sys.argv) >= 4 :
-            self.start_range_qubits = int(sys.argv[3]) 
-        else:
-            self.start_range_qubits = int(input("Start range of qubits: "))
-            while self.start_range_qubits < 2:
-                self.start_range_qubits = int(input("Start range of qubits: "))
-        
-        if len(sys.argv) == 5:
-            self.end_range_qubits = int(sys.argv[4]) if len(sys.argv) == 5 and int(sys.argv[4]) >= self.start_range_qubits else self.start_range_qubits
-        else:
-            self.end_range_qubits = int(input("End range of qubits: "))
-            while self.end_range_qubits < self.start_range_qubits:
-                self.end_range_qubits = int(input("End range of qubits: "))
-        '''
-
         self.forked_pid:int = None
         self.decomp_scenario: bb.BucketBrigadeDecompType = None
         self.decomp_scenario_modded: bb.BucketBrigadeDecompType = None
@@ -66,7 +53,8 @@ class MemoryExperiment:
 
     def main(self):
         print("Hello QRAM circuit experiments!")
-        print("Decomposition: {}, Start Range of Qubits: {}, End Range of Qubits: {}".format(self.decomp, self.start_range_qubits, self.end_range_qubits))
+        print("Decomposition: {}, Print the Circuit: {}, Start Range of Qubits: {}, End Range of Qubits: {}".format(
+            self.decomp, "yes" if self.print_circuit else "no", self.start_range_qubits, self.end_range_qubits))
 
         if self.decomp == "decomp":
             """
@@ -80,45 +68,37 @@ class MemoryExperiment:
             #!     ],
             #!     False
             #! )
-            self.decomp_scenario = bb.BucketBrigadeDecompType(
-                [
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # fan_in_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # mem_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # fan_out_decomp
-                ],
-                False
-            )
-            #? self.decomp_scenario = bb.BucketBrigadeDecompType(
-            #?     [
-            #?         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,    # fan_in_decomp
-            #?         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,    # mem_decomp
-            #?         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,    # fan_out_decomp
-            #?     ],
-            #?     False
-            #? )
-            """
-                Bucket brigade - DECOMP MODDED
-            """
-            self.decomp_scenario_modded = bb.BucketBrigadeDecompType(
-                [
-                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # fan_in_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # mem_decomp
-                    ToffoliDecompType.ZERO_ANCILLA_T_DEPTH_2_COMPUTE_V2,     # fan_out_decomp
-                ],
-                False
-            )
+
+            self.group_test_one()
+
         else:
             """
                 Bucket brigade - NO DECOMP
             """
-            self.decomp_scenario = bb.BucketBrigadeDecompType(
-                [
-                    ToffoliDecompType.NO_DECOMP,  # fan_in_decomp
-                    ToffoliDecompType.NO_DECOMP,  # mem_decomp
-                    ToffoliDecompType.NO_DECOMP,  # fan_out_decomp
-                ],
-                False
-            )
+            self.decomp_scenario = self.bb_decompose(ToffoliDecompType.NO_DECOMP)
+
+
+    def bb_decompose(self, toffoli_decomp_type:bb.BucketBrigadeDecompType):
+        return bb.BucketBrigadeDecompType(
+            [
+                toffoli_decomp_type,    # fan_in_decomp
+                toffoli_decomp_type,    # mem_decomp
+                toffoli_decomp_type     # fan_out_decomp
+            ],
+            False
+        )
+
+
+    def group_test_one(self):
+        # ================DECOMP================ZERO_ANCILLA_TDEPTH 4 and 2================
+
+        self.decomp_scenario = self.bb_decompose(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE)
+        
+        #? self.decomp_scenario = self.bb_decompose(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE)
+
+        # ================MODDED================ZERO_ANCILLA_TDEPTH 4 to 2================
+
+        self.decomp_scenario_modded = self.bb_decompose(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE_V2)
 
 
     def run(self):
@@ -145,7 +125,7 @@ class MemoryExperiment:
             start = time.time()
             self.bbcircuit = bb.BucketBrigade(
                 qubits, decomp_scenario=decomp_scenario)
-            stop = time.time() - start
+            stop = spent_time(start)
 
             self.results(stop)
 
@@ -163,7 +143,7 @@ class MemoryExperiment:
         
         print(f"{'='*150}\n\n")
 
-        print("--> mem bucket brigade: {:<8} | qbits: {:<1} | time: {:<20} | rss: {:<10} | vms: {:<10}\n".format(
+        print("--> mem bucket brigade: {:<8} | qbits: {:<1} | time: {:<12} | rss: {:<10} | vms: {:<10}\n".format(
             self.decomp, self.start_range_qubits, stop, process.memory_info().rss, process.memory_info().vms), flush=True)
 
         if self.decomp == "decomp":
@@ -172,20 +152,32 @@ class MemoryExperiment:
                 decomp_scenario = self.decomp_scenario_modded
             else:
                 decomp_scenario = self.decomp_scenario
+
             print("fan_in_decomp:\t\t{}\nmem_decomp:\t\t{}\nfan_out_decomp:\t\t{}\n".format(
             decomp_scenario.dec_fan_in, decomp_scenario.dec_mem, decomp_scenario.dec_fan_out))
 
             self.check_depth_of_circuit()
 
         if self.print_circuit:
+            # Print the circuit
+            start = time.time()
+
             print("\n", self.bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
                                                 qubit_order=self.bbcircuit.qubit_order))
 
+            stop = spent_time(start)
+            print("Time of printing the circuit: ", stop)
+
         # simulate the circuit
+        start = time.time()
+
         print("\nSimulating the circuit...")
         sim = cirq.Simulator()
         result = sim.simulate(self.bbcircuit.circuit)
         print(result)
+
+        stop = spent_time(start)
+        print("Simulation time: ", stop)
 
         print(f"\n\n{'='*150}")
 
@@ -211,10 +203,5 @@ class MemoryExperiment:
         # self.bbcircuit.verify_cnot_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis)
 
 
-
 if __name__ == "__main__":
-    try:
-        MemoryExperiment()
-    except Exception as e:
-        print("Error: ", e)
-        sys.exit(1)
+    MemoryExperiment()
