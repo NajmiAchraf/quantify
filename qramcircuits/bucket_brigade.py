@@ -222,10 +222,9 @@ class BucketBrigade():
         if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-
-                                            # add for optimise_h_and_cnot
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE_V2,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST,
                                             ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 
