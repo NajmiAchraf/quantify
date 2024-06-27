@@ -6,6 +6,7 @@ import qramcircuits.bucket_brigade as bb
 import optimizers as qopt
 
 import time
+from typing import Union
 
 import copy
 import os
@@ -95,8 +96,13 @@ class MemoryExperiment:
 
     def main(self):
         print("Hello QRAM circuit experiments!")
-        print("Decomposition: {}, Print the Circuit: {}, Start Range of Qubits: {}, End Range of Qubits: {}".format(
-            self.decomp, "yes" if self.print_circuit else "no", self.start_range_qubits, self.end_range_qubits))
+        print("Decomposition: {}, Compare: {}, Print the Circuit: {}, Start Range of Qubits: {}, End Range of Qubits: {}".format(
+            self.decomp,
+            "yes" if self.compare else "no",
+            "yes" if self.print_circuit else "no",
+            self.start_range_qubits,
+            self.end_range_qubits
+        ))
 
         if self.decomp == "decomp":
             """
@@ -104,43 +110,89 @@ class MemoryExperiment:
             """
             # self.bb_decompose_test(
             #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST
+            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+            #     True
             # )
-            self.bb_decompose_test(
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST
-            )
+
+            # self.bb_decompose_test(
+            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,
+            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST,
+            #     False
+            # )
+
+            for ptstatus in [True, False]:
+                self.bb_decompose_test(
+                    [
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+                    [
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+                    ptstatus
+                )
+
+            # self.bb_decompose_test(
+            #     [
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+            #     [
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+            #     True
+            # )
 
         else:
             """
                 Bucket brigade - NO DECOMP
             """
             self.decomp_scenario = self.bb_decompose(
-                ToffoliDecompType.NO_DECOMP)
+                ToffoliDecompType.NO_DECOMP,
+                False
+            )
             self.run()
 
-    def bb_decompose(self, toffoli_decomp_type: ToffoliDecompType):
-        return bb.BucketBrigadeDecompType(
-            [
-                toffoli_decomp_type,    # fan_in_decomp
-                toffoli_decomp_type,    # mem_decomp
-                toffoli_decomp_type     # fan_out_decomp
-            ],
-            False
-        )
+    def bb_decompose(
+        self,
+        toffoli_decomp_type: Union[list[ToffoliDecompType], ToffoliDecompType],
+        parallel_toffolis: bool
+    ):
+        if isinstance(toffoli_decomp_type, list):
+            return bb.BucketBrigadeDecompType(
+                toffoli_decomp_types=[
+                    toffoli_decomp_type[0],    # fan_in_decomp
+                    toffoli_decomp_type[1],    # mem_decomp
+                    toffoli_decomp_type[2]     # fan_out_decomp
+                ],
+                parallel_toffolis=parallel_toffolis
+            )
+        else:
+            return bb.BucketBrigadeDecompType(
+                toffoli_decomp_types=[
+                    toffoli_decomp_type,    # fan_in_decomp
+                    toffoli_decomp_type,    # mem_decomp
+                    toffoli_decomp_type     # fan_out_decomp
+                ],
+                parallel_toffolis=parallel_toffolis
+            )
 
     def bb_decompose_test(
-        self,
-        dec: ToffoliDecompType,
-        dec_mod: ToffoliDecompType
+            self,
+            dec: Union[list[ToffoliDecompType], ToffoliDecompType],
+            dec_mod: Union[list[ToffoliDecompType], ToffoliDecompType],
+            parallel_toffolis: bool
     ):
         # ================DECOMP================
 
-        self.decomp_scenario = self.bb_decompose(dec)
+        self.decomp_scenario = self.bb_decompose(dec, parallel_toffolis)
 
         # ================MODDED================
 
-        self.decomp_scenario_modded = self.bb_decompose(dec_mod)
+        self.decomp_scenario_modded = self.bb_decompose(
+            dec_mod, parallel_toffolis)
 
         self.run()
 
@@ -149,7 +201,7 @@ class MemoryExperiment:
             self.start_range_qubits = i
             self.forked_pid = os.fork()
             if self.forked_pid == 0:
-                if self.compare:
+                if self.compare or self.decomp == "no_decomp":
                     self.core(self.decomp_scenario)
                 sys.exit(0)
             else:
@@ -175,9 +227,9 @@ class MemoryExperiment:
     def results(self, stop: str):
         print(f"{'='*150}\n\n")
 
-        self.simulate_decompositions()
-
         self.simulate_circuit(stop)
+
+        self.simulate_decompositions()
 
         print(f"\n\n{'='*150}")
 
@@ -211,10 +263,12 @@ class MemoryExperiment:
             print(
                 "fan_in_decomp:\t\t{}\n"
                 "mem_decomp:\t\t{}\n"
-                "fan_out_decomp:\t\t{}\n".format(
+                "fan_out_decomp:\t\t{}\n"
+                "parallel_toffolis:\t{}\n".format(
                     decomp_scenario.dec_fan_in,
                     decomp_scenario.dec_mem,
-                    decomp_scenario.dec_fan_out
+                    decomp_scenario.dec_fan_out,
+                    "YES !!" if decomp_scenario.parallel_toffolis else "NO !!"
                 ))
 
         if self.print_circuit:
@@ -286,7 +340,7 @@ class MemoryExperiment:
             qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
 
             moments = ToffoliDecomposition(
-                decomposition_type=decomp_scenario[0],
+                decomposition_type=dec,
                 qubits=qubits).decomposition()
 
             measurements = [cirq.measure(qubits[i])
