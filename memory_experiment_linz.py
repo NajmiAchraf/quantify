@@ -16,27 +16,16 @@ import sys
 import numpy as np
 
 
-def rgp(color: str, *args) -> None:
-    if color == "r":
-        print("\033[91m" + " ".join(args) + "\033[0m")
-    elif color == "g":
-        print("\033[92m" + " ".join(args) + "\033[0m")
-
-
-def spent_time(start: float) -> str:
-    elapsed_time = time.time() - start
-    formatted_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
-    milliseconds = (elapsed_time - int(elapsed_time)) * 1000
-    final_output = f"{formatted_time}:{int(milliseconds)}"
-    return final_output
-
-
 class MemoryExperiment:
     decomp: str = "no_decomp"
+    dec_sim: bool = False
     compare: bool = False
     print_circuit: bool = False
     start_range_qubits: int
     end_range_qubits: int
+
+    start: float = 0
+    stop: str = ""
 
     forked_pid: int
     decomp_scenario: bb.BucketBrigadeDecompType
@@ -53,29 +42,37 @@ class MemoryExperiment:
         msg1 = "End range of qubits must be greater than"\
             " start range of qubits or equal to it"
 
-        if len(sys.argv) == 6:
+        len_argv = 7
+
+        if len(sys.argv) == len_argv:
             if sys.argv[1].lower() in ["y", "yes"]:
                 self.decomp = "decomp"
 
-            if sys.argv[2].lower() in ["y", "yes"] and self.decomp == "decomp":
+            if sys.argv[2].lower() in ["y", "yes"]:
+                self.dec_sim = True
+
+            if sys.argv[3].lower() in ["y", "yes"] and self.decomp == "decomp":
                 self.compare = True
 
-            if sys.argv[3].lower() in ["y", "yes"]:
+            if sys.argv[4].lower() in ["y", "yes"]:
                 self.print_circuit = True
 
-            self.start_range_qubits = int(sys.argv[4])
+            self.start_range_qubits = int(sys.argv[5])
             if self.start_range_qubits < 2:
                 print(msg0)
                 flag = False
 
-            self.end_range_qubits = int(sys.argv[5])
+            self.end_range_qubits = int(sys.argv[6])
             if self.end_range_qubits < self.start_range_qubits:
                 print(msg1)
                 flag = False
 
-        if len(sys.argv) != 6 or not flag:
+        if len(sys.argv) != len_argv or not flag:
             if input("Decomposition? (y/n): ").lower() in ["y", "yes"]:
                 self.decomp = "decomp"
+
+            if input("Decomposition simulation? (y/n): ").lower() in ["y", "yes"]:
+                self.dec_sim = True
 
             if self.decomp == "decomp":
                 if input("Compare? (y/n): ").lower() in ["y", "yes"]:
@@ -120,30 +117,30 @@ class MemoryExperiment:
             #     False
             # )
 
-            for ptstatus in [True, False]:
-                self.bb_decompose_test(
-                    [
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-                    [
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                        ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-                    ptstatus
-                )
+            # for ptstatus in [True, False]:
+            #     self.bb_decompose_test(
+            #         [
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+            #         [
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+            #         ptstatus
+            #     )
 
-            # self.bb_decompose_test(
-            #     [
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-            #     [
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-            #     True
-            # )
+            self.bb_decompose_test(
+                [
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+                [
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST,
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST],
+                True
+            )
 
         else:
             """
@@ -196,6 +193,21 @@ class MemoryExperiment:
 
         self.run()
 
+    def printCircuit(self, circuit: cirq.Circuit, qubits: list[cirq.NamedQubit]):
+        # Print the circuit
+        start = time.time()
+
+        print(
+            circuit.to_text_diagram(
+                use_unicode_characters=False,
+                qubit_order=qubits
+            ),
+            end="\n\n"
+        )
+
+        stop = self.spent_time(start)
+        print("Time of printing the circuit: ", stop, "\n")
+
     def run(self):
         for i in range(self.start_range_qubits, self.end_range_qubits + 1):
             self.start_range_qubits = i
@@ -217,23 +229,24 @@ class MemoryExperiment:
             for i in range(nr_qubits):
                 qubits.append(cirq.NamedQubit("a" + str(i)))
 
-            start = time.time()
+            self.start = time.time()
             self.bbcircuit = bb.BucketBrigade(
                 qubits, decomp_scenario=decomp_scenario)
-            stop = spent_time(start)
+            self.stop = self.spent_time(self.start)
 
-            self.results(stop)
+            self.results()
 
-    def results(self, stop: str):
+    def results(self):
         print(f"{'='*150}\n\n")
 
-        self.simulate_circuit(stop)
+        self.simulate_circuit()
 
-        self.simulate_decompositions()
+        if self.dec_sim:
+            self.simulate_decompositions()
 
         print(f"\n\n{'='*150}")
 
-    def simulate_circuit(self, stop: str):
+    def simulate_circuit(self):
         process = psutil.Process(os.getpid())
         # print("\npid", os.getpid())
 
@@ -249,7 +262,7 @@ class MemoryExperiment:
             "| Time: {:<12} | rss: {:<10} | vms: {:<10}\n".format(
                 self.decomp,
                 self.start_range_qubits,
-                stop, process.memory_info().rss,
+                self.stop, process.memory_info().rss,
                 process.memory_info().vms),
             flush=True)
 
@@ -271,16 +284,13 @@ class MemoryExperiment:
                     "YES !!" if decomp_scenario.parallel_toffolis else "NO !!"
                 ))
 
-        if self.print_circuit:
-            # Print the circuit
-            start = time.time()
-            print("\n", self.bbcircuit.circuit.to_text_diagram(
-                use_unicode_characters=False,
-                qubit_order=self.bbcircuit.qubit_order))
-            print("Time of printing the circuit: ", spent_time(start))
+            self.check_depth_of_circuit()
 
-        # TODO: Implement the simulation of the full circuit
-        # self.simulation()
+        if self.print_circuit:
+            self.printCircuit(self.bbcircuit.circuit,
+                              self.bbcircuit.qubit_order)
+
+        self.simulation()
 
     def check_depth_of_circuit(self):
         print("\nChecking depth of the circuit decomposition...", end="\n\n")
@@ -304,23 +314,85 @@ class MemoryExperiment:
 
         print("\n")
 
-    # TODO: Implement the simulation of the full circuit
     def simulation(self):
-        self.check_depth_of_circuit()
-
-        start = time.time()
+        flag = True
+        self.start = time.time()
 
         print("\nSimulating the circuit...")
 
-        simulator = cirq.Simulator()
-        result = simulator.simulate(self.bbcircuit.circuit)
-        print(result)
+        measurements = [cirq.measure(self.bbcircuit.qubit_order[i])
+                        for i in range(len(self.bbcircuit.qubit_order))]
 
-        stop = spent_time(start)
-        print("Simulation time: ", stop)
+        self.bbcircuit.circuit.append(measurements)
+
+        simulator = cirq.Simulator()
+
+        if self.print_circuit:
+            self.printCircuit(self.bbcircuit.circuit,
+                              self.bbcircuit.qubit_order)
+
+        ls = [0 for _ in range(2**len(self.bbcircuit.qubit_order))]
+        initial_state = np.array(ls, dtype=np.complex64)
+
+        """ 2
+the range of b qubits
+0000 -> 0
+0001 -> 32
+0010 -> 64
+0011 -> 96
+...
+1111 -> 480
+10000 -> 512
+        """
+        """ 3
+the range of b qubits
+00000000 -> 0
+00000001 -> 512
+00000010 -> 1024
+00000011 -> 1536
+...
+11111111 -> 65536
+100000000 -> 131072
+        """
+
+        step = 2**(2**self.start_range_qubits+1)
+        max_value = (step * (2**(2**self.start_range_qubits)))
+        print("step", step)
+        print("max_value", max_value)
+
+        for i in range(0, max_value, step):
+            initial_state[i] = 1
+            result = simulator.simulate(
+                self.bbcircuit.circuit,
+                qubit_order=self.bbcircuit.qubit_order,
+                initial_state=initial_state
+            )
+            # temp is supposed to have the expected result of a toffoli
+            temp = copy.deepcopy(initial_state)
+
+            try:
+                assert (np.array_equal(
+                    np.array(np.around(result.final_state)), temp))
+            except Exception:
+                flag = False
+                self.rgp("r", str(result))
+            else:
+                self.rgp("g", str(result))
+            print("")
+            initial_state[i] = 0
+
+        self.stop = self.spent_time(self.start)
+        if flag:
+            self.rgp("g", "Decomposition simulation passed, Time:", self.stop)
+        else:
+            self.rgp("r", "Decomposition simulation failed, Time:", self.stop)
 
     def fan_in_mem_out(self, decomp_scenario):
-        return [decomp_scenario.dec_fan_in, decomp_scenario.dec_mem, decomp_scenario.dec_fan_out]
+        return [
+            decomp_scenario.dec_fan_in,
+            decomp_scenario.dec_mem,
+            decomp_scenario.dec_fan_out
+        ]
 
     def simulate_decompositions(self):
         if self.forked_pid == 0:
@@ -332,7 +404,7 @@ class MemoryExperiment:
 
         for dec in decomp_scenario:
             flag = True
-            start = time.time()
+            self.start = time.time()
             print("\nSimulating the decomposition ...", dec,  end="\n\n")
 
             circuit = cirq.Circuit()
@@ -342,32 +414,20 @@ class MemoryExperiment:
             moments = ToffoliDecomposition(
                 decomposition_type=dec,
                 qubits=qubits).decomposition()
+            circuit.append(moments)
 
             measurements = [cirq.measure(qubits[i])
                             for i in range(len(qubits))]
-
-            circuit.append(moments)
             circuit.append(measurements)
 
             if self.print_circuit:
-                # Print the circuit
-                start = time.time()
-
-                print(
-                    circuit.to_text_diagram(
-                        use_unicode_characters=False,
-                        qubit_order=qubits
-                    ),
-                    end="\n\n"
-                )
-
-                stop = spent_time(start)
-                print("Time of printing the circuit: ", stop, "\n")
+                self.printCircuit(circuit, qubits)
 
             simulator = cirq.Simulator()
 
             ls = [0 for i in range(2**len(qubits))]
             initial_state = np.array(ls, dtype=np.complex64)
+            print(initial_state)
             for i in range(8):
                 initial_state[i] = 1
                 result = simulator.simulate(
@@ -386,18 +446,37 @@ class MemoryExperiment:
                         np.array(np.around(result.final_state)), temp))
                 except Exception:
                     flag = False
-                    rgp("r", str(result))
+                    self.rgp("r", str(result))
                 else:
-                    rgp("g", str(result))
+                    self.rgp("g", str(result))
                 print("")
 
                 initial_state[i] = 0
 
-            stop = spent_time(start)
+            self.stop = self.spent_time(self.start)
             if flag:
-                rgp("g", "Decomposition simulation passed, Time:", stop)
+                self.rgp("g", "Decomposition simulation passed, Time:", self.stop)
             else:
-                rgp("r", "Decomposition simulation failed, Time:", stop)
+                self.rgp("r", "Decomposition simulation failed, Time:", self.stop)
+
+    ########################
+    # static methods
+    ########################
+
+    @ staticmethod
+    def rgp(color: str, *args) -> None:
+        if color == "r":
+            print("\033[91m" + " ".join(args) + "\033[0m")
+        elif color == "g":
+            print("\033[92m" + " ".join(args) + "\033[0m")
+
+    @ staticmethod
+    def spent_time(start: float) -> str:
+        elapsed_time = time.time() - start
+        formatted_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        milliseconds = (elapsed_time - int(elapsed_time)) * 1000
+        final_output = f"{formatted_time}:{int(milliseconds)}"
+        return final_output
 
 
 if __name__ == "__main__":

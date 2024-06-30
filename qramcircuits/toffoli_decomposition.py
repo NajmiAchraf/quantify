@@ -12,7 +12,6 @@ class ToffoliDecompType(Enum):
 
     # Equation 3 from arxiv:1210.0974v2
     ZERO_ANCILLA_TDEPTH_3 = auto()
-    ZERO_ANCILLA_TDEPTH_3_TEST = auto()
 
     # Decomp from Thaplyal
     ZERO_ANCILLA_TDEPTH_3_DEPTH_10 = auto()
@@ -33,14 +32,18 @@ class ToffoliDecompType(Enum):
 
     # arxiv:1709.06648 Figure 3
     ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE = auto()
+    ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST = auto()  # ! Test
 
     FOUR_ANCILLA_TDEPTH_1_COMPUTE = auto()
 
     # experimental
     ONE_ANCILLA_TDEPTH_4 = auto()
+
     ZERO_ANCILLA_TDEPTH_4 = auto()
-    ZERO_ANCILLA_TDEPTH_4_TEST = auto()
+    ZERO_ANCILLA_TDEPTH_4_TEST = auto()  # ! Test
+
     ZERO_ANCILLA_TDEPTH_4_COMPUTE = auto()
+    ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST = auto()  # ! Test
 
     # Relative phase Toffoli (Figure 18/19 from arxiv:2010.00255)
     ZERO_ANCILLA_CNOT_3 = auto
@@ -152,50 +155,6 @@ class ToffoliDecomposition():
                              cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1]),
                              cirq.H.on(self.target_qubit)])
-            ]
-            # strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
-
-        ########################################################################################################################################################
-        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST:
-            # Equation 3 from arxiv:1210.0974v2
-            # No ancilla, T-depth 3
-            moments += [
-                cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0])**-1,
-                    # cirq.T.on(self.qubits[1]),
-                    cirq.T.on(self.qubits[2])
-                ]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
-
-                cirq.Moment([
-                    (cirq.T**-1).on(self.qubits[0]),
-                    cirq.CNOT.on(self.qubits[1], self.qubits[2])
-                ]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[0])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]) ** -1,
-                    cirq.T.on(self.qubits[1]) ** -1,
-                    cirq.T.on(self.qubits[2])
-                ]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
-
-                cirq.Moment([
-                    cirq.S.on(self.qubits[0]),
-                    cirq.CNOT.on(self.qubits[1], self.qubits[2])
-                ]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                    cirq.H.on(self.target_qubit)
-                ])
             ]
             # strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
 
@@ -433,6 +392,18 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.CX.on(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.H.on(self.qubits[0])]),
             ]
+
+        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST:
+            # lower part Figure 3 from 1709.06648
+            # Measurements are implicit, and we assume worst case where all
+            # the CZ have to be implemented
+            moments = [
+                cirq.Moment([cirq.H.on(self.qubits[2]),
+                            cirq.H.on(self.qubits[0])]),
+                cirq.Moment([cirq.CX.on(self.qubits[1], self.qubits[0])]),
+                cirq.Moment([cirq.H.on(self.qubits[0])]),
+            ]
+
         elif self.decomp_type == ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE:
             # Figure 3 from https://arxiv.org/pdf/1212.5069.pdf
             # Figure 6 from from arxiv:1303.2042
@@ -567,6 +538,31 @@ class ToffoliDecomposition():
             return moments
 
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE:
+            # This is a logical AND, and the Hadamard cannot be placed anywhere,
+            # TODO: Check where this is placed
+
+            moments = [
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2])]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2])]),
+                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+                cirq.Moment([cirq.T.on(self.qubits[2])]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2])]),
+                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.H.on(self.target_qubit)])
+            ]
+
+            return moments
+        ########################################################################################################################################################
+        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST:
             # This is a logical AND, and the Hadamard cannot be placed anywhere,
             # TODO: Check where this is placed
 

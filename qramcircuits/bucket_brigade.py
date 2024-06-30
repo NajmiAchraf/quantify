@@ -8,6 +8,7 @@ import utils.misc_utils as miscutils
 import optimizers as qopt
 import numpy as np
 
+
 class BucketBrigadeDecompType:
     def __init__(self, toffoli_decomp_types, parallel_toffolis):
         self.dec_fan_in = toffoli_decomp_types[0]
@@ -19,7 +20,6 @@ class BucketBrigadeDecompType:
         # is used (not checked, for the moment)...
         # We are not sure how to design this. Keep it.
         self.parallel_toffolis = parallel_toffolis
-
 
     # def get_dec_fan_in(self):
     #     return self.dec_fan_in
@@ -83,7 +83,8 @@ class BucketBrigade():
 
         all_ancillas = []
 
-        anc_created = [cirq.NamedQubit(self.get_b_ancilla_name(i, n)) for i in range(2)]
+        anc_created = [cirq.NamedQubit(
+            self.get_b_ancilla_name(i, n)) for i in range(2)]
         all_ancillas += anc_created
 
         compute_fanin_moments = [
@@ -117,13 +118,14 @@ class BucketBrigade():
 
                 compute_fanin_moments += [
                     cirq.Moment([cirq.TOFFOLI(ccx_first_control,
-                                           ccx_second_control,
-                                           ccx_target)])
+                                              ccx_second_control,
+                                              ccx_target)])
                 ]
 
                 cnot_control = ccx_target
                 cnot_target = ccx_second_control
-                cnot_moment_ops.append(cirq.ops.CNOT(cnot_control, cnot_target))
+                cnot_moment_ops.append(
+                    cirq.ops.CNOT(cnot_control, cnot_target))
 
             # circuit.append(ccx_ops)
             # circuit.append(cirq.Moment(cnot_moment_ops))
@@ -153,7 +155,8 @@ class BucketBrigade():
 
         # number of qubits
         n = len(qubits)
-        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n)) for i in range(2 ** (n))]
+        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n))
+                  for i in range(2 ** (n))]
         target = cirq.NamedQubit("target")
 
         """
@@ -175,7 +178,8 @@ class BucketBrigade():
         #     dec_mem = self.decomposition_type
         # [dec_fan_in, dec_fan_out, dec_mem] = self.decomp_scenario.get_decomp_type()
 
-        all_ancillas, compute_fanin_moments = self.construct_fan_structure(qubits)
+        all_ancillas, compute_fanin_moments = self.construct_fan_structure(
+            qubits)
 
         """
             Adding the FANIN
@@ -183,8 +187,8 @@ class BucketBrigade():
 
         comp_fan_in = cirq.Circuit(
             ToffoliDecomposition.
-                construct_decomposed_moments(compute_fanin_moments,
-                                             self.decomp_scenario.dec_fan_in)
+            construct_decomposed_moments(compute_fanin_moments,
+                                         self.decomp_scenario.dec_fan_in)
         )
 
         # If necessary, parallelise the Toffoli decompositions
@@ -213,24 +217,23 @@ class BucketBrigade():
 
         # Create a sub-circuit from the moments
         # TODO: This is redundant, should be from the beginning
-        memory_decomposed = cirq.Circuit(\
-            ToffoliDecomposition.\
-                construct_decomposed_moments(memory_operations,
-                                             self.decomp_scenario.dec_mem,
-                                             permutation)
+        memory_decomposed = cirq.Circuit(
+            ToffoliDecomposition.
+            construct_decomposed_moments(memory_operations,
+                                         self.decomp_scenario.dec_mem,
+                                         permutation)
         )
         if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST
                                             ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 
             # If necessary, parallelise the Toffoli decompositions
         if self.decomp_scenario.parallel_toffolis:
-            memory_decomposed = BucketBrigade.parallelise_toffolis(memory_decomposed)
+            memory_decomposed = BucketBrigade.parallelise_toffolis(
+                memory_decomposed)
 
         circuit.append(memory_decomposed)
 
@@ -242,9 +245,9 @@ class BucketBrigade():
         # If necessary, parallelise the Toffoli decompositions
         comp_fan_out = cirq.Circuit(
             ToffoliDecomposition.
-                construct_decomposed_moments(compute_fanout_moments,
-                                             self.decomp_scenario.dec_fan_out,
-                                             [1, 0, 2]))
+            construct_decomposed_moments(compute_fanout_moments,
+                                         self.decomp_scenario.dec_fan_out,
+                                         [1, 0, 2]))
 
         if self.decomp_scenario.parallel_toffolis:
             comp_fan_out = BucketBrigade.parallelise_toffolis(
@@ -303,13 +306,10 @@ class BucketBrigade():
                                      # ,strategy=cirq.InsertStrategy.NEW
                                      )
 
-
-
         circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
         # circuit_1 = circuit_2
 
         return circuit_1
-
 
     """
         Verifications
@@ -339,7 +339,7 @@ class BucketBrigade():
         verif = (circ_qubits == formula_from_paper)
         return verif
 
-    def verify_depth(self,Alexandru_scenario=False):
+    def verify_depth(self, Alexandru_scenario=False):
         """"
             We consider a mixture of Toffoli decompositions
             For the moment, the mixture is of two types
@@ -350,10 +350,10 @@ class BucketBrigade():
         num_toffolis_per_type = np.array([2**self.size_adr_n - 2,
                                           2**self.size_adr_n,
                                           2**self.size_adr_n - 2])
-        if(Alexandru_scenario):
+        if (Alexandru_scenario):
             num_toffolis_per_type = np.array([self.size_adr_n - 1,
                                               1,
-                                            self.size_adr_n - 1]) #it's rather the number of parallel Tofollis
+                                              self.size_adr_n - 1])  # it's rather the number of parallel Tofollis
         # if self.dec_fan_in == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3:
         #     toff_dec_depth_per_type = np.array([10, 0, 0])
         # if self.dec_fan_out == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3:
@@ -367,7 +367,7 @@ class BucketBrigade():
         ]
 
         formula_from_paper = 0
-        for elem in zip(num_toffolis_per_type,toff_dec_depth_per_type):
+        for elem in zip(num_toffolis_per_type, toff_dec_depth_per_type):
             formula_from_paper += elem[0] * elem[1]
         # depth after decomposition
         # if self.decomposition_type == ToffoliDecompType.NO_DECOMP:
@@ -411,9 +411,10 @@ class BucketBrigade():
         """
             Special cases
         """
-        reduced_depth = 0 #it's the canceled cnots and hadamards for olivia's scenario
+        reduced_depth = 0  # it's the canceled cnots and hadamards for olivia's scenario
         if (self.decomp_scenario.dec_mem == ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B):
-            reduced_depth = 8 * (2 ** self.size_adr_n - 1) # 8=2(3cnots +1hadmard)
+            # 8=2(3cnots +1hadmard)
+            reduced_depth = 8 * (2 ** self.size_adr_n - 1)
 
         formula_from_paper -= reduced_depth
         # if self.decomposition_type in [ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3, ToffoliDecompType.ONE_ANCILLA_TDEPTH_2]:
@@ -423,17 +424,11 @@ class BucketBrigade():
         #     # The mixture leaves 8 depth which are not cancelled
         #     formula_from_paper += 8
 
-
-
-
         circ_depth = len(self.circuit)
 
         print("have {} == {} should".format(circ_depth, formula_from_paper))
         verif = (circ_depth == formula_from_paper)
         return verif
-
-
-
 
     def verify_T_count(self):
         # if self.decomposition_type == ToffoliDecompType.NO_DECOMP:
@@ -457,9 +452,8 @@ class BucketBrigade():
         ]
 
         formula_from_paper = 0
-        for elem in zip(toff_dec_t_count_per_type,num_toffolis_per_type):
+        for elem in zip(toff_dec_t_count_per_type, num_toffolis_per_type):
             formula_from_paper += elem[0]*elem[1]
-
 
         nr_t = count_t_of_circuit(self.circuit)
 
@@ -484,7 +478,7 @@ class BucketBrigade():
 
         if (Alexandru_scenario):
             num_toffolis_per_type = np.array([self.size_adr_n - 1, 1,
-                                              self.size_adr_n - 1]) #it's rather the number of parallel Tofollis
+                                              self.size_adr_n - 1])  # it's rather the number of parallel Tofollis
         # [dec_fan_in, dec_fan_out, dec_mem] = self.decomp_scenario.get_decomp_types()
 
         toff_dec_t_depth_per_type = [
@@ -516,9 +510,12 @@ class BucketBrigade():
         # [dec_fan_in, dec_fan_out, dec_mem] = self.decomp_scenario.get_decomp_types()
 
         toff_dec_H_count_per_type = [
-            ToffoliDecomposition(self.decomp_scenario.dec_fan_in).number_of_hadamards,
-            ToffoliDecomposition(self.decomp_scenario.dec_fan_out).number_of_hadamards,
-            ToffoliDecomposition(self.decomp_scenario.dec_mem).number_of_hadamards
+            ToffoliDecomposition(
+                self.decomp_scenario.dec_fan_in).number_of_hadamards,
+            ToffoliDecomposition(
+                self.decomp_scenario.dec_fan_out).number_of_hadamards,
+            ToffoliDecomposition(
+                self.decomp_scenario.dec_mem).number_of_hadamards
         ]
 
         formula_from_paper = 0
@@ -528,15 +525,15 @@ class BucketBrigade():
         special cases
         """
         num_of_canceled_H = 0
-        if(self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A, ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B] or Alexandru_scenario):
+        if (self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A, ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B] or Alexandru_scenario):
             num_of_canceled_H = 2**(self.size_adr_n+1)-2
-        formula_from_paper-=num_of_canceled_H
+        formula_from_paper -= num_of_canceled_H
         nr_h = count_h_of_circuit(self.circuit)
         print("have {} == {} should".format(nr_h, formula_from_paper))
         verif = (formula_from_paper == nr_h)
         return verif
 
-    def verify_cnot_count(self,Alexandru_scenario=False):
+    def verify_cnot_count(self, Alexandru_scenario=False):
         """"
             We consider a mixture of Toffoli decompositions
             For the moment, the mixture is of two types
@@ -549,9 +546,11 @@ class BucketBrigade():
                                           2 ** self.size_adr_n - 2])
 
         toff_dec_cnot_count_per_type = [
-            ToffoliDecomposition(self.decomp_scenario.dec_fan_in).number_of_cnots,
+            ToffoliDecomposition(
+                self.decomp_scenario.dec_fan_in).number_of_cnots,
             ToffoliDecomposition(self.decomp_scenario.dec_mem).number_of_cnots,
-            ToffoliDecomposition(self.decomp_scenario.dec_fan_out).number_of_cnots
+            ToffoliDecomposition(
+                self.decomp_scenario.dec_fan_out).number_of_cnots
         ]
 
         # if self.decomposition_type == ToffoliDecompType.NO_DECOMP:
@@ -585,11 +584,11 @@ class BucketBrigade():
         Theoretically, FOUR_ANCILLA_TDEPTH_1_B has 18 CNOTs, but after
         cancelling out, only 12 remain...and 6 which are added (see below)
         """
-            # num_cnots_dec_per_type = (16, 12)
-            #
-            # num_toffolis_fan = 2 ** (self.size_adr_n + 1) - 4
-            # num_toffolis_mem = 2 ** self.size_adr_n
-            # num_toffolis_per_type = (num_toffolis_fan, num_toffolis_mem)
+        # num_cnots_dec_per_type = (16, 12)
+        #
+        # num_toffolis_fan = 2 ** (self.size_adr_n + 1) - 4
+        # num_toffolis_mem = 2 ** self.size_adr_n
+        # num_toffolis_per_type = (num_toffolis_fan, num_toffolis_mem)
 
         # See naming from arxiv: 1502.03450
         num_coupling_nodes = 2 * 2 ** self.size_adr_n
@@ -615,4 +614,3 @@ class BucketBrigade():
         # print("have {} == {} should".format(nr_cnot, formula_from_paper))
         verif = (formula_from_paper == nr_cnot)
         return verif
-
