@@ -112,33 +112,24 @@ class MemoryExperiment:
             # )
 
             # self.bb_decompose_test(
-            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,
-            #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_TEST,
-            #     False
+            #     [
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
+            #     [
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+            #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST],
+            #     True
             # )
-
-            # for ptstatus in [True, False]:
-            #     self.bb_decompose_test(
-            #         [
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-            #         [
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-            #         ptstatus
-            #     )
 
             self.bb_decompose_test(
                 [
                     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
                     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
                     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-                [
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST,
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST],
+
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
                 True
             )
 
@@ -214,11 +205,13 @@ class MemoryExperiment:
             self.forked_pid = os.fork()
             if self.forked_pid == 0:
                 if self.compare or self.decomp == "no_decomp":
+                    print("\nThe original decomp scenario:")
                     self.core(self.decomp_scenario)
                 sys.exit(0)
             else:
                 os.waitpid(self.forked_pid, 0)
                 if self.decomp == "decomp":
+                    print("\nThe modded decomp scenario:")
                     self.core(self.decomp_scenario_modded)
 
     def core(self, decomp_scenario):
@@ -383,9 +376,9 @@ the range of b qubits
 
         self.stop = self.spent_time(self.start)
         if flag:
-            self.rgp("g", "Decomposition simulation passed, Time:", self.stop)
+            self.rgp("g", "Circuit simulation passed, Time:", self.stop)
         else:
-            self.rgp("r", "Decomposition simulation failed, Time:", self.stop)
+            self.rgp("r", "Circuit simulation failed, Time:", self.stop)
 
     def fan_in_mem_out(self, decomp_scenario):
         return [
