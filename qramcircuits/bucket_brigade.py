@@ -335,7 +335,7 @@ class BucketBrigade():
         # The total number of qubits from the circuit
         circ_qubits = len(self.circuit.all_qubits())
 
-        # print("have {} == {} should".format(circ_qubits, formula_from_paper))
+        print("have {} == {} should".format(circ_qubits, formula_from_paper))
         verif = (circ_qubits == formula_from_paper)
         return verif
 
@@ -457,7 +457,7 @@ class BucketBrigade():
 
         nr_t = count_t_of_circuit(self.circuit)
 
-        # print("have {} == {} should".format(nr_t, formula_from_paper))
+        print("have {} == {} should".format(nr_t, formula_from_paper))
         verif = (formula_from_paper == nr_t)
         return verif
 
