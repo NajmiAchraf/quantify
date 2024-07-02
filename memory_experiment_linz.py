@@ -390,8 +390,6 @@ the range of b qubits
                 qubit_order=self.bbcircuit.qubit_order,
                 initial_state=initial_state
             )
-            qsim_simulator = qsimcirq.QSimSimulator()
-            qsim_results = qsim_simulator.run(circuit, repetitions=5)
             # temp is supposed to have the expected result of intial state
             temp = copy.deepcopy(initial_state)
 
