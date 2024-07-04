@@ -101,47 +101,6 @@ class MemoryExperiment:
         """
             Bucket brigade
         """
-        # self.bb_decompose_test(
-        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-        #     True
-        # )
-
-        # self.bb_decompose_test(
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE_TEST,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST],
-        #     True
-        # )
-
-        # self.bb_decompose_test(
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-
-        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #     True
-        # )
-
-        # self.bb_decompose_test(
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-        #     True,
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE_TEST],
-        #     True
-        # )
-
         self.bb_decompose_test(
             ToffoliDecompType.NO_DECOMP,
             False,
@@ -151,7 +110,13 @@ class MemoryExperiment:
                 ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
             True
         )
-    
+
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #     True
+        # )
 
         # self.bb_decompose_test(
         #     ToffoliDecompType.NO_DECOMP,

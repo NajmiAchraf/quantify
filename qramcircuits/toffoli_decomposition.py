@@ -500,26 +500,6 @@ class ToffoliDecomposition():
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST:
             # This is a CCZ, and the Hadamard can be placed anywhere,
             # but by Cirq definition, the last qubit is the target
-            
-            # G = S† · H · T · H · S
-            # G = cirq.S ** -1 * cirq.H * cirq.T * cirq.H * cirq.S
-
-            # moments = [
-            #     cirq.Moment([G ** -1]),
-                
-            #     cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-            #     cirq.Moment([G ** -1]),
-
-            #     cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
-
-            #     cirq.Moment([G]),
-
-            #     cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-            #     cirq.Moment([G]),
-            # ]
-
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
 
