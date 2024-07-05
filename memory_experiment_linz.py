@@ -111,12 +111,12 @@ class MemoryExperiment:
             True
         )
 
-        # self.bb_decompose_test(
-        #     ToffoliDecompType.NO_DECOMP,
-        #     False,
-        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #     True
-        # )
+        self.bb_decompose_test(
+            ToffoliDecompType.NO_DECOMP,
+            False,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            True
+        )
 
         # self.bb_decompose_test(
         #     ToffoliDecompType.NO_DECOMP,
@@ -315,6 +315,8 @@ class MemoryExperiment:
 
         # self.simulation_b_qubits()
 
+        # self.simulation_m_qubits()
+
     def simulation_full(self):
         """ 2
         the range of all qubits
@@ -332,8 +334,9 @@ class MemoryExperiment:
         """
 
         start = 0
-        stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
-        print("\nSimulating the circuit...")
+        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
+        stop = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + self.start_range_qubits + 1 )
+        print("\nSimulating the circuit...checking the full range of qubits.", end="\n\n")
         self._simulation(start, stop, 1)
     
     def simulation_addressing(self):
@@ -359,41 +362,76 @@ class MemoryExperiment:
         """
 
         start = 0
-        step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
-        stop = step * (2**self.start_range_qubits)
-        print("\nSimulating the circuit...")
+        # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
+        step = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + 1 )
+        stop = step * ( 2 ** self.start_range_qubits )
+        print("\nSimulating the circuit...checking the addressing of the a qubits.", end="\n\n")
         self._simulation(start, stop, step)
 
     def simulation_b_qubits(self):
         """ 2
         the range of b qubits
-        0000000000 -> 0 : start
-        0000100000 -> 32 : step
-        0001000000 -> 64
-        0001100000 -> 96
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0001 0000 0 -> 32 : step
+        0 00 0010 0000 0 -> 64
+        0 00 0011 0000 0 -> 96
         ...
-        0111100000 -> 480
-        1000000000 -> 512 : stop
+        0 00 1111 0000 0 -> 480
+        0 01 0000 0000 0 -> 512 : stop
         """
         """ 3
         the range of b qubits
-        00000000000000 -> 0 : start
-        00000000100000 -> 512 : step
-        00000001000000 -> 1024
-        00000001100000 -> 1536
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000001 00000000 0 -> 512 : step
+        0 000 00000010 00000000 0 -> 1024
+        0 000 00000011 00000000 0 -> 1536
         ...
-        01111111100000 -> 65536
-        10000000000000 -> 131072 : stop
+        0 000 11111111 00000000 0 -> 65536
+        0 001 00000000 00000000 0 -> 131072 : stop
         """
 
         start = 0
-        step = 2**(2**self.start_range_qubits+1)
-        stop = step * (2**(2**self.start_range_qubits))
+        step = 2 ** ( 2 ** self.start_range_qubits + 1 )
+        stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
         print("\nSimulating the circuit...checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
         self._simulation(start, stop, step)
 
+    def simulation_m_qubits(self):
+        """ 2
+        the range of m qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0001 0 -> 2 : step
+        0 00 0000 0010 0 -> 4
+        0 00 0000 0011 0 -> 6
+        ...
+        0 00 0000 1111 0 -> 30
+        0 00 0001 0000 0 -> 32 : stop
+        """
+        """ 3
+        the range of m qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000000 00000001 0 -> 2 : step
+        0 000 00000000 00000010 0 -> 4
+        0 000 00000000 00000011 0 -> 6
+        ...
+        0 000 00000000 00001111 0 -> 30
+        0 000 00000000 00010000 0 -> 32
+        ...
+        0 000 00000000 11111111 0 -> 510
+        0 001 00000000 00000000 0 -> 512 : stop
+        """
+
+        start = 0
+        step = 2
+        stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
+        print("\nSimulating the circuit...checking the uncomputation of MEM...were the m qubits are returned to their initial state.", end="\n\n")
+        self._simulation(start, stop, step)
+
     def _simulation(self, start, stop, step):
-        flag = True
+        fail:int = 0
+        success:int = 0
+        total_tests:int = 0
+
         self.start = time.time()
 
         # add measurements to the original circuit ############################################
@@ -446,28 +484,32 @@ class MemoryExperiment:
                     np.array(np.around(result.final_state)), 
                     np.array(np.around(result_modded.final_state))))
             except Exception:
-                flag = False
-                if self.print_sim:    
+                fail += 1
+                if self.print_sim:
                     self.rgp("r","Modded circuit: ")
-                    self.rgp("r", str(result_modded))
+                    self.rgp("r", str(result_modded), end="\n\n")
                 else:
-                    self.rgp("r", "Failed at index = ", str(i))
+                    self.rgp("r", "•", end="")
             else:
+                success += 1
                 if self.print_sim:
                     self.rgp("g","Modded circuit: ")
-                    self.rgp("g", str(result_modded))
+                    self.rgp("g", str(result_modded), end="\n\n")
                 else:
-                    self.rgp("g", "Passed at index = ", str(i))
-            print("")
+                    self.rgp("g", "•", end="")
 
             initial_state[i] = 0
             initial_state_modded[i] = 0
+            total_tests += 1
 
         self.stop = self.spent_time(self.start)
-        if flag:
-            self.rgp("g", "Circuit simulation passed, Time:", self.stop)
-        else:
-            self.rgp("r", "Circuit simulation failed, Time:", self.stop)
+        print("\n\nTime: ", self.stop, end="\n\n", flush=True)
+
+        f = format(((fail * 100)/total_tests), ',.2f')
+        s = format(((success * 100)/total_tests), ',.2f')
+
+        self.rgp("r", "Failed: ", str(f), "%")
+        self.rgp("g", "Succeed: ", str(s), "%")
 
     #######################################
     # simulate decompositions methods
@@ -485,7 +527,10 @@ class MemoryExperiment:
                 self._simulate_decomposition(decomposition_type)
 
     def _simulate_decomposition(self, decomposition_type: ToffoliDecompType):
-        flag = True
+        fail:int = 0
+        success:int = 0
+        total_tests:int = 0
+
         self.start = time.time()
         print("\nSimulating the decomposition ...", decomposition_type,  end="\n\n")
 
@@ -504,7 +549,7 @@ class MemoryExperiment:
 
         self.printCircuit(circuit, qubits)
 
-        ls = [0 for i in range(2**len(qubits))]
+        ls = [0 for _ in range(2**len(qubits))]
         initial_state = np.array(ls, dtype=np.complex64)
 
         for i in range(8):
@@ -524,21 +569,31 @@ class MemoryExperiment:
                 assert (np.array_equal(
                     np.array(np.around(result.final_state)), temp))
             except Exception:
-                flag = False
-                self.rgp("r", "index = ", str(i))
-                self.rgp("r", str(result))
+                fail += 1
+                if self.print_sim:    
+                    self.rgp("r","Modded circuit: ")
+                    self.rgp("r", str(result), end="\n\n")
+                else:
+                    self.rgp("r", "•", end="")
             else:
-                self.rgp("g", "index = ", str(i))
-                self.rgp("g", str(result))
-            print("")
+                success += 1
+                if self.print_sim:
+                    self.rgp("g","Modded circuit: ")
+                    self.rgp("g", str(result), end="\n\n")
+                else:
+                    self.rgp("g", "•", end="")
 
             initial_state[i] = 0
+            total_tests += 1
 
         self.stop = self.spent_time(self.start)
-        if flag:
-            self.rgp("g", "Decomposition simulation passed, Time:", self.stop)
-        else:
-            self.rgp("r", "Decomposition simulation failed, Time:", self.stop)
+        print("\n\nTime: ", self.stop, end="\n\n", flush=True)
+
+        f = format(((fail * 100)/total_tests), ',.2f')
+        s = format(((success * 100)/total_tests), ',.2f')
+
+        self.rgp("r", "Failed: ", str(f), "%")
+        self.rgp("g", "Succeed: ", str(s), "%")
 
     #######################################
     # print circuit method
@@ -565,11 +620,11 @@ class MemoryExperiment:
     #######################################
 
     @ staticmethod
-    def rgp(color: str, *args) -> None:
+    def rgp(color: str, *args, end="\n") -> None:
         if color == "r":
-            print("\033[91m" + "".join(args) + "\033[0m", flush=True)
+            print("\033[91m" + "".join(args) + "\033[0m", flush=True, end=end)
         elif color == "g":
-            print("\033[92m" + "".join(args) + "\033[0m", flush=True)
+            print("\033[92m" + "".join(args) + "\033[0m", flush=True, end=end)
 
     @ staticmethod
     def spent_time(start: float) -> str:
