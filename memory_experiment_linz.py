@@ -1,49 +1,75 @@
 import cirq
-
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
-
 import qramcircuits.bucket_brigade as bb
-
 import optimizers as qopt
-
 import time
 from typing import Union
-
 import copy
 import os
 import psutil
 import sys
-
 import numpy as np
 
-
 class MemoryExperiment:
+    """
+    A class that represents a memory experiment using QRAM circuits.
+
+    Attributes:
+        dec_sim (bool): Flag indicating whether to simulate Toffoli decompositions.
+        print_circuit (bool): Flag indicating whether to print the circuits.
+        print_sim (bool): Flag indicating whether to print the full simulation result.
+        start_range_qubits (int): Start range of qubits.
+        end_range_qubits (int): End range of qubits.
+        start_time (float): Start time of the experiment.
+        stop_time (str): Stop time of the experiment.
+        decomp_scenario (bb.BucketBrigadeDecompType): Decomposition scenario for the bucket brigade.
+        decomp_scenario_modded (bb.BucketBrigadeDecompType): Modified decomposition scenario for the bucket brigade.
+        bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
+        bbcircuit_modded (bb.BucketBrigade): Modified bucket brigade circuit.
+        simulator (cirq.Simulator): Cirq simulator.
+
+    Methods:
+        __init__(): Initializes the MemoryExperiment class.
+        get_input(): Gets user input for the experiment.
+        main(): Main function of the experiment.
+        bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
+        bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
+        run(): Runs the experiment for a range of qubits.
+        core(): Core function of the experiment.
+        results(): Prints the results of the experiment.
+        essential_checks(): Performs essential checks on the experiment.
+        check_depth_of_circuit(): Checks the depth of the circuit decomposition.
+    """
+
     dec_sim: bool = False
     print_circuit: bool = False
     print_sim: bool = False
     start_range_qubits: int
     end_range_qubits: int
-
-    start: float = 0
-    stop: str = ""
+    
+    start_time: float = 0
+    stop_time: str = ""
 
     decomp_scenario: bb.BucketBrigadeDecompType
     decomp_scenario_modded: bb.BucketBrigadeDecompType
     bbcircuit: bb.BucketBrigade
     bbcircuit_modded: bb.BucketBrigade
-
     simulator: cirq.Simulator = cirq.Simulator()
 
     def __init__(self):
+        """
+        Initializes the MemoryExperiment class.
+        """
         self.get_input()
         self.main()
 
     def get_input(self):
+        """
+        Gets user input for the experiment.
+        """
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
-        msg1 = "End range of qubits must be greater than"\
-            " start range of qubits or equal to it"
-
+        msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
         len_argv = 6
 
         if len(sys.argv) == len_argv:
@@ -91,6 +117,9 @@ class MemoryExperiment:
     #######################################
 
     def main(self):
+        """
+        Main function of the experiment.
+        """
         print("Hello QRAM circuit experiments!")
         print("Print the Circuit: {}, Start Range of Qubits: {}, End Range of Qubits: {}".format(
             "yes" if self.print_circuit else "no",
@@ -137,6 +166,16 @@ class MemoryExperiment:
         toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
         parallel_toffolis: bool
     ):
+        """
+        Decomposes the Toffoli gates in the bucket brigade circuit.
+
+        Args:
+            toffoli_decomp_type (Union['list[ToffoliDecompType]', ToffoliDecompType]): The type of Toffoli decomposition.
+            parallel_toffolis (bool): Flag indicating whether to use parallel Toffoli gates.
+
+        Returns:
+            bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
+        """
         if isinstance(toffoli_decomp_type, list):
             return bb.BucketBrigadeDecompType(
                 toffoli_decomp_types=[
@@ -164,6 +203,15 @@ class MemoryExperiment:
             dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
             parallel_toffolis_mod: bool
     ):
+        """
+        Tests the bucket brigade circuit with different decomposition scenarios.
+
+        Args:
+            dec (Union['list[ToffoliDecompType]', ToffoliDecompType]): The decomposition scenario for the bucket brigade.
+            parallel_toffolis (bool): Flag indicating whether to use parallel Toffoli gates for the bucket brigade.
+            dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
+            parallel_toffolis_mod (bool): Flag indicating whether to use parallel Toffoli gates for the modified bucket brigade.
+        """
         # ================ORIGIN================
 
         self.decomp_scenario = self.bb_decompose(dec, parallel_toffolis)
@@ -180,6 +228,9 @@ class MemoryExperiment:
     #######################################
 
     def run(self):
+        """
+        Runs the experiment for a range of qubits.
+        """
         if self.decomp_scenario is None:
             self.rgp("r", "Decomposition scenario is None")
             return
@@ -188,6 +239,9 @@ class MemoryExperiment:
             self.core()
 
     def core(self):
+        """
+        Core function of the experiment.
+        """
         qubits: 'list[cirq.NamedQubit]' = []
         for i in range(self.start_range_qubits, self.start_range_qubits + 1):
             nr_qubits = i
@@ -195,7 +249,7 @@ class MemoryExperiment:
             for i in range(nr_qubits):
                 qubits.append(cirq.NamedQubit("a" + str(i)))
 
-            self.start = time.time()
+            self.start_time = time.time()
 
             self.bbcircuit = bb.BucketBrigade(
                 qubits, decomp_scenario=self.decomp_scenario)
@@ -203,11 +257,14 @@ class MemoryExperiment:
             self.bbcircuit_modded = bb.BucketBrigade(
                 qubits, decomp_scenario=self.decomp_scenario_modded)
 
-            self.stop = self.spent_time(self.start)
+            self.stop_time = self.spent_time(self.start_time)
 
             self.results()
 
     def results(self):
+        """
+        Prints the results of the experiment.
+        """
         print(f"{'='*150}\n\n")
 
         self.essential_checks()
@@ -223,6 +280,9 @@ class MemoryExperiment:
     #######################################
 
     def essential_checks(self):
+        """
+        Performs essential checks on the experiment.
+        """
         process = psutil.Process(os.getpid())
         # print("\npid", os.getpid())
 
@@ -237,7 +297,7 @@ class MemoryExperiment:
             "--> mem bucket brigade -> Qbits: {:<1} "
             "| Time: {:<12} | rss: {:<10} | vms: {:<10}\n".format(
                 self.start_range_qubits,
-                self.stop, process.memory_info().rss,
+                self.stop_time, process.memory_info().rss,
                 process.memory_info().vms),
             flush=True)
 
@@ -262,6 +322,12 @@ class MemoryExperiment:
                 self.printCircuit(self.bbcircuit_modded.circuit, self.bbcircuit_modded.qubit_order)
 
     def check_depth_of_circuit(self, decomp_scenario: bb.BucketBrigadeDecompType):
+        """
+        Checks the depth of the circuit decomposition.
+
+        Args:
+            decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+        """
         if decomp_scenario.get_decomp_types()[0] != ToffoliDecompType.NO_DECOMP:
             print("\nChecking depth of the circuit decomposition...", end="\n\n")
 
@@ -309,13 +375,13 @@ class MemoryExperiment:
     #######################################
 
     def simulate_circuit(self):
-        self.simulation_full()
-
-        # self.simulation_addressing()
+        # self.simulation_a_qubits()
 
         # self.simulation_b_qubits()
 
-        # self.simulation_m_qubits()
+        self.simulation_m_qubits()
+
+        # self.simulation_full()
 
     def simulation_full(self):
         """ 2
@@ -339,7 +405,7 @@ class MemoryExperiment:
         print("\nSimulating the circuit...checking the full range of qubits.", end="\n\n")
         self._simulation(start, stop, 1)
     
-    def simulation_addressing(self):
+    def simulation_a_qubits(self):
         """ 2
         the range of a qubits
         0 00 0000 0000 0 -> 0 : start
@@ -366,7 +432,7 @@ class MemoryExperiment:
         step = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + 1 )
         stop = step * ( 2 ** self.start_range_qubits )
         print("\nSimulating the circuit...checking the addressing of the a qubits.", end="\n\n")
-        self._simulation(start, stop, step)
+        self._simulation(start, stop, step, "a")
 
     def simulation_b_qubits(self):
         """ 2
@@ -394,7 +460,7 @@ class MemoryExperiment:
         step = 2 ** ( 2 ** self.start_range_qubits + 1 )
         stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
         print("\nSimulating the circuit...checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
-        self._simulation(start, stop, step)
+        self._simulation(start, stop, step, "b")
 
     def simulation_m_qubits(self):
         """ 2
@@ -425,18 +491,20 @@ class MemoryExperiment:
         step = 2
         stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
         print("\nSimulating the circuit...checking the uncomputation of MEM...were the m qubits are returned to their initial state.", end="\n\n")
-        self._simulation(start, stop, step)
+        self._simulation(start, stop, step, "m")
 
-    def _simulation(self, start, stop, step):
+    def _simulation(self, start:int, stop:int, step:int, qubit_name:str="full"):
         fail:int = 0
         success:int = 0
         total_tests:int = 0
 
-        self.start = time.time()
+        self.start_time = time.time()
 
         # add measurements to the original circuit ############################################
-        measurements = [cirq.measure(self.bbcircuit.qubit_order[i])
-                        for i in range(len(self.bbcircuit.qubit_order))]
+        measurements = []
+        for i in range(len(self.bbcircuit.qubit_order)):
+            if qubit_name == "full" or self.bbcircuit.qubit_order[i].name.startswith(qubit_name):
+                measurements.append(cirq.measure(self.bbcircuit.qubit_order[i]))
 
         self.bbcircuit.circuit.append(measurements)
 
@@ -446,8 +514,10 @@ class MemoryExperiment:
         initial_state = np.array(ls, dtype=np.complex64)
 
         # add measurements to the modded circuit ##############################################
-        measurements_modded = [cirq.measure(self.bbcircuit_modded.qubit_order[i])
-                        for i in range(len(self.bbcircuit_modded.qubit_order))]
+        measurements_modded = []
+        for i in range(len(self.bbcircuit.qubit_order)):
+            if qubit_name == "full" or self.bbcircuit.qubit_order[i].name.startswith(qubit_name):
+                measurements_modded.append(cirq.measure(self.bbcircuit.qubit_order[i]))
 
         self.bbcircuit_modded.circuit.append(measurements_modded)
 
@@ -502,8 +572,8 @@ class MemoryExperiment:
             initial_state_modded[i] = 0
             total_tests += 1
 
-        self.stop = self.spent_time(self.start)
-        print("\n\nTime: ", self.stop, end="\n\n", flush=True)
+        self.stop_time = self.spent_time(self.start_time)
+        print("\n\nTime: ", self.stop_time, end="\n\n", flush=True)
 
         f = format(((fail * 100)/total_tests), ',.2f')
         s = format(((success * 100)/total_tests), ',.2f')
@@ -531,7 +601,7 @@ class MemoryExperiment:
         success:int = 0
         total_tests:int = 0
 
-        self.start = time.time()
+        self.start_time = time.time()
         print("\nSimulating the decomposition ...", decomposition_type,  end="\n\n")
 
         circuit = cirq.Circuit()
@@ -586,8 +656,8 @@ class MemoryExperiment:
             initial_state[i] = 0
             total_tests += 1
 
-        self.stop = self.spent_time(self.start)
-        print("\n\nTime: ", self.stop, end="\n\n", flush=True)
+        self.stop_time = self.spent_time(self.start_time)
+        print("\n\nTime: ", self.stop_time, end="\n\n", flush=True)
 
         f = format(((fail * 100)/total_tests), ',.2f')
         s = format(((success * 100)/total_tests), ',.2f')
