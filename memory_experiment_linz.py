@@ -151,6 +151,13 @@ class MemoryExperiment:
         #     True
         # )
 
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+        #     True
+        # )
+
         """
             The Bucket brigade decomposition with negative control
         """
@@ -330,27 +337,26 @@ class MemoryExperiment:
                 process.memory_info().vms),
             flush=True)
 
-        for decomp_scenario in [self.decomp_scenario, self.decomp_scenario_modded]:
+        for decirc in [
+            [self.decomp_scenario, self.bbcircuit], 
+            [self.decomp_scenario_modded, self.bbcircuit_modded]
+        ]:
             print(
                 "--> decomp scenario:\n"
                 "fan_in_decomp:\t\t{}\n"
                 "mem_decomp:\t\t{}\n"
                 "fan_out_decomp:\t\t{}\n"
                 "parallel_toffolis:\t{}\n".format(
-                    decomp_scenario.dec_fan_in,
-                    decomp_scenario.dec_mem,
-                    decomp_scenario.dec_fan_out,
-                    "YES !!" if decomp_scenario.parallel_toffolis else "NO !!"
+                    decirc[0].dec_fan_in,
+                    decirc[0].dec_mem,
+                    decirc[0].dec_fan_out,
+                    "YES !!" if decirc[0].parallel_toffolis else "NO !!"
                 ))
 
-            self.check_depth_of_circuit(decomp_scenario)
-            
-            if decomp_scenario == self.decomp_scenario:
-                self.printCircuit(self.bbcircuit.circuit, self.bbcircuit.qubit_order)
-            elif decomp_scenario == self.decomp_scenario_modded:
-                self.printCircuit(self.bbcircuit_modded.circuit, self.bbcircuit_modded.qubit_order)
+            self.check_depth_of_circuit(decirc[1], decirc[0])
+            self.printCircuit(decirc[1].circuit, decirc[1].qubit_order)
 
-    def check_depth_of_circuit(self, decomp_scenario: bb.BucketBrigadeDecompType):
+    def check_depth_of_circuit(self, bbcircuit: bb.BucketBrigade, decomp_scenario: bb.BucketBrigadeDecompType):
         """
         Checks the depth of the circuit decomposition.
 
@@ -362,7 +368,7 @@ class MemoryExperiment:
 
             print("Number of qubits: ", end="")
             try:
-                assert (self.bbcircuit.verify_number_qubits() == True)
+                assert (bbcircuit.verify_number_qubits() == True)
             except Exception:
                 self.rgp("r", "Number of qubits failed\n")
             else:
@@ -370,7 +376,7 @@ class MemoryExperiment:
 
             print("Depth of the circuit: ", end="")
             try:
-                assert (self.bbcircuit.verify_depth(
+                assert (bbcircuit.verify_depth(
                     Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
             except Exception:
                 self.rgp("r", "Depth of the circuit failed\n")
@@ -379,7 +385,7 @@ class MemoryExperiment:
 
             print("T count: ", end="")
             try:
-                assert (self.bbcircuit.verify_T_count() == True)
+                assert (bbcircuit.verify_T_count() == True)
             except Exception:
                 self.rgp("r", "T count failed\n")
             else:
@@ -387,15 +393,15 @@ class MemoryExperiment:
 
             print("T depth: ", end="")
             try:
-                assert (self.bbcircuit.verify_T_depth(
+                assert (bbcircuit.verify_T_depth(
                     Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
             except Exception:
                 self.rgp("r", "T depth failed\n")
             else:
                 self.rgp("g", "T depth passed\n")
 
-            # assert (self.bbcircuit.verify_hadamard_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
-            # assert (self.bbcircuit.verify_cnot_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
+            # assert (bbcircuit.verify_hadamard_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
+            # assert (bbcircuit.verify_cnot_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
 
             print("\n")
 
