@@ -128,32 +128,61 @@ class MemoryExperiment:
         ))
 
         """
-            Bucket brigade
+            The Bucket brigade decomposition described in the paper
+        """
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     [
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
+        #     ],
+        #     True
+        # )
+
+        """
+            The Bucket brigade standard 7-T gate decomposition
+        """
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #     True
+        # )
+
+        """
+            The Bucket brigade decomposition with negative control
         """
         self.bb_decompose_test(
             ToffoliDecompType.NO_DECOMP,
             False,
             [
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE],
-            True
+                ToffoliDecompType.NEGATIVE_CONTROL_0,
+                ToffoliDecompType.NEGATIVE_CONTROL_1,
+                ToffoliDecompType.NEGATIVE_CONTROL_2
+            ],
+            False
         )
 
-        self.bb_decompose_test(
-            ToffoliDecompType.NO_DECOMP,
-            False,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            True
-        )
+        """
+            The Bucket brigade decomposition with all negative control decompositions
+        """
+        # for i in range(8):
+        #     self.bb_decompose_test(
+        #         ToffoliDecompType.NO_DECOMP,
+        #         False,
+        #         eval(f"ToffoliDecompType.NEGATIVE_CONTROL_{i}"),
+        #         False
+        #     )
 
+        """
+            Comparaison between 7-T gate decomposition and negative control decomposition
+        """
         # self.bb_decompose_test(
-        #     ToffoliDecompType.NO_DECOMP,
-        #     False,
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST],
+        #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #     True,
+        #     ToffoliDecompType.NEGATIVE_CONTROL_0,
         #     True
         # )
 
@@ -269,9 +298,9 @@ class MemoryExperiment:
 
         self.essential_checks()
 
-        self.simulate_circuit()
-
         self.simulate_decompositions()
+
+        self.simulate_circuit()
 
         print(f"\n\n{'='*150}")
 
@@ -371,6 +400,92 @@ class MemoryExperiment:
             print("\n")
 
     #######################################
+    # simulate decompositions methods
+    #######################################
+
+    def fan_in_mem_out(self, decomp_scenario: bb.BucketBrigadeDecompType) -> 'list[ToffoliDecompType]':
+        return list(set(decomp_scenario.get_decomp_types()))
+
+    def simulate_decompositions(self):
+        if not self.dec_sim:
+            return
+
+        for decomp_scenario in [self.decomp_scenario, self.decomp_scenario_modded]:
+            for decomposition_type in self.fan_in_mem_out(decomp_scenario):
+                if decomposition_type == ToffoliDecompType.NO_DECOMP:
+                    continue
+                self._simulate_decomposition(decomposition_type)
+
+    def _simulate_decomposition(self, decomposition_type: ToffoliDecompType):
+        fail:int = 0
+        success:int = 0
+        total_tests:int = 0
+
+        self.start_time = time.time()
+        print("\nSimulating the decomposition ...", decomposition_type,  end="\n\n")
+
+        circuit = cirq.Circuit()
+
+        qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
+
+        moments = ToffoliDecomposition(
+            decomposition_type=decomposition_type,
+            qubits=qubits).decomposition()
+        circuit.append(moments)
+
+        measurements = [cirq.measure(qubits[i])
+                        for i in range(len(qubits))]
+        circuit.append(measurements)
+
+        self.printCircuit(circuit, qubits)
+
+        ls = [0 for _ in range(2**len(qubits))]
+        initial_state = np.array(ls, dtype=np.complex64)
+
+        for i in range(8):
+            initial_state[i] = 1
+            result = self.simulator.simulate(
+                circuit,
+                qubit_order=qubits,
+                initial_state=initial_state
+            )
+            # temp is supposed to have the expected result of a toffoli
+            temp = copy.deepcopy(initial_state)
+            if i in [6, 7]:
+                temp[6] = (1 - temp[6])
+                temp[-1] = (1 - temp[-1])
+
+            try:
+                assert (np.array_equal(
+                    np.array(np.around(result.final_state)), temp))
+            except Exception:
+                fail += 1
+                if self.print_sim:    
+                    self.rgp("r","Modded circuit: ")
+                    self.rgp("r", str(result), end="\n\n")
+                else:
+                    self.rgp("r", "•", end="")
+            else:
+                success += 1
+                if self.print_sim:
+                    self.rgp("g","Modded circuit: ")
+                    self.rgp("g", str(result), end="\n\n")
+                else:
+                    self.rgp("g", "•", end="")
+
+            initial_state[i] = 0
+            total_tests += 1
+
+        self.stop_time = self.spent_time(self.start_time)
+        print("\n\nTime: ", self.stop_time, end="\n\n", flush=True)
+
+        f = format(((fail * 100)/total_tests), ',.2f')
+        s = format(((success * 100)/total_tests), ',.2f')
+
+        self.rgp("r", "Failed: ", str(f), "%")
+        self.rgp("g", "Succeed: ", str(s), "%")
+
+    #######################################
     # simulate circuit methods
     #######################################
 
@@ -379,32 +494,10 @@ class MemoryExperiment:
 
         # self.simulation_b_qubits()
 
-        self.simulation_m_qubits()
+        # self.simulation_m_qubits()
 
-        # self.simulation_full()
+        self.simulation_full()
 
-    def simulation_full(self):
-        """ 2
-        the range of all qubits
-        0 00 0000 0000 0 -> 0 : start
-        0 00 0000 0000 1 -> 1 : step
-        ...
-        1 00 0000 0000 0 -> 2048 : stop 
-        """
-        """ 3
-        the range of all qubits
-        0 000 00000000 00000000 0 -> 0 : start
-        0 000 00000000 00000000 1 -> 0 : 1
-        ...
-        1 000 00000000 00000000 0 -> 1048576 : stop
-        """
-
-        start = 0
-        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
-        stop = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + self.start_range_qubits + 1 )
-        print("\nSimulating the circuit...checking the full range of qubits.", end="\n\n")
-        self._simulation(start, stop, 1)
-    
     def simulation_a_qubits(self):
         """ 2
         the range of a qubits
@@ -431,7 +524,7 @@ class MemoryExperiment:
         # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
         step = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + 1 )
         stop = step * ( 2 ** self.start_range_qubits )
-        print("\nSimulating the circuit...checking the addressing of the a qubits.", end="\n\n")
+        print("\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
         self._simulation(start, stop, step, "a")
 
     def simulation_b_qubits(self):
@@ -459,7 +552,7 @@ class MemoryExperiment:
         start = 0
         step = 2 ** ( 2 ** self.start_range_qubits + 1 )
         stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
-        print("\nSimulating the circuit...checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
+        print("\nSimulating the circuit ... checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
         self._simulation(start, stop, step, "b")
 
     def simulation_m_qubits(self):
@@ -490,8 +583,30 @@ class MemoryExperiment:
         start = 0
         step = 2
         stop = step * ( 2 ** ( 2 ** self.start_range_qubits ) )
-        print("\nSimulating the circuit...checking the uncomputation of MEM...were the m qubits are returned to their initial state.", end="\n\n")
+        print("\nSimulating the circuit ... checking the uncomputation of MEM...were the m qubits are returned to their initial state.", end="\n\n")
         self._simulation(start, stop, step, "m")
+
+    def simulation_full(self):
+        """ 2
+        the range of all qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0000 1 -> 1 : step
+        ...
+        1 00 0000 0000 0 -> 2048 : stop 
+        """
+        """ 3
+        the range of all qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000000 00000000 1 -> 0 : 1
+        ...
+        1 000 00000000 00000000 0 -> 1048576 : stop
+        """
+
+        start = 0
+        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
+        stop = 2 ** ( 2 * ( 2 ** self.start_range_qubits ) + self.start_range_qubits + 1 )
+        print("\nSimulating the circuit ... checking the full range of qubits.", end="\n\n")
+        self._simulation(start, stop, 1)
 
     def _simulation(self, start:int, stop:int, step:int, qubit_name:str="full"):
         fail:int = 0
@@ -570,90 +685,6 @@ class MemoryExperiment:
 
             initial_state[i] = 0
             initial_state_modded[i] = 0
-            total_tests += 1
-
-        self.stop_time = self.spent_time(self.start_time)
-        print("\n\nTime: ", self.stop_time, end="\n\n", flush=True)
-
-        f = format(((fail * 100)/total_tests), ',.2f')
-        s = format(((success * 100)/total_tests), ',.2f')
-
-        self.rgp("r", "Failed: ", str(f), "%")
-        self.rgp("g", "Succeed: ", str(s), "%")
-
-    #######################################
-    # simulate decompositions methods
-    #######################################
-
-    def fan_in_mem_out(self, decomp_scenario: bb.BucketBrigadeDecompType) -> 'list[ToffoliDecompType]':
-        return list(set(decomp_scenario.get_decomp_types()))
-
-    def simulate_decompositions(self):
-        if not self.dec_sim:
-            return
-
-        for decomp_scenario in [self.decomp_scenario, self.decomp_scenario_modded]:
-            for decomposition_type in self.fan_in_mem_out(decomp_scenario):
-                self._simulate_decomposition(decomposition_type)
-
-    def _simulate_decomposition(self, decomposition_type: ToffoliDecompType):
-        fail:int = 0
-        success:int = 0
-        total_tests:int = 0
-
-        self.start_time = time.time()
-        print("\nSimulating the decomposition ...", decomposition_type,  end="\n\n")
-
-        circuit = cirq.Circuit()
-
-        qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
-
-        moments = ToffoliDecomposition(
-            decomposition_type=decomposition_type,
-            qubits=qubits).decomposition()
-        circuit.append(moments)
-
-        measurements = [cirq.measure(qubits[i])
-                        for i in range(len(qubits))]
-        circuit.append(measurements)
-
-        self.printCircuit(circuit, qubits)
-
-        ls = [0 for _ in range(2**len(qubits))]
-        initial_state = np.array(ls, dtype=np.complex64)
-
-        for i in range(8):
-            initial_state[i] = 1
-            result = self.simulator.simulate(
-                circuit,
-                qubit_order=qubits,
-                initial_state=initial_state
-            )
-            # temp is supposed to have the expected result of a toffoli
-            temp = copy.deepcopy(initial_state)
-            if i in [6, 7]:
-                temp[6] = (1 - temp[6])
-                temp[-1] = (1 - temp[-1])
-
-            try:
-                assert (np.array_equal(
-                    np.array(np.around(result.final_state)), temp))
-            except Exception:
-                fail += 1
-                if self.print_sim:    
-                    self.rgp("r","Modded circuit: ")
-                    self.rgp("r", str(result), end="\n\n")
-                else:
-                    self.rgp("r", "•", end="")
-            else:
-                success += 1
-                if self.print_sim:
-                    self.rgp("g","Modded circuit: ")
-                    self.rgp("g", str(result), end="\n\n")
-                else:
-                    self.rgp("g", "•", end="")
-
-            initial_state[i] = 0
             total_tests += 1
 
         self.stop_time = self.spent_time(self.start_time)
