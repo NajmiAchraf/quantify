@@ -159,39 +159,60 @@ class MemoryExperiment:
         # )
 
         """
-            The Bucket brigade decomposition with negative control
+            The Bucket brigade all controlled V, 𝑉† and X decompositions
         """
-        self.bb_decompose_test(
-            ToffoliDecompType.NO_DECOMP,
-            False,
-            [
-                ToffoliDecompType.NEGATIVE_CONTROL_0,
-                ToffoliDecompType.NEGATIVE_CONTROL_1,
-                ToffoliDecompType.NEGATIVE_CONTROL_2
-            ],
-            False
-        )
+        for i in range(8):
+            self.bb_decompose_test(
+                ToffoliDecompType.NO_DECOMP,
+                False,
+                eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+                False
+            )
 
         """
-            The Bucket brigade decomposition with all negative control decompositions
+            ! The following test maybe is the fastest simulated comparison {CV_CX_QC5_5}
         """
-        # for i in range(8):
-        #     self.bb_decompose_test(
-        #         ToffoliDecompType.NO_DECOMP,
-        #         False,
-        #         eval(f"ToffoliDecompType.NEGATIVE_CONTROL_{i}"),
-        #         False
-        #     )
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     ToffoliDecompType.CV_CX_QC5_5,
+        #     False
+        # )
 
         """
-            Comparaison between 7-T gate decomposition and negative control decomposition
+            The Bucket brigade controlled V, 𝑉† and X decomposition
+        """
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     [
+        #         ToffoliDecompType.CV_CX_QC5_0,
+        #         ToffoliDecompType.CV_CX_QC5_1,
+        #         ToffoliDecompType.CV_CX_QC5_2
+        #     ],
+        #     False
+        # )
+
+        """
+            Comparaison between 7-T gate decomposition and controlled V, 𝑉† and X decomposition
         """
         # self.bb_decompose_test(
         #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
         #     True,
-        #     ToffoliDecompType.NEGATIVE_CONTROL_0,
-        #     True
+        #     ToffoliDecompType.CV_CX_QC5_0,
+        #     False
         # )
+
+        """
+            Comparaison between 7-T gate decomposition and all controlled V, 𝑉† and X decompositions
+        """
+        # for i in range(8):
+        #     self.bb_decompose_test(
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #         True,
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+        #         False
+        #     )
 
     #######################################
     # decomposition methods

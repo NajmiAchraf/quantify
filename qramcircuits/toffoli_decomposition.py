@@ -11,15 +11,15 @@ class ToffoliDecompType(Enum):
     NO_DECOMP = auto()
 
     # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-    # decomposition using (CNOT, V, 𝑉†) gates
-    NEGATIVE_CONTROL_0 = auto()
-    NEGATIVE_CONTROL_1 = auto()
-    NEGATIVE_CONTROL_2 = auto()
-    NEGATIVE_CONTROL_3 = auto()
-    NEGATIVE_CONTROL_4 = auto()
-    NEGATIVE_CONTROL_5 = auto()
-    NEGATIVE_CONTROL_6 = auto()
-    NEGATIVE_CONTROL_7 = auto()
+    # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
+    CV_CX_QC5_0 = auto()
+    CV_CX_QC5_1 = auto()
+    CV_CX_QC5_2 = auto()
+    CV_CX_QC5_3 = auto()
+    CV_CX_QC5_4 = auto()
+    CV_CX_QC5_5 = auto()
+    CV_CX_QC5_6 = auto()
+    CV_CX_QC5_7 = auto()
 
     # Equation 3 from arxiv:1210.0974v2
     ZERO_ANCILLA_TDEPTH_3 = auto()
@@ -148,9 +148,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_0:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_0:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2]) ** 0.5]),
 
@@ -167,9 +167,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_1:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_1:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2]) ** 0.5]),
 
@@ -186,9 +186,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_2:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_2:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2]) ** (-0.5)]),
 
@@ -205,9 +205,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_3:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_3:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2]) ** (-0.5)]),
 
@@ -224,9 +224,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_4:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_4:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2]) ** 0.5]),
 
@@ -243,9 +243,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_5:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_5:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2]) ** 0.5]),
 
@@ -262,9 +262,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_6:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_6:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2]) ** (-0.5)]),
 
@@ -281,9 +281,9 @@ class ToffoliDecomposition():
 
         ######################################################################################################################################################
 
-        elif self.decomp_type == ToffoliDecompType.NEGATIVE_CONTROL_7:
+        elif self.decomp_type == ToffoliDecompType.CV_CX_QC5_7:
             # Figure 4 from [10.1109/CSCI.2015.41](https://doi.org/10.1109/CSCI.2015.41)
-            # decomposition using (CNOT, V, 𝑉†) gates
+            # Decomposition using ({CNOT, CX}, V, 𝑉†) gates Quantum Cost 5
             moments = [
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2]) ** (-0.5)]),
 
