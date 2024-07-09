@@ -130,16 +130,16 @@ class MemoryExperiment:
         """
             The Bucket brigade decomposition described in the paper
         """
-        # self.bb_decompose_test(
-        #     ToffoliDecompType.NO_DECOMP,
-        #     False,
-        #     [
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
-        #     ],
-        #     True
-        # )
+        self.bb_decompose_test(
+            ToffoliDecompType.NO_DECOMP,
+            False,
+            [
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
+            ],
+            True
+        )
 
         """
             The Bucket brigade standard 7-T gate decomposition
@@ -359,11 +359,11 @@ class MemoryExperiment:
             flush=True)
 
         for decirc in [
-            [self.decomp_scenario, self.bbcircuit], 
-            [self.decomp_scenario_modded, self.bbcircuit_modded]
+            [self.decomp_scenario, self.bbcircuit, "reference"], 
+            [self.decomp_scenario_modded, self.bbcircuit_modded, "modded"]
         ]:
             print(
-                "--> decomp scenario:\n"
+                f"--> decomp scenario of {decirc[2]} circuit:\n"
                 "fan_in_decomp:\t\t{}\n"
                 "mem_decomp:\t\t{}\n"
                 "fan_out_decomp:\t\t{}\n"
@@ -642,7 +642,7 @@ class MemoryExperiment:
 
         self.start_time = time.time()
 
-        # add measurements to the original circuit ############################################
+        # add measurements to the reference circuit ############################################
         measurements = []
         for i in range(len(self.bbcircuit.qubit_order)):
             if qubit_name == "full" or self.bbcircuit.qubit_order[i].name.startswith(qubit_name):
@@ -650,6 +650,7 @@ class MemoryExperiment:
 
         self.bbcircuit.circuit.append(measurements)
 
+        print("Reference circuit:" , end="\n\n")
         self.printCircuit(self.bbcircuit.circuit, self.bbcircuit.qubit_order)
 
         ls = [0 for _ in range(2**len(self.bbcircuit.qubit_order))]
@@ -663,12 +664,15 @@ class MemoryExperiment:
 
         self.bbcircuit_modded.circuit.append(measurements_modded)
 
+        print("Modded circuit:", end="\n\n")
         self.printCircuit(self.bbcircuit_modded.circuit, self.bbcircuit_modded.qubit_order)
 
         ls_modded = [0 for _ in range(2**len(self.bbcircuit_modded.qubit_order))]
         initial_state_modded = np.array(ls_modded, dtype=np.complex64)
 
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
+
+        print("Modded circuit to be simulated and compared to the reference circuit:" , end="\n\n") 
 
         for i in range(start, stop, step):
             initial_state[i] = 1
@@ -688,7 +692,7 @@ class MemoryExperiment:
 
             if self.print_sim:
                 print("index =", str(i))
-                print("Original circuit: ")
+                print("Reference circuit: ")
                 print(str(result))
 
             try:
@@ -715,7 +719,7 @@ class MemoryExperiment:
             total_tests += 1
 
         self.stop_time = self.spent_time(self.start_time)
-        print("\n\nTime: ", self.stop_time, end="\n\n", flush=True)
+        print("\n\nTime of simulation and comparison: ", self.stop_time, end="\n\n", flush=True)
 
         f = format(((fail * 100)/total_tests), ',.2f')
         s = format(((success * 100)/total_tests), ',.2f')
