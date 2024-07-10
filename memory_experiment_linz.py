@@ -9,6 +9,7 @@ import os
 import psutil
 import sys
 import numpy as np
+import random as rd
 
 class MemoryExperiment:
     """
@@ -56,12 +57,19 @@ class MemoryExperiment:
     bbcircuit_modded: bb.BucketBrigade
     simulator: cirq.Simulator = cirq.Simulator()
 
+
     def __init__(self):
         """
-        Initializes the MemoryExperiment class.
+        Constructor the MemoryExperiment class.
         """
         self.get_input()
         self.main()
+
+    def __del__(self):
+        """
+        Destructor of the MemoryExperiment class.
+        """
+        print("Memory experiment is done!")
 
     def get_input(self):
         """
@@ -128,21 +136,25 @@ class MemoryExperiment:
         ))
 
         """
-            The Bucket brigade decomposition described in the paper
+            The Bucket brigade decomposition described in the paper.
+            Depth of the circuit decomposition is 30 for 2 qubits WITH parallel Toffoli.
+            ? Simulation not passed.
         """
-        self.bb_decompose_test(
-            ToffoliDecompType.NO_DECOMP,
-            False,
-            [
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
-            ],
-            True
-        )
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     [
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
+        #     ],
+        #     True
+        # )
 
         """
-            The Bucket brigade standard 7-T gate decomposition
+            The Bucket brigade standard 7-T gate decomposition (QC10).
+            Depth of the circuit decomposition is 46 for 2 qubits WITH parallel Toffoli.
+            Simulation passed.
         """
         # self.bb_decompose_test(
         #     ToffoliDecompType.NO_DECOMP,
@@ -159,60 +171,82 @@ class MemoryExperiment:
         # )
 
         """
-            The Bucket brigade all controlled V, 𝑉† and X decompositions
+            The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5).
+            Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel Toffoli.
+            Simulation passed.
         """
-        for i in range(8):
+        # for i in range(8):
+        #     self.bb_decompose_test(
+        #         ToffoliDecompType.NO_DECOMP,
+        #         False,
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+        #         False
+        #     )
+
+        """
+            The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
+            ! Depth of the circuit decomposition is 36 for 2 qubits WITH parallel Toffoli.
+            Simulation passed.
+        """
+        for i in [0, 2, 5, 7]:
             self.bb_decompose_test(
                 ToffoliDecompType.NO_DECOMP,
                 False,
-                eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-                False
+                [
+                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+                ],
+                True
             )
 
         """
-            ! The following test maybe is the fastest simulated comparison {CV_CX_QC5_5}
+            The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
+            ! Depth of the circuit decomposition is 34 for 2 qubits WITH parallel Toffoli.
+            Simulation passed.
         """
-        # self.bb_decompose_test(
-        #     ToffoliDecompType.NO_DECOMP,
-        #     False,
-        #     ToffoliDecompType.CV_CX_QC5_5,
-        #     False
-        # )
+        for i in [1, 3, 4, 6]:
+            self.bb_decompose_test(
+                ToffoliDecompType.NO_DECOMP,
+                False,
+                [
+                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+                ],
+                True
+            )
 
         """
-            The Bucket brigade controlled V, 𝑉† and X decomposition
+            The Bucket brigade controlled V, 𝑉† and X decomposition (QC5)
+            Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel Toffoli.
+            Simulation passed.
         """
         # self.bb_decompose_test(
         #     ToffoliDecompType.NO_DECOMP,
         #     False,
         #     [
-        #         ToffoliDecompType.CV_CX_QC5_0,
-        #         ToffoliDecompType.CV_CX_QC5_1,
-        #         ToffoliDecompType.CV_CX_QC5_2
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}"),
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}"),
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}")
         #     ],
         #     False
         # )
 
         """
-            Comparaison between 7-T gate decomposition and controlled V, 𝑉† and X decomposition
+            Comparaison between 7-T gate decomposition (QC10) and controlled V, 𝑉† and X decomposition (QC5)
+            Simulation passed.
         """
         # self.bb_decompose_test(
         #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
         #     True,
-        #     ToffoliDecompType.CV_CX_QC5_0,
+        #     [
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}"),
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}"),
+        #         eval(f"ToffoliDecompType.CV_CX_QC5_{rd.randint(0, 7)}")
+        #     ],
         #     False
         # )
-
-        """
-            Comparaison between 7-T gate decomposition and all controlled V, 𝑉† and X decompositions
-        """
-        # for i in range(8):
-        #     self.bb_decompose_test(
-        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        #         True,
-        #         eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-        #         False
-        #     )
 
     #######################################
     # decomposition methods
@@ -269,7 +303,7 @@ class MemoryExperiment:
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
             parallel_toffolis_mod (bool): Flag indicating whether to use parallel Toffoli gates for the modified bucket brigade.
         """
-        # ================ORIGIN================
+        # ===============REFERENCE==============
 
         self.decomp_scenario = self.bb_decompose(dec, parallel_toffolis)
 
@@ -358,8 +392,9 @@ class MemoryExperiment:
                 process.memory_info().vms),
             flush=True)
 
+        name = "bucket brigade" if self.decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
         for decirc in [
-            [self.decomp_scenario, self.bbcircuit, "reference"], 
+            [self.decomp_scenario, self.bbcircuit, name], 
             [self.decomp_scenario_modded, self.bbcircuit_modded, "modded"]
         ]:
             print(
@@ -375,7 +410,7 @@ class MemoryExperiment:
                 ))
 
             self.check_depth_of_circuit(decirc[1], decirc[0])
-            self.printCircuit(decirc[1].circuit, decirc[1].qubit_order)
+            self.printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
 
     def check_depth_of_circuit(self, bbcircuit: bb.BucketBrigade, decomp_scenario: bb.BucketBrigadeDecompType):
         """
@@ -464,7 +499,7 @@ class MemoryExperiment:
                         for i in range(len(qubits))]
         circuit.append(measurements)
 
-        self.printCircuit(circuit, qubits)
+        self.printCircuit(circuit, qubits, "decomposition")
 
         ls = [0 for _ in range(2**len(qubits))]
         initial_state = np.array(ls, dtype=np.complex64)
@@ -488,14 +523,14 @@ class MemoryExperiment:
             except Exception:
                 fail += 1
                 if self.print_sim:    
-                    self.rgp("r","Modded circuit: ")
+                    self.rgp("r","Modded circuit result: ")
                     self.rgp("r", str(result), end="\n\n")
                 else:
                     self.rgp("r", "•", end="")
             else:
                 success += 1
                 if self.print_sim:
-                    self.rgp("g","Modded circuit: ")
+                    self.rgp("g","Modded circuit result: ")
                     self.rgp("g", str(result), end="\n\n")
                 else:
                     self.rgp("g", "•", end="")
@@ -650,8 +685,8 @@ class MemoryExperiment:
 
         self.bbcircuit.circuit.append(measurements)
 
-        print("Reference circuit:" , end="\n\n")
-        self.printCircuit(self.bbcircuit.circuit, self.bbcircuit.qubit_order)
+        name = "bucket brigade" if self.decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+        self.printCircuit(self.bbcircuit.circuit, self.bbcircuit.qubit_order, name)
 
         ls = [0 for _ in range(2**len(self.bbcircuit.qubit_order))]
         initial_state = np.array(ls, dtype=np.complex64)
@@ -664,15 +699,14 @@ class MemoryExperiment:
 
         self.bbcircuit_modded.circuit.append(measurements_modded)
 
-        print("Modded circuit:", end="\n\n")
-        self.printCircuit(self.bbcircuit_modded.circuit, self.bbcircuit_modded.qubit_order)
+        self.printCircuit(self.bbcircuit_modded.circuit, self.bbcircuit_modded.qubit_order, "modded")
 
         ls_modded = [0 for _ in range(2**len(self.bbcircuit_modded.qubit_order))]
         initial_state_modded = np.array(ls_modded, dtype=np.complex64)
 
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
-        print("Modded circuit to be simulated and compared to the reference circuit:" , end="\n\n") 
+        print(f"Modded circuit to be simulated and compared to the {name} circuit:" , end="\n\n") 
 
         for i in range(start, stop, step):
             initial_state[i] = 1
@@ -692,7 +726,7 @@ class MemoryExperiment:
 
             if self.print_sim:
                 print("index =", str(i))
-                print("Reference circuit: ")
+                print(f"{name} circuit result: ")
                 print(str(result))
 
             try:
@@ -702,14 +736,14 @@ class MemoryExperiment:
             except Exception:
                 fail += 1
                 if self.print_sim:
-                    self.rgp("r","Modded circuit: ")
+                    self.rgp("r","Modded circuit result: ")
                     self.rgp("r", str(result_modded), end="\n\n")
                 else:
                     self.rgp("r", "•", end="")
             else:
                 success += 1
                 if self.print_sim:
-                    self.rgp("g","Modded circuit: ")
+                    self.rgp("g","Modded circuit result: ")
                     self.rgp("g", str(result_modded), end="\n\n")
                 else:
                     self.rgp("g", "•", end="")
@@ -731,14 +765,15 @@ class MemoryExperiment:
     # print circuit method
     #######################################
 
-    def printCircuit(self, circuit: cirq.Circuit, qubits: 'list[cirq.NamedQubit]'):
+    def printCircuit(self, circuit: cirq.Circuit, qubits: 'list[cirq.NamedQubit]', name: str = "bucket brigade"):
         if self.print_circuit:
             # Print the circuit
             start = time.time()
 
+            print(f"Print {name} circuit:")
             print(
                 circuit.to_text_diagram(
-                    use_unicode_characters=False,
+                    # use_unicode_characters=False,
                     qubit_order=qubits
                 ),
                 end="\n\n"
