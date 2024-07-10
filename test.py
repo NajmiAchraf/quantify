@@ -1,25 +1,31 @@
 import cirq
+import numpy as np
 
-# Create some qubits
-q0, q1 = cirq.LineQubit.range(2)
+qubits = [cirq.NamedQubit("q" + str(1))]
 
-# Create a circuit
-circuit = cirq.Circuit()
+moments = []
+for _ in range(4):
+    moments += [cirq.Moment([cirq.T(qubit)]) for qubit in qubits]
 
-# Add some operations to the circuit
-circuit.append([cirq.CZ(q0, q1), cirq.X(q0), cirq.Y(q1)])
 
-# Now, let's say we want to remove the CZ operation from the first moment
-# and the X operation from the second moment
+# moments = []
+# moments += [cirq.Moment([cirq.Z(qubits[0])])]
 
-# First, we need to find the moments that these operations are in
-cz_moment_index = None
-x_moment_index = None
-for i, moment in enumerate(circuit):
-    if cirq.CZ(q0, q1) in moment:
-        cz_moment_index = i
-    if cirq.X(q0) in moment:
-        x_moment_index = i
+circuit = cirq.Circuit(moments)
 
-# Now we can create the input for the batch_remove function
-removals = [(cz_moment_index, cirq.CZ(q0, q1)), (x_moment_index, cirq.X(q0))]
+measurements = [cirq.measure(qubit) for qubit in qubits]
+circuit.append(measurements)
+
+print(circuit)
+
+ls = [0 for _ in range(2**len(qubits))]
+initial_state = np.zeros(2**len(qubits), dtype=np.complex64)
+for i, l in enumerate(ls):
+    initial_state[i] = 1
+
+    simulator = cirq.Simulator()
+    result = simulator.simulate(circuit, initial_state=initial_state)
+
+    print(result)
+
+    initial_state[i] = 0

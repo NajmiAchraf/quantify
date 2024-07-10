@@ -306,8 +306,19 @@ class BucketBrigade():
                                      # ,strategy=cirq.InsertStrategy.NEW
                                      )
 
-        circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
+        old_circuit_2 = cirq.Circuit()
+        while old_circuit_2 != circuit_2:
+            old_circuit_2 = cirq.Circuit(circuit_2)
+
+            qopt.EliminateTSeriesInTarget().optimize_circuit(circuit_2)
+
+            # print(circuit_2)
+
+            # print("... reinsert")
+            circuit_2 = cirq.Circuit(circuit_2.all_operations())
+
         # circuit_1 = circuit_2
+        circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
 
         return circuit_1
 

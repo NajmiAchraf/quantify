@@ -42,7 +42,7 @@ class MemoryExperiment:
         check_depth_of_circuit(): Checks the depth of the circuit decomposition.
     """
 
-    dec_sim: bool = False
+    simulate: bool = False
     print_circuit: bool = False
     print_sim: bool = False
     start_range_qubits: int
@@ -82,7 +82,7 @@ class MemoryExperiment:
 
         if len(sys.argv) == len_argv:
             if sys.argv[1].lower() in ["y", "yes"]:
-                self.dec_sim = True
+                self.simulate = True
 
             if sys.argv[2].lower() in ["y", "yes"]:
                 self.print_circuit = True
@@ -97,12 +97,11 @@ class MemoryExperiment:
 
             self.end_range_qubits = int(sys.argv[5])
             if self.end_range_qubits < self.start_range_qubits:
-                print(msg1)
-                flag = False
+                self.end_range_qubits = self.start_range_qubits
 
         if len(sys.argv) != len_argv or not flag:
-            if input("Simulate Toffoli decompositions? (y/n): ").lower() in ["y", "yes"]:
-                self.dec_sim = True
+            if input("Simulate Toffoli decompositions and circuit? (y/n): ").lower() in ["y", "yes"]:
+                self.simulate = True
 
             if input("Print circuits? (y/n): ").lower() in ["y", "yes"]:
                 self.print_circuit = True
@@ -188,17 +187,17 @@ class MemoryExperiment:
             ! Depth of the circuit decomposition is 36 for 2 qubits WITH parallel Toffoli.
             Simulation passed.
         """
-        for i in [0, 2, 5, 7]:
-            self.bb_decompose_test(
-                ToffoliDecompType.NO_DECOMP,
-                False,
-                [
-                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                    eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-                ],
-                True
-            )
+        # for i in [0, 2, 5, 7]:
+        #     self.bb_decompose_test(
+        #         ToffoliDecompType.NO_DECOMP,
+        #         False,
+        #         [
+        #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+        #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+        #         ],
+        #         True
+        #     )
 
         """
             The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
@@ -216,6 +215,18 @@ class MemoryExperiment:
                 ],
                 True
             )
+
+        # Test the elimination of T gates
+        # self.bb_decompose_test(
+        #     ToffoliDecompType.NO_DECOMP,
+        #     False,
+        #     [
+        #         ToffoliDecompType.CV_CX_QC5_1,
+        #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4, # 2q:4 3q:8 4q:16 5q:32
+        #         ToffoliDecompType.CV_CX_QC5_1,
+        #     ],
+        #     True
+        # )
 
         """
             The Bucket brigade controlled V, 𝑉† and X decomposition (QC5)
@@ -469,7 +480,7 @@ class MemoryExperiment:
         return list(set(decomp_scenario.get_decomp_types()))
 
     def simulate_decompositions(self):
-        if not self.dec_sim:
+        if not self.simulate:
             return
 
         for decomp_scenario in [self.decomp_scenario, self.decomp_scenario_modded]:
@@ -552,6 +563,9 @@ class MemoryExperiment:
     #######################################
 
     def simulate_circuit(self):
+        if not self.simulate:
+            return
+
         # self.simulation_a_qubits()
 
         # self.simulation_b_qubits()
