@@ -15,10 +15,11 @@ class EliminateTSeriesInTarget():
                     self.target_ops.append(op)
 
     def __str__(self):
-        print("qubit target: ", end="")
+        pr = "qubit target:"
         for t in self.target_ops:
-            print(t , end=" ")
-        print("\n")
+            pr.join(" " + t)
+        pr.join("\n")
+        return pr
 
     def __del__(self):
         self.target_ops.clear()
@@ -34,7 +35,7 @@ class EliminateTSeriesInTarget():
                         self.Z_inserted = True
 
     def optimize_circuit(self):
-        # replace the T gate with a single Z gate if length of self.target_ops is 4 and Z gate is not inserted
+        # replace the T gate with a single Z gate if length of self.target_ops is 4
         if len(self.target_ops) == 4:
             self.core()
 

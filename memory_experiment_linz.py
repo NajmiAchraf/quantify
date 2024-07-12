@@ -31,14 +31,15 @@ class MemoryExperiment:
 
     Methods:
         __init__(): Initializes the MemoryExperiment class.
-        get_input(): Gets user input for the experiment.
-        bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
-        bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
-        run(): Runs the experiment for a range of qubits.
-        core(): Core function of the experiment.
-        results(): Prints the results of the experiment.
-        essential_checks(): Performs essential checks on the experiment.
-        check_depth_of_circuit(): Checks the depth of the circuit decomposition.
+        __del__(): Destructs the MemoryExperiment class.
+        __get_input(): Gets user input for the experiment.
+        __bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
+        __bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
+        __run(): Runs the experiment for a range of qubits.
+        __core(): Core function of the experiment.
+        __results(): Prints the results of the experiment.
+        __essential_checks(): Performs essential checks on the experiment.
+        __check_depth_of_circuit(): Checks the depth of the circuit decomposition.
     """
 
     __simulate: bool = False
@@ -46,7 +47,8 @@ class MemoryExperiment:
     __print_sim: bool = False
     __start_range_qubits: int
     __end_range_qubits: int
-    
+    __additional_simulation: str = ""
+
     __start_time: float = 0
     __stop_time: str = ""
 
@@ -86,7 +88,7 @@ class MemoryExperiment:
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
         len_argv = 6
 
-        if len(sys.argv) == len_argv:
+        if len(sys.argv) == len_argv or len(sys.argv) == len_argv + 1:
             if sys.argv[1].lower() in ["y", "yes"]:
                 self.__simulate = True
 
@@ -105,7 +107,10 @@ class MemoryExperiment:
             if self.__end_range_qubits < self.__start_range_qubits:
                 self.__end_range_qubits = self.__start_range_qubits
 
-        if len(sys.argv) != len_argv or not flag:
+            if len(sys.argv) == len_argv + 1:
+                self.__additional_simulation += str(sys.argv[6])
+
+        if flag == False or len(sys.argv) < len_argv or len_argv + 1 < len(sys.argv) :
             if input("Simulate Toffoli decompositions and circuit? (y/n): ").lower() in ["y", "yes"]:
                 self.__simulate = True
 
@@ -125,6 +130,12 @@ class MemoryExperiment:
                 print(msg1)
                 self.__end_range_qubits = int(input("End range of qubits: "))
 
+            if self.__simulate:
+                self.__additional_simulation = input("Choose additional simulation for specific qubit wire (a, b, m): ")
+                for c in "abm":
+                    if c not in self.__additional_simulation:
+                        self.__additional_simulation = input("Choose additional simulation for specific qubit wire (a, b, m): ")
+
     #######################################
     # decomposition methods
     #######################################
@@ -139,7 +150,7 @@ class MemoryExperiment:
 
         Args:
             toffoli_decomp_type (Union['list[ToffoliDecompType]', ToffoliDecompType]): The type of Toffoli decomposition.
-            parallel_toffolis (bool): Flag indicating whether to use parallel Toffoli gates.
+            parallel_toffolis (bool): Flag indicating whether to use parallel toffolis.
 
         Returns:
             bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
@@ -176,9 +187,9 @@ class MemoryExperiment:
 
         Args:
             dec (Union['list[ToffoliDecompType]', ToffoliDecompType]): The decomposition scenario for the bucket brigade.
-            parallel_toffolis (bool): Flag indicating whether to use parallel Toffoli gates for the bucket brigade.
+            parallel_toffolis (bool): Flag indicating whether to use parallel toffolis for the bucket brigade.
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
-            parallel_toffolis_mod (bool): Flag indicating whether to use parallel Toffoli gates for the modified bucket brigade.
+            parallel_toffolis_mod (bool): Flag indicating whether to use parallel toffolis for the modified bucket brigade.
         """
         # ===============REFERENCE==============
 
@@ -466,6 +477,8 @@ class MemoryExperiment:
         1 000 00000000 00000000 0 -> 1048576 : stop
         """
 
+        if "a" not in self.__additional_simulation:
+            return
         start = 0
         # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
         step = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
@@ -495,6 +508,8 @@ class MemoryExperiment:
         0 001 00000000 00000000 0 -> 131072 : stop
         """
 
+        if "b" not in self.__additional_simulation:
+            return
         start = 0
         step = 2 ** ( 2 ** self.__start_range_qubits + 1 )
         stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
@@ -526,6 +541,8 @@ class MemoryExperiment:
         0 001 00000000 00000000 0 -> 512 : stop
         """
 
+        if "m" not in self.__additional_simulation:
+            return
         start = 0
         step = 2
         stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
@@ -690,7 +707,7 @@ class MemoryExperiment:
     @ staticmethod
     def __spent_time(start: float) -> str:
         elapsed_time = time.time() - start
-        formatted_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        formatted_time = time.strftime("%M:%S", time.gmtime(elapsed_time))
         milliseconds = (elapsed_time - int(elapsed_time)) * 1000
         final_output = f"{formatted_time},{int(milliseconds)}"
         return final_output
@@ -708,7 +725,7 @@ def main():
 
     """
         The Bucket brigade decomposition described in the paper.
-        Depth of the circuit decomposition is 30 for 2 qubits WITH parallel Toffoli.
+        Depth of the circuit decomposition is 30 for 2 qubits and 45 for 3 qubits WITH parallel toffolis.
         ? Simulation not passed.
     """
     # qram.bb_decompose_test(
@@ -724,7 +741,7 @@ def main():
 
     """
         The Bucket brigade standard 7-T gate decomposition (QC10).
-        Depth of the circuit decomposition is 46 for 2 qubits WITH parallel Toffoli.
+        Depth of the circuit decomposition is 46 for 2 qubits WITH parallel toffolis.
         Simulation passed.
     """
     # qram.bb_decompose_test(
@@ -743,7 +760,7 @@ def main():
 
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5).
-        Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel Toffoli.
+        Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel toffolis.
         Simulation passed.
     """
     # for i in range(8):
@@ -756,8 +773,8 @@ def main():
 
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
-        ! Depth of the circuit decomposition is 36 for 2 qubits WITH parallel Toffoli.
-        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 35 for 2 qubits with parallel Toffoli gates.
+        ! Depth of the circuit decomposition is 36 for 2 qubits and 68 for 3 qubits WITH parallel toffolis.
+        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 35 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
         Simulation passed.
     """
     # for i in [0, 2, 5, 7]:
@@ -774,8 +791,8 @@ def main():
 
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
-        ! Depth of the circuit decomposition is 34 for 2 qubits WITH parallel Toffoli.
-        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 33 for 2 qubits with parallel Toffoli gates.
+        ! Depth of the circuit decomposition is 34 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
+        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 33 for 2 qubits and 58 for 3 qubits WITH parallel toffolis.
         Simulation passed.
     """
     for i in [1, 3, 4, 6]:
@@ -792,7 +809,7 @@ def main():
 
     """
         The Bucket brigade controlled V, 𝑉† and X decomposition (QC5)
-        Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel Toffoli.
+        Depth of the circuit decomposition is 46 for 2 qubits WITHOUT parallel toffolis.
         Simulation passed.
     """
     # qram.bb_decompose_test(
