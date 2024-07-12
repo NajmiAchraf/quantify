@@ -34,12 +34,23 @@ class MemoryExperiment:
         __del__(): Destructs the MemoryExperiment class.
         __get_input(): Gets user input for the experiment.
         __bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
-        __bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
+        bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
         __run(): Runs the experiment for a range of qubits.
         __core(): Core function of the experiment.
         __results(): Prints the results of the experiment.
         __essential_checks(): Performs essential checks on the experiment.
         __check_depth_of_circuit(): Checks the depth of the circuit decomposition.
+        __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
+        __simulate_decompositions(): Simulates the Toffoli decompositions.
+        __simulate_decomposition(): Simulates a Toffoli decomposition.
+        __simulation_a_qubits(): Simulates the addressing of the a qubits.
+        __simulation_b_qubits(): Simulates the uncomputation of FANOUT.
+        __simulation_m_qubits(): Simulates the uncomputation of MEM.
+        __simulation_full(): Simulates the full range of qubits.
+        __simulation(): Simulates the circuit.
+        __printCircuit(): Prints the circuit.
+        __colpr(): Prints colored text.
+        __spent_time(): Calculates the spent time.
     """
 
     __simulate: bool = False
@@ -77,12 +88,20 @@ class MemoryExperiment:
         """
         Destructor of the MemoryExperiment class.
         """
+
         print("Memory experiment is done!")
 
-    def __get_input(self):
+    def __get_input(self) -> None:
         """
         Gets user input for the experiment.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
+
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
@@ -144,7 +163,7 @@ class MemoryExperiment:
         self,
         toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
         parallel_toffolis: bool
-    ):
+    ) -> bb.BucketBrigadeDecompType:
         """
         Decomposes the Toffoli gates in the bucket brigade circuit.
 
@@ -155,6 +174,7 @@ class MemoryExperiment:
         Returns:
             bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
         """
+
         if isinstance(toffoli_decomp_type, list):
             return bb.BucketBrigadeDecompType(
                 toffoli_decomp_types=[
@@ -181,7 +201,7 @@ class MemoryExperiment:
 
             dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
             parallel_toffolis_mod: bool
-    ):
+    ) -> None:
         """
         Tests the bucket brigade circuit with different decomposition scenarios.
 
@@ -190,7 +210,11 @@ class MemoryExperiment:
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis for the bucket brigade.
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
             parallel_toffolis_mod (bool): Flag indicating whether to use parallel toffolis for the modified bucket brigade.
+        
+        Returns:
+            None
         """
+
         # ===============REFERENCE==============
 
         self.__decomp_scenario = self.__bb_decompose(dec, parallel_toffolis)
@@ -206,10 +230,17 @@ class MemoryExperiment:
     # core functions
     #######################################
 
-    def __run(self):
+    def __run(self) -> None:
         """
         Runs the experiment for a range of qubits.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
+
         if self.__decomp_scenario is None:
             self.__colpr("r", "Decomposition scenario is None")
             return
@@ -217,10 +248,17 @@ class MemoryExperiment:
             self.__start_range_qubits = i
             self.__core()
 
-    def __core(self):
+    def __core(self) -> None:
         """
         Core function of the experiment.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
+
         qubits: 'list[cirq.NamedQubit]' = []
         for i in range(self.__start_range_qubits, self.__start_range_qubits + 1):
             nr_qubits = i
@@ -244,10 +282,17 @@ class MemoryExperiment:
 
             self.__results()
 
-    def __results(self):
+    def __results(self) -> None:
         """
         Prints the results of the experiment.
+
+        Args:
+            None
+        
+        Returns:
+            None
         """
+
         print(f"{'='*150}\n\n")
 
         self.__essential_checks()
@@ -262,10 +307,17 @@ class MemoryExperiment:
     # essential checks methods
     #######################################
 
-    def __essential_checks(self):
+    def __essential_checks(self) -> None:
         """
         Performs essential checks on the experiment.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
+
         process = psutil.Process(os.getpid())
         # print("\npid", os.getpid())
 
@@ -304,13 +356,17 @@ class MemoryExperiment:
             self.__check_depth_of_circuit(decirc[1], decirc[0])
             self.__printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
 
-    def __check_depth_of_circuit(self, bbcircuit: bb.BucketBrigade, decomp_scenario: bb.BucketBrigadeDecompType):
+    def __check_depth_of_circuit(self, bbcircuit: bb.BucketBrigade, decomp_scenario: bb.BucketBrigadeDecompType) -> None:
         """
         Checks the depth of the circuit decomposition.
 
         Args:
             decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+        
+        Returns:
+            None
         """
+
         if decomp_scenario.get_decomp_types()[0] != ToffoliDecompType.NO_DECOMP:
             print("\nChecking depth of the circuit decomposition...", end="\n\n")
 
@@ -358,9 +414,23 @@ class MemoryExperiment:
     #######################################
 
     def __fan_in_mem_out(self, decomp_scenario: bb.BucketBrigadeDecompType) -> 'list[ToffoliDecompType]':
+        """
+        Returns the fan-in, memory, and fan-out decomposition types.
+
+        Args:
+            decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+
+        Returns:
+            'list[ToffoliDecompType]': The fan-in, memory, and fan-out decomposition types.
+        """
+
         return list(set(decomp_scenario.get_decomp_types()))
 
     def __simulate_decompositions(self):
+        """
+        Simulates the Toffoli decompositions.
+        """
+
         if not self.__simulate:
             return
 
@@ -370,7 +440,17 @@ class MemoryExperiment:
                     continue
                 self.__simulate_decomposition(decomposition_type)
 
-    def __simulate_decomposition(self, decomposition_type: ToffoliDecompType):
+    def __simulate_decomposition(self, decomposition_type: ToffoliDecompType) -> None:
+        """
+        Simulates a Toffoli decomposition.
+
+        Args:
+            decomposition_type (ToffoliDecompType): The type of Toffoli decomposition.
+        
+        Returns:
+            None
+        """
+
         fail:int = 0
         success:int = 0
         total_tests:int = 0
@@ -443,7 +523,17 @@ class MemoryExperiment:
     # simulate circuit methods
     #######################################
 
-    def __simulate_circuit(self):
+    def __simulate_circuit(self) -> None:
+        """
+        Simulates the circuit.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
         if not self.__simulate:
             return
 
@@ -455,7 +545,17 @@ class MemoryExperiment:
 
         self.__simulation_full()
 
-    def __simulation_a_qubits(self):
+    def __simulation_a_qubits(self) -> None:
+        """
+        Simulates the addressing of the a qubits.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
         """ 2
         the range of a qubits
         0 00 0000 0000 0 -> 0 : start
@@ -486,7 +586,17 @@ class MemoryExperiment:
         print("\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
         self.__simulation(start, stop, step, "a")
 
-    def __simulation_b_qubits(self):
+    def __simulation_b_qubits(self) -> None:
+        """
+        Simulates the uncomputation of FANOUT.
+
+        Args:
+            None
+        
+        Returns:
+            None
+        """
+
         """ 2
         the range of b qubits
         0 00 0000 0000 0 -> 0 : start
@@ -516,7 +626,17 @@ class MemoryExperiment:
         print("\nSimulating the circuit ... checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
         self.__simulation(start, stop, step, "b")
 
-    def __simulation_m_qubits(self):
+    def __simulation_m_qubits(self) -> None:
+        """
+        Simulates the uncomputation of MEM.
+
+        Args:
+            None
+        
+        Returns:
+            None
+        """
+
         """ 2
         the range of m qubits
         0 00 0000 0000 0 -> 0 : start
@@ -549,7 +669,17 @@ class MemoryExperiment:
         print("\nSimulating the circuit ... checking the uncomputation of MEM...were the m qubits are returned to their initial state.", end="\n\n")
         self.__simulation(start, stop, step, "m")
 
-    def __simulation_full(self):
+    def __simulation_full(self) -> None:
+        """
+        Simulates the full range of qubits.
+
+        Args:
+            None
+        
+        Returns:
+            None
+        """
+
         """ 2
         the range of all qubits
         0 00 0000 0000 0 -> 0 : start
@@ -571,7 +701,20 @@ class MemoryExperiment:
         print("\nSimulating the circuit ... checking the full range of qubits.", end="\n\n")
         self.__simulation(start, stop, 1)
 
-    def __simulation(self, start:int, stop:int, step:int, qubit_name:str="full"):
+    def __simulation(self, start:int, stop:int, step:int, qubit_name:str="full") -> None:
+        """
+        Simulates the circuit.
+
+        Args:
+            start (int): The start index.
+            stop (int): The stop index.
+            step (int): The step index.
+            qubit_name (str): The name of the qubit.
+        
+        Returns:
+            None
+        """
+
         fail:int = 0
         success:int = 0
         total_tests:int = 0
@@ -666,7 +809,19 @@ class MemoryExperiment:
     # print circuit method
     #######################################
 
-    def __printCircuit(self, circuit: cirq.Circuit, qubits: 'list[cirq.NamedQubit]', name: str = "bucket brigade"):
+    def __printCircuit(self, circuit: cirq.Circuit, qubits: 'list[cirq.NamedQubit]', name: str = "bucket brigade") -> None:
+        """
+        Prints the circuit.
+
+        Args:
+            circuit (cirq.Circuit): The circuit to be printed.
+            qubits ('list[cirq.NamedQubit]'): The qubits of the circuit.
+            name (str): The name of the circuit.
+        
+        Returns:
+            None
+        """
+
         if self.__print_circuit:
             # Print the circuit
             start = time.time()
@@ -689,6 +844,18 @@ class MemoryExperiment:
 
     @ staticmethod
     def __colpr(color: str, *args, end="\n") -> None:
+        """
+        Prints colored text.
+
+        Args:
+            color (str): The color of the text [r, g, v, b, y, c, w, m, k, d, u].
+            args (str): The text to be printed.
+            end (str): The end character.
+        
+        Returns:
+            None
+        """
+
         colors = {
             "r": "\033[91m",
             "g": "\033[92m",
@@ -706,6 +873,16 @@ class MemoryExperiment:
 
     @ staticmethod
     def __spent_time(start: float) -> str:
+        """
+        Calculates the spent time.
+
+        Args:
+            start (float): The start time.
+
+        Returns:
+            str: The spent time.
+        """
+
         elapsed_time = time.time() - start
         formatted_time = time.strftime("%M:%S", time.gmtime(elapsed_time))
         milliseconds = (elapsed_time - int(elapsed_time)) * 1000
