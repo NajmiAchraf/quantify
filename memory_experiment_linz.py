@@ -356,7 +356,11 @@ class MemoryExperiment:
             self.__check_depth_of_circuit(decirc[1], decirc[0])
             self.__printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
 
-    def __check_depth_of_circuit(self, bbcircuit: bb.BucketBrigade, decomp_scenario: bb.BucketBrigadeDecompType) -> None:
+    def __check_depth_of_circuit(
+            self, 
+            bbcircuit: bb.BucketBrigade, 
+            decomp_scenario: bb.BucketBrigadeDecompType
+    ) -> None:
         """
         Checks the depth of the circuit decomposition.
 
@@ -413,7 +417,10 @@ class MemoryExperiment:
     # simulate decompositions methods
     #######################################
 
-    def __fan_in_mem_out(self, decomp_scenario: bb.BucketBrigadeDecompType) -> 'list[ToffoliDecompType]':
+    def __fan_in_mem_out(
+            self, 
+            decomp_scenario: bb.BucketBrigadeDecompType
+    ) -> 'list[ToffoliDecompType]':
         """
         Returns the fan-in, memory, and fan-out decomposition types.
 
@@ -426,9 +433,15 @@ class MemoryExperiment:
 
         return list(set(decomp_scenario.get_decomp_types()))
 
-    def __simulate_decompositions(self):
+    def __simulate_decompositions(self) -> None:
         """
         Simulates the Toffoli decompositions.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
 
         if not self.__simulate:
@@ -809,7 +822,12 @@ class MemoryExperiment:
     # print circuit method
     #######################################
 
-    def __printCircuit(self, circuit: cirq.Circuit, qubits: 'list[cirq.NamedQubit]', name: str = "bucket brigade") -> None:
+    def __printCircuit(
+            self, 
+            circuit: cirq.Circuit, 
+            qubits: 'list[cirq.NamedQubit]', 
+            name: str = "bucket brigade"
+    ) -> None:
         """
         Prints the circuit.
 
@@ -951,7 +969,7 @@ def main():
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
         ! Depth of the circuit decomposition is 36 for 2 qubits and 68 for 3 qubits WITH parallel toffolis.
-        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 35 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
+        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 34 for 2 qubits and 62 for 3 qubits WITH parallel toffolis.
         Simulation passed.
     """
     # for i in [0, 2, 5, 7]:
@@ -969,7 +987,7 @@ def main():
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
         ! Depth of the circuit decomposition is 34 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
-        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 33 for 2 qubits and 58 for 3 qubits WITH parallel toffolis.
+        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 32 for 2 qubits and 57 for 3 qubits WITH parallel toffolis.
         Simulation passed.
     """
     for i in [1, 3, 4, 6]:

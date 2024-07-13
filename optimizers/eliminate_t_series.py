@@ -31,7 +31,7 @@ class EliminateTSeriesInTarget():
                     index = self.circuit.moments.index(moment)
                     self.circuit.clear_operations_touching(op.qubits, [index])
                     if not self.Z_inserted and len(self.target_ops) == 4:
-                        self.circuit.insert(index, cirq.Moment([cirq.Z(op.qubits[0])]))
+                        self.circuit.insert(index, cirq.Z(op.qubits[0]))
                         self.Z_inserted = True
 
     def optimize_circuit(self):
