@@ -249,6 +249,7 @@ class MemoryExperiment:
             return
         for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
             self.__start_range_qubits = i
+            self.__simulated = False
             self.__core()
 
     def __core(self) -> None:
