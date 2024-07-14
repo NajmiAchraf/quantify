@@ -28,6 +28,8 @@ class MemoryExperiment:
         __bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
         __bbcircuit_modded (bb.BucketBrigade): Modified bucket brigade circuit.
         __simulator (cirq.Simulator): Cirq simulator.
+        __additional_simulation (str): Additional simulation for specific qubit wire.
+        __simulated (bool): Flag indicating whether the circuit has been simulated.
 
     Methods:
         __init__(): Initializes the MemoryExperiment class.
@@ -59,6 +61,7 @@ class MemoryExperiment:
     __start_range_qubits: int
     __end_range_qubits: int
     __additional_simulation: str = ""
+    __simulated: bool = False
 
     __start_time: float = 0
     __stop_time: str = ""
@@ -370,26 +373,26 @@ class MemoryExperiment:
         Returns:
             None
         """
+        print("\nChecking depth of the circuit decomposition...", end="\n\n")
+
+        print("Number of qubits: ", end="")
+        try:
+            assert (bbcircuit.verify_number_qubits() == True)
+        except Exception:
+            self.__colpr("v", "Number of qubits not as expected\n")
+        else:
+            self.__colpr("g", "Number of qubits passed\n")
+
+        print("Depth of the circuit: ", end="")
+        try:
+            assert (bbcircuit.verify_depth(
+                Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
+        except Exception:
+            self.__colpr("v", "Depth of the circuit not as expected\n")
+        else:
+            self.__colpr("g", "Depth of the circuit passed\n")
 
         if decomp_scenario.get_decomp_types()[0] != ToffoliDecompType.NO_DECOMP:
-            print("\nChecking depth of the circuit decomposition...", end="\n\n")
-
-            print("Number of qubits: ", end="")
-            try:
-                assert (bbcircuit.verify_number_qubits() == True)
-            except Exception:
-                self.__colpr("v", "Number of qubits not as expected\n")
-            else:
-                self.__colpr("g", "Number of qubits passed\n")
-
-            print("Depth of the circuit: ", end="")
-            try:
-                assert (bbcircuit.verify_depth(
-                    Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
-            except Exception:
-                self.__colpr("v", "Depth of the circuit not as expected\n")
-            else:
-                self.__colpr("g", "Depth of the circuit passed\n")
 
             print("T count: ", end="")
             try:
@@ -728,6 +731,10 @@ class MemoryExperiment:
             None
         """
 
+        if self.__simulated:
+            return
+        self.__simulated = True
+
         fail:int = 0
         success:int = 0
         total_tests:int = 0
@@ -736,9 +743,9 @@ class MemoryExperiment:
 
         # add measurements to the reference circuit ############################################
         measurements = []
-        for i in range(len(self.__bbcircuit.qubit_order)):
-            if qubit_name == "full" or self.__bbcircuit.qubit_order[i].name.startswith(qubit_name):
-                measurements.append(cirq.measure(self.__bbcircuit.qubit_order[i]))
+        for qubit in self.__bbcircuit.qubit_order:
+            if qubit_name == "full" or qubit.name.startswith(qubit_name):
+                measurements.append(cirq.measure(qubit))
 
         self.__bbcircuit.circuit.append(measurements)
 
@@ -750,9 +757,9 @@ class MemoryExperiment:
 
         # add measurements to the modded circuit ##############################################
         measurements_modded = []
-        for i in range(len(self.__bbcircuit.qubit_order)):
-            if qubit_name == "full" or self.__bbcircuit.qubit_order[i].name.startswith(qubit_name):
-                measurements_modded.append(cirq.measure(self.__bbcircuit.qubit_order[i]))
+        for qubit in self.__bbcircuit_modded.qubit_order:
+            if qubit_name == "full" or qubit.name.startswith(qubit_name):
+                measurements_modded.append(cirq.measure(qubit))
 
         self.__bbcircuit_modded.circuit.append(measurements_modded)
 
@@ -781,29 +788,74 @@ class MemoryExperiment:
                 initial_state=initial_state_modded
             )
 
-            if self.__print_sim:
-                print("index =", str(i))
-                print(f"{name} circuit result: ")
-                print(str(result))
+            if qubit_name == "full":
+                if self.__print_sim:
+                    print("index =", str(i))
+                    print(f"{name} circuit result: ")
+                    print(result)
 
-            try:
-                assert (np.array_equal(
-                    np.array(np.around(result.final_state)), 
-                    np.array(np.around(result_modded.final_state))))
-            except Exception:
-                fail += 1
-                if self.__print_sim:
-                    self.__colpr("r","Modded circuit result: ")
-                    self.__colpr("r", str(result_modded), end="\n\n")
+                try:
+                    assert (np.array_equal(
+                        np.array(np.around(result.final_state[i])), 
+                        np.array(np.around(result_modded.final_state[i]))))
+                except Exception:
+                    fail += 1
+                    if self.__print_sim:
+                        self.__colpr("r","Modded circuit result: ")
+                        self.__colpr("r", str(result_modded), end="\n\n")
+                    else:
+                        self.__colpr("r", "•", end="")
                 else:
-                    self.__colpr("r", "•", end="")
-            else:
-                success += 1
+                    success += 1
+                    if self.__print_sim:
+                        self.__colpr("g","Modded circuit result: ")
+                        self.__colpr("g", str(result_modded), end="\n\n")
+                    else:
+                        self.__colpr("g", "•", end="")
+
+            elif qubit_name in "abm":
+                # Extract specific measurements
+                measurements = result.measurements
+                measurements_modded = result_modded.measurements
+
                 if self.__print_sim:
-                    self.__colpr("g","Modded circuit result: ")
-                    self.__colpr("g", str(result_modded), end="\n\n")
+                    print("index =", str(i))
+                    print(f"{name} circuit measurements:")
+                    self.__colpr("w","measurements: ", end="")
+                    for qubit in measurements.keys():
+                        m = str(measurements.get(qubit, np.array([]))[0])
+                        self.__colpr("w", qubit, "=", m, end=" ")
+                    print("")
+
+                try:
+                    # Compare specific measurements
+                    for qubit in measurements.keys():
+                        assert np.array_equal(
+                            measurements.get(qubit, np.array([])),
+                            measurements_modded.get(qubit, np.array([]))
+                        )
+                except Exception:
+                    fail += 1
+                    if self.__print_sim:
+                        self.__colpr("r","Modded circuit measurements: ")
+                        self.__colpr("r","measurements: ", end="")
+                        for qubit in measurements_modded.keys():
+                            m = str(measurements_modded.get(qubit, np.array([]))[0])
+                            self.__colpr("r", qubit, "=", m, end=" ")
+                        print("\n")
+                    else:
+                        self.__colpr("r", "•", end="")
                 else:
-                    self.__colpr("g", "•", end="")
+                    success += 1
+                    if self.__print_sim:
+                        self.__colpr("g","Modded circuit measurements: ")
+                        self.__colpr("g","measurements: ", end="")
+                        for qubit in measurements_modded.keys():
+                            m = str(measurements_modded.get(qubit, np.array([]))[0])
+                            self.__colpr("g", qubit, "=", m, end=" ")
+                        print("\n")
+                    else:
+                        self.__colpr("g", "•", end="")
 
             initial_state[i] = 0
             initial_state_modded[i] = 0
@@ -916,6 +968,7 @@ def main():
     """
     Main function of the experiment.
     """
+
     qram: MemoryExperiment = MemoryExperiment()
 
     """
