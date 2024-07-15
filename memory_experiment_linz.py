@@ -821,40 +821,27 @@ class MemoryExperiment:
 
                 if self.__print_sim:
                     print("index =", str(i))
-                    print(f"{name} circuit measurements:")
-                    self.__colpr("w","measurements: ", end="")
-                    for qubit in measurements.keys():
-                        m = str(measurements.get(qubit, np.array([]))[0])
-                        self.__colpr("w", qubit, "=", m, end=" ")
-                    print("")
+                    self.__printMeasurement("w", name, self.__bbcircuit, measurements, end="")
 
                 try:
                     # Compare specific measurements
-                    for qubit in measurements.keys():
-                        assert np.array_equal(
-                            measurements.get(qubit, np.array([])),
-                            measurements_modded.get(qubit, np.array([]))
-                        )
+                    for o_qubit in self.__bbcircuit.qubit_order:
+                        for qubit in measurements.keys():
+                            if str(o_qubit) == str(qubit):
+                                assert np.array_equal(
+                                    measurements.get(qubit, np.array([])),
+                                    measurements_modded.get(qubit, np.array([]))
+                                )
                 except Exception:
                     fail += 1
                     if self.__print_sim:
-                        self.__colpr("r","Modded circuit measurements: ")
-                        self.__colpr("r","measurements: ", end="")
-                        for qubit in measurements_modded.keys():
-                            m = str(measurements_modded.get(qubit, np.array([]))[0])
-                            self.__colpr("r", qubit, "=", m, end=" ")
-                        print("\n")
+                        self.__printMeasurement("r", "Modded", self.__bbcircuit_modded, measurements_modded)
                     else:
                         self.__colpr("r", "•", end="")
                 else:
                     success += 1
                     if self.__print_sim:
-                        self.__colpr("g","Modded circuit measurements: ")
-                        self.__colpr("g","measurements: ", end="")
-                        for qubit in measurements_modded.keys():
-                            m = str(measurements_modded.get(qubit, np.array([]))[0])
-                            self.__colpr("g", qubit, "=", m, end=" ")
-                        print("\n")
+                        self.__printMeasurement("g", "Modded", self.__bbcircuit_modded, measurements_modded)
                     else:
                         self.__colpr("g", "•", end="")
 
@@ -863,13 +850,47 @@ class MemoryExperiment:
             total_tests += 1
 
         self.__stop_time = self.__spent_time(self.__start_time)
-        print("\n\nTime of simulation and comparison: ", self.__stop_time, end="\n\n", flush=True)
+        print("\n\nTime spent on simulation and comparison: ", self.__stop_time, end="\n\n", flush=True)
 
         f = format(((fail * 100)/total_tests), ',.2f')
         s = format(((success * 100)/total_tests), ',.2f')
 
         self.__colpr("r", "Failed: ", str(f), "%")
         self.__colpr("g", "Succeed: ", str(s), "%")
+
+    #######################################
+    # print measurement method
+    #######################################
+
+    def __printMeasurement(
+            self,
+            color: str,
+            name: str,
+            bbcircuit: bb.BucketBrigade,
+            measurements: 'dict[cirq.Qid, np.ndarray]',
+            end: str = "\n"
+        ) -> None:
+        """
+        Prints the measurements.
+
+        Args:
+            color (str): The color of the text [r, g, v, b, y, c, w, m, k, d, u].
+            bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
+            measurements ('dict[cirq.Qid, np.ndarray]'): The measurements to be printed.
+        
+        Returns:
+            None
+        """
+
+        self.__colpr(color, f"{name} circuit measurements: ")
+        self.__colpr(color, "measurements: ", end="")
+
+        for o_qubit in bbcircuit.qubit_order:
+            for qubit in measurements.keys():
+                if str(o_qubit) == str(qubit):
+                    m = str(measurements.get(qubit, np.array([]))[0])
+                    self.__colpr(color, qubit, "=", m, end=" ")
+        print(end)
 
     #######################################
     # print circuit method
@@ -914,7 +935,7 @@ class MemoryExperiment:
     #######################################
 
     @ staticmethod
-    def __colpr(color: str, *args, end="\n") -> None:
+    def __colpr(color: str, *args: str, end: str="\n") -> None:
         """
         Prints colored text.
 
