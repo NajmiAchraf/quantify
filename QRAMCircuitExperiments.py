@@ -9,11 +9,10 @@ import os
 import psutil
 import sys
 import numpy as np
-import random as rd
 
-class MemoryExperiment:
+class QRAMCircuitExperiments:
     """
-    A class that represents a memory experiment using QRAM circuits.
+    A class used to represent the QRAM circuit experiments.
 
     Attributes:
         __simulate (bool): Flag indicating whether to simulate Toffoli decompositions.
@@ -32,8 +31,8 @@ class MemoryExperiment:
         __simulated (bool): Flag indicating whether the circuit has been simulated.
 
     Methods:
-        __init__(): Initializes the MemoryExperiment class.
-        __del__(): Destructs the MemoryExperiment class.
+        __init__(): Initializes the QRAMCircuitExperiments class.
+        __del__(): Destructs the QRAMCircuitExperiments class.
         __get_input(): Gets user input for the experiment.
         __bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
         bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
@@ -75,7 +74,7 @@ class MemoryExperiment:
 
     def __init__(self):
         """
-        Constructor the MemoryExperiment class.
+        Constructor the QRAMCircuitExperiments class.
         """
 
         self.__get_input()
@@ -89,10 +88,10 @@ class MemoryExperiment:
 
     def __del__(self):
         """
-        Destructor of the MemoryExperiment class.
+        Destructor of the QRAMCircuitExperiments class.
         """
 
-        print("Memory experiment is done!")
+        print("Goodbye QRAM circuit experiments!")
 
     def __get_input(self) -> None:
         """
@@ -326,10 +325,8 @@ class MemoryExperiment:
         # print("\npid", os.getpid())
 
         """
-        rss: aka “Resident Set Size”, this is the non-swapped physical memory a
-        process has used. On UNIX it matches “top“‘s RES column).
-        vms: aka “Virtual Memory Size”, this is the total amount of virtual
-        memory used by the process. On UNIX it matches “top“‘s VIRT column.
+        rss: aka “Resident Set Size”, this is the non-swapped physical memory a process has used. On UNIX it matches “top“‘s RES column).
+        vms: aka “Virtual Memory Size”, this is the total amount of virtual memory used by the process. On UNIX it matches “top“‘s VIRT column.
         """
 
         print(
@@ -374,6 +371,7 @@ class MemoryExperiment:
         Returns:
             None
         """
+
         print("\nChecking depth of the circuit decomposition...", end="\n\n")
 
         print("Number of qubits: ", end="")
@@ -988,10 +986,10 @@ class MemoryExperiment:
 
 def main():
     """
-    Main function of the experiment.
+    Main function of the experiments.
     """
 
-    qram: MemoryExperiment = MemoryExperiment()
+    qram: QRAMCircuitExperiments = QRAMCircuitExperiments()
 
     """
         The Bucket brigade decomposition described in the paper.
@@ -1047,25 +1045,7 @@ def main():
         ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 34 for 2 qubits and 62 for 3 qubits WITH parallel toffolis.
         Simulation passed.
     """
-    # for i in [0, 2, 5, 7]:
-    #     qram.bb_decompose_test(
-    #         ToffoliDecompType.NO_DECOMP,
-    #         False,
-    #         [
-    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-    #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-    #         ],
-    #         True
-    #     )
-
-    """
-        The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
-        ! Depth of the circuit decomposition is 34 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
-        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 32 for 2 qubits and 57 for 3 qubits WITH parallel toffolis.
-        Simulation passed.
-    """
-    for i in [1, 3, 4, 6]:
+    for i in [0, 2, 5, 7]:
         qram.bb_decompose_test(
             ToffoliDecompType.NO_DECOMP,
             False,
@@ -1076,6 +1056,24 @@ def main():
             ],
             True
         )
+
+    """
+        The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
+        ! Depth of the circuit decomposition is 34 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
+        ! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is 32 for 2 qubits and 57 for 3 qubits WITH parallel toffolis.
+        Simulation passed.
+    """
+    # for i in [1, 3, 4, 6]:
+    #     qram.bb_decompose_test(
+    #         ToffoliDecompType.NO_DECOMP,
+    #         False,
+    #         [
+    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+    #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+    #         ],
+    #         True
+    #     )
 
     """
         The Bucket brigade controlled V, 𝑉† and X decomposition (QC5)
