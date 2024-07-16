@@ -44,12 +44,13 @@ class QRAMCircuitExperiments:
         __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
         __simulate_decompositions(): Simulates the Toffoli decompositions.
         __simulate_decomposition(): Simulates a Toffoli decomposition.
-        _simulation_ab_qubits(): Simulates the addressing and uncomputation of the a and b qubits.
-        _simulation_bm_qubits(): Simulates the computation and uncomputation of the b and m qubits.
-        _simulation_abm_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits.
         _simulation_a_qubits(): Simulates the addressing of the a qubits.
         _simulation_b_qubits(): Simulates the uncomputation of FANOUT.
         _simulation_m_qubits(): Simulates the computation of MEM.
+        _simulation_ab_qubits(): Simulates the addressing and uncomputation of the a and b qubits.
+        _simulation_bm_qubits(): Simulates the computation and uncomputation of the b and m qubits.
+        _simulation_abm_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits.
+        _simulation_t_qubits(): Simulates the target qubit.
         _simulation_all(): Simulates the all qubits.
         __simulation(): Simulates the circuit.
         __compare_results_of_simulation(): Compares the results of the simulation.
@@ -113,7 +114,7 @@ class QRAMCircuitExperiments:
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
-        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm), by default it is all"
+        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is all"
         len_argv = 6
 
         if len(sys.argv) == len_argv or len(sys.argv) == len_argv + 1:
@@ -136,7 +137,7 @@ class QRAMCircuitExperiments:
                 self.__end_range_qubits = self.__start_range_qubits
 
             if len(sys.argv) == len_argv + 1 and self.__simulate:
-                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm"]:
+                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
                         self.__colpr("r", msg2, end="\n\n")
                         return
                     self.__specific_simulation = str(sys.argv[6])
@@ -163,8 +164,8 @@ class QRAMCircuitExperiments:
 
             if self.__simulate:
                 if input("Simulate specific simulation for specific qubits wires? (y/n): ").lower() in ["y", "yes"]:
-                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm"]:
-                        self.__specific_simulation = input("Choose specific simulation for specific qubits wires (a, b, m, ab, bm, abm): ")
+                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
+                        self.__specific_simulation = input("Choose specific simulation for specific qubits wires (a, b, m, ab, bm, abm, t): ")
 
     #######################################
     # decomposition methods
@@ -573,6 +574,124 @@ class QRAMCircuitExperiments:
         else:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{method_name}'")\
 
+    def _simulation_a_qubits(self) -> None:
+        """
+        Simulates the addressing of the a qubits.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        """ 2
+        the range of a qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 01 0000 0000 0 -> 512 : step
+        0 10 0000 0000 0 -> 1024
+        0 11 0000 0000 0 -> 1536
+        1 00 0000 0000 0 -> 2048 : stop 
+        """
+        """ 3
+        the range of a qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 001 00000000 00000000 0 -> 131072 : step
+        0 010 00000000 00000000 0 -> 262144
+        0 011 00000000 00000000 0 -> 393216
+        0 100 00000000 00000000 0 -> 524288
+        0 101 00000000 00000000 0 -> 655360
+        0 110 00000000 00000000 0 -> 786432
+        0 111 00000000 00000000 0 -> 917504
+        1 000 00000000 00000000 0 -> 1048576 : stop
+        """
+
+        start = 0
+        # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
+        step = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
+        stop = step * ( 2 ** self.__start_range_qubits )
+        print("\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
+        self.__simulation(start, stop, step)
+
+    def _simulation_b_qubits(self) -> None:
+        """
+        Simulates the uncomputation of FANOUT.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        """ 2
+        the range of b qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0001 0000 0 -> 32 : step
+        0 00 0010 0000 0 -> 64
+        0 00 0011 0000 0 -> 96
+        ...
+        0 00 1111 0000 0 -> 480
+        0 01 0000 0000 0 -> 512 : stop
+        """
+        """ 3
+        the range of b qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000001 00000000 0 -> 512 : step
+        0 000 00000010 00000000 0 -> 1024
+        0 000 00000011 00000000 0 -> 1536
+        ...
+        0 000 11111111 00000000 0 -> 65536
+        0 001 00000000 00000000 0 -> 131072 : stop
+        """
+
+        start = 0
+        step = 2 ** ( 2 ** self.__start_range_qubits + 1 )
+        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
+        print("\nSimulating the circuit ... checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
+        self.__simulation(start, stop, step)
+
+    def _simulation_m_qubits(self) -> None:
+        """
+        Simulates the computation of MEM.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        """ 2
+        the range of m qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0001 0 -> 2 : step
+        0 00 0000 0010 0 -> 4
+        0 00 0000 0011 0 -> 6
+        ...
+        0 00 0000 1111 0 -> 30
+        0 00 0001 0000 0 -> 32 : stop
+        """
+        """ 3
+        the range of m qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000000 00000001 0 -> 2 : step
+        0 000 00000000 00000010 0 -> 4
+        0 000 00000000 00000011 0 -> 6
+        ...
+        0 000 00000000 00001111 0 -> 30
+        0 000 00000000 00010000 0 -> 32
+        ...
+        0 000 00000000 11111111 0 -> 510
+        0 000 00000001 00000000 0 -> 512 : stop
+        """
+
+        start = 0
+        step = 2
+        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
+        print("\nSimulating the circuit ... checking the computation of MEM...were the m qubits are getting the result of the computation.", end="\n\n")
+        self.__simulation(start, stop, step)
+
     def _simulation_ab_qubits(self) -> None:
         """
         Simulates the addressing and uncomputation of the a and b qubits.
@@ -722,9 +841,9 @@ class QRAMCircuitExperiments:
         print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
-    def _simulation_a_qubits(self) -> None:
+    def _simulation_t_qubits(self) -> None:
         """
-        Simulates the addressing of the a qubits.
+        Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
 
         Args:
             None
@@ -734,94 +853,23 @@ class QRAMCircuitExperiments:
         """
 
         """ 2
-        the range of a qubits
-        0 00 0000 0000 0 -> 0 : start
-        0 01 0000 0000 0 -> 512 : step
-        0 10 0000 0000 0 -> 1024
-        0 11 0000 0000 0 -> 1536
-        1 00 0000 0000 0 -> 2048 : stop 
-        """
-        """ 3
-        the range of a qubits
-        0 000 00000000 00000000 0 -> 0 : start
-        0 001 00000000 00000000 0 -> 131072 : step
-        0 010 00000000 00000000 0 -> 262144
-        0 011 00000000 00000000 0 -> 393216
-        0 100 00000000 00000000 0 -> 524288
-        0 101 00000000 00000000 0 -> 655360
-        0 110 00000000 00000000 0 -> 786432
-        0 111 00000000 00000000 0 -> 917504
-        1 000 00000000 00000000 0 -> 1048576 : stop
-        """
-
-        start = 0
-        # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
-        step = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
-        stop = step * ( 2 ** self.__start_range_qubits )
-        print("\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
-        self.__simulation(start, stop, step)
-
-    def _simulation_b_qubits(self) -> None:
-        """
-        Simulates the uncomputation of FANOUT.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-
-        """ 2
-        the range of b qubits
-        0 00 0000 0000 0 -> 0 : start
-        0 00 0001 0000 0 -> 32 : step
-        0 00 0010 0000 0 -> 64
-        0 00 0011 0000 0 -> 96
-        ...
-        0 00 1111 0000 0 -> 480
-        0 01 0000 0000 0 -> 512 : stop
-        """
-        """ 3
-        the range of b qubits
-        0 000 00000000 00000000 0 -> 0 : start
-        0 000 00000001 00000000 0 -> 512 : step
-        0 000 00000010 00000000 0 -> 1024
-        0 000 00000011 00000000 0 -> 1536
-        ...
-        0 000 11111111 00000000 0 -> 65536
-        0 001 00000000 00000000 0 -> 131072 : stop
-        """
-
-        start = 0
-        step = 2 ** ( 2 ** self.__start_range_qubits + 1 )
-        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
-        print("\nSimulating the circuit ... checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
-        self.__simulation(start, stop, step)
-
-    def _simulation_m_qubits(self) -> None:
-        """
-        Simulates the computation of MEM.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-
-        """ 2
-        the range of m qubits
+        the range of a, b, and m qubits
         0 00 0000 0000 0 -> 0 : start
         0 00 0000 0001 0 -> 2 : step
         0 00 0000 0010 0 -> 4
         0 00 0000 0011 0 -> 6
         ...
         0 00 0000 1111 0 -> 30
-        0 00 0001 0000 0 -> 32 : stop
+        0 00 0001 0000 0 -> 32
+        ...
+        0 00 1111 0000 0 -> 480
+        0 01 0000 0000 0 -> 512
+        ...
+        0 11 1111 0000 0 -> 2016
+        1 00 0000 0000 0 -> 2048 : stop
         """
         """ 3
-        the range of m qubits
+        the range of a, b, and m qubits
         0 000 00000000 00000000 0 -> 0 : start
         0 000 00000000 00000001 0 -> 2 : step
         0 000 00000000 00000010 0 -> 4
@@ -831,14 +879,22 @@ class QRAMCircuitExperiments:
         0 000 00000000 00010000 0 -> 32
         ...
         0 000 00000000 11111111 0 -> 510
-        0 000 00000001 00000000 0 -> 512 : stop
+        0 000 00000001 00000000 0 -> 512
+        ...
+        0 000 11111111 00000000 0 -> 65536
+        0 001 00000000 00000000 0 -> 131072
+        ...
+        0 100 11111111 00000000 0 -> 589824
+        ...
+        1 000 00000000 00000000 0 -> 1048576 : stop
         """
 
         start = 0
-        step = 2
-        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
-        print("\nSimulating the circuit ... checking the computation of MEM...were the m qubits are getting the result of the computation.", end="\n\n")
-        self.__simulation(start, stop, step)
+        step_m = 2
+        step_a = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
+        stop = step_a * ( 2 ** self.__start_range_qubits )
+        print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit.", end="\n\n")
+        self.__simulation(start, stop, step_m)
 
     def _simulation_all_qubits(self) -> None:
         """
@@ -992,40 +1048,23 @@ class QRAMCircuitExperiments:
 
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
 
-        if self.__specific_simulation == "all":
-            if self.__print_sim:
-                print(f"{name} circuit result: ")
-                print(result)
+        # Extract specific measurements
+        measurements = result.measurements
+        measurements_modded = result_modded.measurements
 
-            try:
+        if self.__print_sim:
+            self.__colpr("y", f"Index of array {i}", end="\n")
+            self.__colpr("w", f"{name} circuit result: ")
+            self.__colpr("w", str(result))
+
+        try:
+            if self.__specific_simulation == "all":
+                # Compare final state which is the output vector, only for all qubits
                 assert (np.array_equal(
                     np.array(np.around(result.final_state[i])), 
                     np.array(np.around(result_modded.final_state[i]))))
-            except Exception:
-                fail += 1
-                if self.__print_sim:
-                    self.__colpr("r","Modded circuit result: ")
-                    self.__colpr("r", str(result_modded), end="\n\n")
-                else:
-                    self.__colpr("r", "•", end="")
             else:
-                success += 1
-                if self.__print_sim:
-                    self.__colpr("g","Modded circuit result: ")
-                    self.__colpr("g", str(result_modded), end="\n\n")
-                else:
-                    self.__colpr("g", "•", end="")
-
-        else:
-            # Extract specific measurements
-            measurements = result.measurements
-            measurements_modded = result_modded.measurements
-
-            if self.__print_sim:
-                self.__printMeasurement("w", name, self.__bbcircuit, measurements, end="")
-
-            try:
-                # Compare specific measurements
+                # Compare specific measurements for the specific qubits
                 for o_qubit in self.__bbcircuit.qubit_order:
                     for qubit in measurements.keys():
                         if str(o_qubit) == str(qubit):
@@ -1033,54 +1072,22 @@ class QRAMCircuitExperiments:
                                 measurements.get(qubit, np.array([])),
                                 measurements_modded.get(qubit, np.array([]))
                             )
-            except Exception:
-                fail += 1
-                if self.__print_sim:
-                    self.__printMeasurement("r", "Modded", self.__bbcircuit_modded, measurements_modded)
-                else:
-                    self.__colpr("r", "•", end="")
+        except Exception:
+            fail += 1
+            if self.__print_sim:
+                self.__colpr("r", "Modded circuit result: ")
+                self.__colpr("r", str(result_modded), end="\n\n")
             else:
-                success += 1
-                if self.__print_sim:
-                    self.__printMeasurement("g", "Modded", self.__bbcircuit_modded, measurements_modded)
-                else:
-                    self.__colpr("g", "•", end="")
+                self.__colpr("r", "•", end="")
+        else:
+            success += 1
+            if self.__print_sim:
+                self.__colpr("g", "Modded circuit result: ")
+                self.__colpr("g", str(result_modded), end="\n\n")
+            else:
+                self.__colpr("g", "•", end="")
 
         return (fail, success)
-
-    #######################################
-    # print measurement method
-    #######################################
-
-    def __printMeasurement(
-            self,
-            color: str,
-            name: str,
-            bbcircuit: bb.BucketBrigade,
-            measurements: 'dict[cirq.Qid, np.ndarray]',
-            end: str = "\n"
-        ) -> None:
-        """
-        Prints the measurements.
-
-        Args:
-            color (str): The color of the text [r, g, v, b, y, c, w, m, k, d, u].
-            bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
-            measurements ('dict[cirq.Qid, np.ndarray]'): The measurements to be printed.
-
-        Returns:
-            None
-        """
-
-        self.__colpr(color, f"{name} circuit measurements: ")
-        self.__colpr(color, "measurements: ", end="")
-
-        for o_qubit in bbcircuit.qubit_order:
-            for qubit in measurements.keys():
-                if str(o_qubit) == str(qubit):
-                    m = str(measurements.get(qubit, np.array([]))[0])
-                    self.__colpr(color, str(qubit), "=", m, end=" ")
-        print(end)
 
     #######################################
     # print circuit method
@@ -1186,18 +1193,18 @@ def main():
     """
         The Bucket brigade decomposition described in the paper.
         Depth of the circuit decomposition is 30 for 2 qubits and 45 for 3 qubits WITH parallel toffolis.
-        ? Simulation not passed.
+        ! Full simulation not passed. but the measuring only the target qubit passed.
     """
-    # qram.bb_decompose_test(
-    #     ToffoliDecompType.NO_DECOMP,
-    #     False,
-    #     [
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
-    #     ],
-    #     True
-    # )
+    qram.bb_decompose_test(
+        ToffoliDecompType.NO_DECOMP,
+        False,
+        [
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
+        ],
+        True
+    )
 
     """
         The Bucket brigade standard 7-T gate decomposition (QC10).
