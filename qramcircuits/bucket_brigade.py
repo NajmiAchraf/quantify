@@ -163,7 +163,7 @@ class BucketBrigade():
             According to the notes received from Olivia DiMatteo the 
             the FANIN and the FANOUT Toffolis are decomposed differently
             to the Toffolis connected to the memory
-        # """
+        """
         # if self.decomposition_type == ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B:
         #     dec_fan_in = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A
         #     dec_fan_out = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A
@@ -225,8 +225,7 @@ class BucketBrigade():
         )
         if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4
                                             ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 
