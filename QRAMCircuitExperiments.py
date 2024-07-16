@@ -10,6 +10,29 @@ import psutil
 import sys
 import numpy as np
 
+
+"""How to run the QRAMCircuitExperiments.py file:
+
+Run the following command in the terminal:
+
+    python3.7 QRAMCircuitExperiments.py
+
+or by adding arguments:
+
+    python3.7 QRAMCircuitExperiments.py y y n 2 2
+
+Arguments:
+- arg 1: Simulate Toffoli decompositions (y/n).
+- arg 2: Print circuits (y/n).
+- arg 3: Print full simulation result (y/n).
+- arg 4: Start range of qubits, starting from 2.
+- arg 5: End range of qubits, should be equal to or greater than the start range.
+- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, all).
+    leave it empty to simulate the target qubit only.
+    only for all qubits we compare the output vector.
+"""
+
+
 class QRAMCircuitExperiments:
     """
     A class used to represent the QRAM circuit experiments.
@@ -50,8 +73,8 @@ class QRAMCircuitExperiments:
         _simulation_ab_qubits(): Simulates the addressing and uncomputation of the a and b qubits.
         _simulation_bm_qubits(): Simulates the computation and uncomputation of the b and m qubits.
         _simulation_abm_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits.
+        _simulation_all_qubits(): Simulates the all qubits.
         _simulation_t_qubits(): Simulates the target qubit.
-        _simulation_all(): Simulates the all qubits.
         __simulation(): Simulates the circuit.
         __compare_results_of_simulation(): Compares the results of the simulation.
         __printCircuit(): Prints the circuit.
@@ -64,7 +87,7 @@ class QRAMCircuitExperiments:
     __print_sim: bool = False
     __start_range_qubits: int
     __end_range_qubits: int
-    __specific_simulation: str = "all"
+    __specific_simulation: str = "t"
     __simulated: bool = False
 
     __start_time: float = 0
@@ -114,7 +137,7 @@ class QRAMCircuitExperiments:
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
-        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is all"
+        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, all), by default it is target qubit"
         len_argv = 6
 
         if len(sys.argv) == len_argv or len(sys.argv) == len_argv + 1:
@@ -137,7 +160,7 @@ class QRAMCircuitExperiments:
                 self.__end_range_qubits = self.__start_range_qubits
 
             if len(sys.argv) == len_argv + 1 and self.__simulate:
-                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
+                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "all"]:
                         self.__colpr("r", msg2, end="\n\n")
                         return
                     self.__specific_simulation = str(sys.argv[6])
@@ -163,9 +186,9 @@ class QRAMCircuitExperiments:
                 self.__end_range_qubits = int(input("End range of qubits: "))
 
             if self.__simulate:
-                if input("Simulate specific simulation for specific qubits wires? (y/n): ").lower() in ["y", "yes"]:
-                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
-                        self.__specific_simulation = input("Choose specific simulation for specific qubits wires (a, b, m, ab, bm, abm, t): ")
+                if input("Simulate specific measurement for specific qubits wires? (y/n): ").lower() in ["y", "yes"]:
+                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "all"]:
+                        self.__specific_simulation = input("Choose specific qubits wires (a, b, m, ab, bm, abm, all): ")
 
     #######################################
     # decomposition methods
@@ -841,6 +864,38 @@ class QRAMCircuitExperiments:
         print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
+    def _simulation_all_qubits(self) -> None:
+        """
+        Simulates the all qubits.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        """ 2
+        the range of all qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0000 1 -> 1 : step
+        ...
+        1 00 0000 0000 0 -> 2048 : stop 
+        """
+        """ 3
+        the range of all qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000000 00000000 1 -> 0 : 1
+        ...
+        1 000 00000000 00000000 0 -> 1048576 : stop
+        """
+
+        start = 0
+        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
+        stop = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + self.__start_range_qubits + 1 )
+        print("\nSimulating the circuit ... checking the all qubits.", end="\n\n")
+        self.__simulation(start, stop, 1)
+
     def _simulation_t_qubits(self) -> None:
         """
         Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
@@ -895,38 +950,6 @@ class QRAMCircuitExperiments:
         stop = step_a * ( 2 ** self.__start_range_qubits )
         print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit.", end="\n\n")
         self.__simulation(start, stop, step_m)
-
-    def _simulation_all_qubits(self) -> None:
-        """
-        Simulates the all qubits.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-
-        """ 2
-        the range of all qubits
-        0 00 0000 0000 0 -> 0 : start
-        0 00 0000 0000 1 -> 1 : step
-        ...
-        1 00 0000 0000 0 -> 2048 : stop 
-        """
-        """ 3
-        the range of all qubits
-        0 000 00000000 00000000 0 -> 0 : start
-        0 000 00000000 00000000 1 -> 0 : 1
-        ...
-        1 000 00000000 00000000 0 -> 1048576 : stop
-        """
-
-        start = 0
-        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
-        stop = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + self.__start_range_qubits + 1 )
-        print("\nSimulating the circuit ... checking the all qubits.", end="\n\n")
-        self.__simulation(start, stop, 1)
 
     def __simulation(self, start:int, stop:int, step:int) -> None:
         """
