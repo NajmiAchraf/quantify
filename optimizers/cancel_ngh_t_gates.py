@@ -1,6 +1,9 @@
 import cirq
 
-class EliminateTSeriesInTarget():
+from .transfer_flag_optimizer import TransferFlagOptimizer
+
+class CancelNghTs(TransferFlagOptimizer):
+    # Cancel T gates in the target qubit
     circuit: cirq.Circuit
     target_ops: list = []
     Z_inserted: bool = False

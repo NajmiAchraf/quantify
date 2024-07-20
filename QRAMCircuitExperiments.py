@@ -1,5 +1,6 @@
 import cirq
 import copy
+import math
 import numpy as np
 import os
 import psutil
@@ -66,6 +67,8 @@ class QRAMCircuitExperiments:
         __essential_checks(): Performs essential checks on the experiment.
         __check_depth_of_circuit(): Checks the depth of the circuit decomposition.
         __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
+        __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
+        __decomposed_circuit(): Creates a Toffoli decomposition with measurements circuit.
         __simulate_decompositions(): Simulates the Toffoli decompositions.
         __simulate_decomposition(): Simulates a Toffoli decomposition.
         __simulate_circuit(): Simulates the circuit.
@@ -391,6 +394,12 @@ class QRAMCircuitExperiments:
                     decirc[0].dec_fan_out,
                     "YES !!" if decirc[0].parallel_toffolis else "NO !!"
                 ))
+            
+            for decomposition_type in self.__fan_in_mem_out(decirc[0]):
+                if decomposition_type == ToffoliDecompType.NO_DECOMP:
+                    continue
+                circuit, qubits = self.__create_decomposition_circuit(decomposition_type)
+                self.__printCircuit(circuit, qubits, f"decomposition {str(decomposition_type)}")
 
             self.__check_depth_of_circuit(decirc[1], decirc[0])
             self.__printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
@@ -473,6 +482,66 @@ class QRAMCircuitExperiments:
 
         return list(set(decomp_scenario.get_decomp_types()))
 
+    def __create_decomposition_circuit(
+            self, 
+            decomposition_type: ToffoliDecompType
+    ) -> 'tuple[cirq.Circuit, list[cirq.NamedQubit]]':
+        """
+        Creates a Toffoli decomposition circuit.
+
+        Args:
+            decomposition_type (ToffoliDecompType): The type of Toffoli decomposition.
+
+        Returns:
+            'tuple[cirq.Circuit, list[cirq.NamedQubit]]': The Toffoli decomposition circuit and qubits.
+        """
+        
+        circuit = cirq.Circuit()
+
+        qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
+
+        decomp = ToffoliDecomposition(
+            decomposition_type=decomposition_type,
+            qubits=qubits)
+
+        if decomp.number_of_ancilla() > 0:
+            qubits += [decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))]
+
+        circuit.append(decomp.decomposition())
+
+        return circuit, qubits
+
+    def __decomposed_circuit(
+            self, 
+            decomposition_type: ToffoliDecompType
+    ) -> 'tuple[cirq.Circuit, list[cirq.NamedQubit], np.array]':
+        """
+        Creates a Toffoli decomposition with measurements circuit.
+
+        Args:
+            decomposition_type (ToffoliDecompType): The type of Toffoli decomposition.
+
+        Returns:
+            'tuple[cirq.Circuit, list[cirq.NamedQubit], np.array]': The Toffoli decomposition circuit, qubits, and initial state.
+        """
+
+        circuit, qubits = self.__create_decomposition_circuit(decomposition_type)
+
+        measurements = []
+        for qubit in qubits:
+            if qubit.name[0] == "q":
+                measurements.append(cirq.measure(qubit))
+
+        circuit.append(measurements)
+
+        if decomposition_type != ToffoliDecompType.NO_DECOMP:
+            self.__printCircuit(circuit, qubits, f"decomposition {str(decomposition_type)}")
+
+        ls = [0 for _ in range(2**len(qubits))]
+        initial_state = np.array(ls, dtype=np.complex64)
+    
+        return circuit, qubits, initial_state
+
     def __simulate_decompositions(self) -> None:
         """
         Simulates the Toffoli decompositions.
@@ -512,58 +581,85 @@ class QRAMCircuitExperiments:
 
         self.__start_time = time.time()
 
-        circuit = cirq.Circuit()
+        circuit, qubits, initial_state = self.__decomposed_circuit(ToffoliDecompType.NO_DECOMP)
+        circuit_modded, qubits_modded, initial_state_modded = self.__decomposed_circuit(decomposition_type)
 
-        qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
+        nbr_anc = ToffoliDecomposition.numbers_of_ancilla(decomposition_type)
 
-        moments = ToffoliDecomposition(
-            decomposition_type=decomposition_type,
-            qubits=qubits).decomposition()
-        circuit.append(moments)
-
-        measurements = [cirq.measure(qubits[i])
-                        for i in range(len(qubits))]
-        circuit.append(measurements)
-
-        self.__printCircuit(circuit, qubits, "decomposition")
-
-        ls = [0 for _ in range(2**len(qubits))]
-        initial_state = np.array(ls, dtype=np.complex64)
+        """ 0 ancilla
+            0 0 0 0 -> 0 : start
+            0 0 0 0 -> 1 : step
+            ...
+            0 1 1 1 -> 7
+            1 0 0 0 -> 8 : stop
+        """
+        """ 2 ancilla
+            0 0 0 0 0 0 -> 0 : start
+            0 0 0 1 0 0 -> 4 : step
+            0 0 1 0 0 0 -> 8
+            ...
+            0 1 1 1 0 0 -> 28
+            1 0 0 0 0 0 -> 32 : stop
+        """
+        start = 0
+        step = 2 ** nbr_anc
+        stop = 8 * step
 
         self.__colpr("c", "Simulating the decomposition ... ", str(decomposition_type),  end="\n\n")
 
-        for i in range(8):
-            initial_state[i] = 1
+        for i in range(start, stop, step):
+            j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
+
+            initial_state[j] = 1
+            initial_state_modded[i] = 1
+
             result = self.__simulator.simulate(
                 circuit,
                 qubit_order=qubits,
                 initial_state=initial_state
             )
-            # temp is supposed to have the expected result of a toffoli
-            temp = copy.deepcopy(initial_state)
-            if i in [6, 7]:
-                temp[6] = (1 - temp[6])
-                temp[-1] = (1 - temp[-1])
+
+            result_modded = self.__simulator.simulate(
+                circuit_modded,
+                qubit_order=qubits_modded,
+                initial_state=initial_state_modded
+            )
+
+            # Extract specific measurements
+            measurements = result.measurements
+            measurements_modded = result_modded.measurements
+
+            if self.__print_sim:
+                self.__colpr("c", f"Index of array {j} {i}", end="\n")
+                self.__colpr("w", f"Toffoli circuit result: ")
+                self.__colpr("w", str(result))
 
             try:
-                assert (np.array_equal(
-                    np.array(np.around(result.final_state)), temp))
+                # Compare specific measurements for the specific qubits
+                for o_qubit in qubits:
+                    for qubit in measurements.keys():
+                        if str(o_qubit) == str(qubit):
+                            assert np.array_equal(
+                                measurements.get(qubit, np.array([])),
+                                measurements_modded.get(qubit, np.array([]))
+                            )
             except Exception:
                 fail += 1
                 if self.__print_sim:    
-                    self.__colpr("r","Modded circuit result: ")
-                    self.__colpr("r", str(result), end="\n\n")
+                    self.__colpr("r","decomposed toffoli circuit result: ")
+                    self.__colpr("r", str(result_modded), end="\n\n")
                 else:
                     self.__colpr("r", "•", end="")
             else:
                 success += 1
                 if self.__print_sim:
-                    self.__colpr("g","Modded circuit result: ")
-                    self.__colpr("g", str(result), end="\n\n")
+                    self.__colpr("g","decomposed toffoli circuit result: ")
+                    self.__colpr("g", str(result_modded), end="\n\n")
                 else:
                     self.__colpr("g", "•", end="")
 
-            initial_state[i] = 0
+            initial_state[j] = 0
+            initial_state_modded[i] = 0
             total_tests += 1
 
         self.__stop_time = self.__spent_time(self.__start_time)
@@ -968,7 +1064,6 @@ class QRAMCircuitExperiments:
             start (int): The start index.
             stop (int): The stop index.
             step (int): The step index.
-            qubit_name (str): The name of the qubit.
 
         Returns:
             None
@@ -1045,7 +1140,7 @@ class QRAMCircuitExperiments:
         self.__colpr("g", "Succeed: ", str(s), "%", end="\n\n")
 
         self.__colpr("w", "Time spent on simulation and comparison: ", self.__stop_time, end="\n\n")
-    
+
     def __simulate_and_compare(
             self,
             i: int,
@@ -1234,33 +1329,96 @@ def main():
         Depth of the circuit decomposition is 30 for 2 qubits and 45 for 3 qubits WITH parallel toffolis.
         #! Full simulation not passed. but the measuring only the target qubit passed.
     """
-    qram.bb_decompose_test(
-        ToffoliDecompType.NO_DECOMP,
-        False,
-        [
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
-        ],
-        True
-    )
+    # qram.bb_decompose_test(
+    #     ToffoliDecompType.NO_DECOMP,
+    #     False,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE
+    #     ],
+    #     True
+    # )
+    # qram.bb_decompose_test(
+    #     ToffoliDecompType.NO_DECOMP,
+    #     False,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE,
+    #     ],
+    #     True
+    # )
 
     """
         The Bucket brigade standard 7-T gate decomposition (QC10).
         Depth of the circuit decomposition is 46 for 2 qubits WITH parallel toffolis.
         Simulation passed.
     """
+
     # qram.bb_decompose_test(
     #     ToffoliDecompType.NO_DECOMP,
     #     False,
-    #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+    #     ],
     #     True
     # )
 
     # qram.bb_decompose_test(
     #     ToffoliDecompType.NO_DECOMP,
     #     False,
-    #     ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_TEST,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6,
+    #     ],
+    #     True
+    # )
+
+    qram.bb_decompose_test( # mix1 better in 3 qubits and up __{2q: 36, 3q: 61, 4q: 91}__
+        ToffoliDecompType.NO_DECOMP,
+        False,
+        [
+            ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+        ],
+        True
+    )
+
+    # qram.bb_decompose_test( # mix2 better in 3 qubits and up with +1 in depth __{2q: 36, 3q: 62, 4q: 92}__
+    #     ToffoliDecompType.NO_DECOMP,
+    #     False,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+    #     ],
+    #     True
+    # )
+
+    # qram.bb_decompose_test( # mix3 __{2q: 36, 3q: 70, 4q: 110}__
+    #     ToffoliDecompType.NO_DECOMP,
+    #     False,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_4_CXD_8_INV,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #     ],
+    #     True
+    # )
+
+    # qram.bb_decompose_test(
+    #     ToffoliDecompType.NO_DECOMP,
+    #     False,
+    #     [
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_4_CXD_8,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.TWO_ANCILLA_TD_1_CXD_8,
+    #     ],
     #     True
     # )
 
@@ -1316,20 +1474,20 @@ def main():
     """
         The Bucket brigade all controlled V, 𝑉† and X decompositions (QC5) for the FANIN and FANOUT AND standard 7-T gate decomposition (QC10) for QUERY (mem).
         #! Depth of the circuit decomposition is 34 for 2 qubits and 63 for 3 qubits WITH parallel toffolis.
-        #! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is __{ 31 }__ for 2 qubits and __{ 56 }__ for 3 qubits WITH parallel toffolis.
+        #! After eliminating the T gates, the depth of the T gate stabilizes at 4 for all numbers of qubits, and the depth of the circuit decomposition is __{ 31 }__ for 2 qubits and __{ 56 }__ for 3 qubits WITH parallel toffolis and __{ 97 }__ for 4 qubits.
         Simulation passed.
     """
-    for i in [1, 3]:
-        qram.bb_decompose_test(
-            ToffoliDecompType.NO_DECOMP,
-            False,
-            [
-                eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
-            ],
-            True
-        )
+    # for i in [1, 3]:
+    #     qram.bb_decompose_test(
+    #         ToffoliDecompType.NO_DECOMP,
+    #         False,
+    #         [
+    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+    #             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #             eval(f"ToffoliDecompType.CV_CX_QC5_{i}"),
+    #         ],
+    #         True
+    #     )
 
 if __name__ == "__main__":
     main()

@@ -312,7 +312,7 @@ class BucketBrigade():
         while old_circuit_2 != circuit_2:
             old_circuit_2 = cirq.Circuit(circuit_2)
 
-            qopt.EliminateTSeriesInTarget(circuit_2).optimize_circuit()
+            qopt.CancelNghTs(circuit_2).optimize_circuit()
 
             # print(circuit_2)
 
