@@ -3,45 +3,64 @@ import cirq
 from .transfer_flag_optimizer import TransferFlagOptimizer
 
 class CancelNghTs(TransferFlagOptimizer):
-    # Cancel T gates in the target qubit
+    # cancel T gates series in every qubit
     circuit: cirq.Circuit
-    target_ops: list = []
-    Z_inserted: bool = False
+    qubits_ops: dict = {}
+    ops_to_cancel: list = []
 
     def __init__(self, circuit: cirq.Circuit):
         self.circuit = circuit
+        self.qubits_ops = {str(qubit): [] for qubit in circuit.all_qubits()}
 
-        # looping on gates of each qubit to get target
-        for qubit in circuit.all_qubits():
-            for op in circuit.all_operations():
-                if op.gate == cirq.T and op.qubits[0] == qubit and qubit.name == "target":
-                    self.target_ops.append(op)
+        # Collect operations for each qubit in the right order
+        for moment in circuit:
+            for op in moment:
+                for qubit in op.qubits:
+                    self.qubits_ops[str(qubit)].append(op)
 
     def __str__(self):
-        pr = "qubit target:"
-        for t in self.target_ops:
-            pr.join(" " + t)
-        pr.join("\n")
+        for qubit in self.qubits_ops:
+            pr = "qubit " + qubit + ":"
+            for t in self.qubits_ops[qubit]:
+                pr.join(" " + t)
+            pr.join("\n")
         return pr
 
     def __del__(self):
-        self.target_ops.clear()
+        self.qubits_ops.clear()
+        self.ops_to_cancel.clear()
 
-    def core(self):
+    def coreZ(self, insert_Z=False):
+        Z_inserted = False
         for mi, moment in enumerate(self.circuit):
             for op in moment:
-                if op == self.target_ops[0]:
+                if len(self.ops_to_cancel) == 0:
+                    return
+                if op == self.ops_to_cancel[0]:
+                    self.ops_to_cancel.remove(op)
                     index = self.circuit.moments.index(moment)
                     self.circuit.clear_operations_touching(op.qubits, [index])
-                    if not self.Z_inserted and len(self.target_ops) == 4:
+                    if insert_Z and not Z_inserted:
                         self.circuit.insert(index, cirq.Z(op.qubits[0]))
-                        self.Z_inserted = True
+                        Z_inserted = True
 
     def optimize_circuit(self):
-        # replace the T gate with a single Z gate if length of self.target_ops is 4
-        if len(self.target_ops) == 4:
-            self.core()
+        def check_and_optimize(gate, count_needed, insert_Z=False):
+            count = 0
+            for qubit in self.qubits_ops:
+                for op in self.qubits_ops[qubit]:
+                    if op.gate == gate:
+                        self.ops_to_cancel.append(op)
+                        count += 1
+                    else:
+                        self.ops_to_cancel.clear()
+                        count = 0
+                    if count == count_needed:
+                        self.coreZ(insert_Z)
+                        count = 0
 
-        # remove the T gates if length of self.target_ops is 8 or more and is a multiple of 8
-        elif len(self.target_ops) >= 8 and len(self.target_ops) % 8 == 0:
-            self.core()
+        # Check for 4 T gates in series and replace with a single Z gate
+        check_and_optimize(cirq.T, 4, insert_Z=True)
+
+        # Check for 2 Z gates in series and remove them
+        check_and_optimize(cirq.Z, 2)
