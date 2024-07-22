@@ -1350,6 +1350,37 @@ def main():
     # )
 
     """
+        The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the standard 7-T gate decomposition (QC10) Depth of T 5 and of CNOT 6 Inverse for FANIN and standard 7-T gate decomposition inversed (QC10) for FANOUT.
+        * Depth WITH parallel toffolis and cancel ngh T gates only in target qubit:
+            #!    Depth |  Circuit  | T Gate
+            #! 2 qubits |    36  
+            #! 3 qubits |    62
+            #! 4 qubits |    92
+        * Depth WITH parallel toffolis and cancel ngh T gates in all qubits:
+            #!    Depth |  Circuit  | T Gate
+            #! 2 qubits |    36     |   17 
+            #! 3 qubits |    59     |   29
+            #! 4 qubits |    85     |   43
+        * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output:
+            #!    Depth |  Circuit  | T Gate = 8 * nq (static 8 and every up qubit +8)
+            #! 2 qubits |    36     |   16   = 8 * 2
+            #! 3 qubits |    58     |   24   = 8 * 3
+            #! 4 qubits |    80     |   32   = 8 * 4
+    """
+    qram.bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
+
+        dec_mod=[
+            ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+        ],
+        parallel_toffolis_mod=True,
+        mirror_in_to_out=True
+    )
+
+    """
         The Bucket brigade standard 7-T gate decomposition (QC10).
         Depth of the circuit decomposition is 46 for 2 qubits WITH parallel toffolis.
         Simulation passed.
@@ -1378,30 +1409,18 @@ def main():
     # )
 
     # qram.bb_decompose_test( # mix1 better in 3 qubits and up __{2q: 36, 3q: 61, 4q: 91(88)}__
-    #     ToffoliDecompType.NO_DECOMP,
-    #     False,
-    #     [
-    #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+    #     dec_mod=[
+    #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #     ],
-    #     True
+    #     parallel_toffolis_mod=True,
+    #     mirror_in_to_out=False
     # )
 
-    qram.bb_decompose_test( # mix2 better in 3 qubits and up with +1 in depth __{2q: 36, 3q: 62(59), 4q: 92(85)}__
-        dec=ToffoliDecompType.NO_DECOMP,
-        parallel_toffolis=False,
-
-        dec_mod=[
-            ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
-        ],
-        parallel_toffolis_mod=True,
-        mirror_in_to_out=True
-    )
-
-    # qram.bb_decompose_test( # mix3 __{2q: 36, 3q: 70, 4q: 110}__
+    # qram.bb_decompose_test( # mix2 __{2q: 36, 3q: 70, 4q: 110}__
     #     ToffoliDecompType.NO_DECOMP,
     #     False,
     #     [

@@ -264,10 +264,6 @@ class BucketBrigade():
             compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
             circuit.append(compute_fanout_moments)
 
-        # Last optimisation to remove the T gates from the circuit
-        if self.decomp_scenario.parallel_toffolis:
-            circuit = self.cancel_ngh_t(circuit)
-
         # This is the qubit order for drawing the circuits
         # similar to Olivia's paper
         self._qubit_order += qubits[::-1]
@@ -320,7 +316,7 @@ class BucketBrigade():
         # circuit_1 = circuit_2
         circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
 
-        return circuit_1
+        return BucketBrigade.cancel_ngh_t(circuit_1)
 
     @staticmethod
     def cancel_ngh_t(circuit):
