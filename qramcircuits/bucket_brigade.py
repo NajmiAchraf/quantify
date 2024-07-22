@@ -10,7 +10,7 @@ import numpy as np
 
 
 class BucketBrigadeDecompType:
-    def __init__(self, toffoli_decomp_types, parallel_toffolis):
+    def __init__(self, toffoli_decomp_types, parallel_toffolis, mirror_in_to_out=False):
         self.dec_fan_in = toffoli_decomp_types[0]
         self.dec_mem = toffoli_decomp_types[1]
         self.dec_fan_out = toffoli_decomp_types[2]
@@ -20,6 +20,10 @@ class BucketBrigadeDecompType:
         # is used (not checked, for the moment)...
         # We are not sure how to design this. Keep it.
         self.parallel_toffolis = parallel_toffolis
+
+        # If the FANIN is better in terms of depth than the FANOUT
+        # we can mirror the FANIN to FANOUT
+        self.mirror_in_to_out = mirror_in_to_out
 
     # def get_dec_fan_in(self):
     #     return self.dec_fan_in
@@ -239,21 +243,30 @@ class BucketBrigade():
         """
             Adding the FANOUT
         """
-        compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
+        if not self.decomp_scenario.mirror_in_to_out:
+            compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
 
-        # If necessary, parallelise the Toffoli decompositions
-        comp_fan_out = cirq.Circuit(
-            ToffoliDecomposition.
-            construct_decomposed_moments(compute_fanout_moments,
-                                         self.decomp_scenario.dec_fan_out,
-                                         [1, 0, 2]))
+            # If necessary, parallelise the Toffoli decompositions
+            comp_fan_out = cirq.Circuit(
+                ToffoliDecomposition.
+                construct_decomposed_moments(compute_fanout_moments,
+                                            self.decomp_scenario.dec_fan_out,
+                                            [1, 0, 2]))
 
+            if self.decomp_scenario.parallel_toffolis:
+                comp_fan_out = BucketBrigade.parallelise_toffolis(
+                    cirq.Circuit(comp_fan_out.all_operations())
+                )
+
+            circuit.append(comp_fan_out)
+
+        else:
+            compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
+            circuit.append(compute_fanout_moments)
+
+        # Last optimisation to remove the T gates from the circuit
         if self.decomp_scenario.parallel_toffolis:
-            comp_fan_out = BucketBrigade.parallelise_toffolis(
-                cirq.Circuit(comp_fan_out.all_operations())
-            )
-
-        circuit.append(comp_fan_out)
+            circuit = self.cancel_ngh_t(circuit)
 
         # This is the qubit order for drawing the circuits
         # similar to Olivia's paper
@@ -307,22 +320,24 @@ class BucketBrigade():
         # circuit_1 = circuit_2
         circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
 
-        circuit_2 = circuit_1
-        old_circuit_2 = cirq.Circuit()
-        while old_circuit_2 != circuit_2:
-            old_circuit_2 = cirq.Circuit(circuit_2)
-
-            qopt.CancelNghTs(circuit_2).optimize_circuit()
-
-            # print(circuit_2)
-
-            # print("... reinsert")
-            circuit_2 = cirq.Circuit(circuit_2.all_operations())
-
-        circuit_1 = circuit_2
-        # circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
-
         return circuit_1
+
+    @staticmethod
+    def cancel_ngh_t(circuit):
+        old_circuit = cirq.Circuit()
+
+        while old_circuit != circuit:
+            old_circuit = cirq.Circuit(circuit)
+
+            qopt.CancelNghTs(circuit).optimize_circuit()
+            # print(circuit)
+            # print("... reinsert")
+
+            circuit = cirq.Circuit(circuit.all_operations())
+            # print(circuit)
+            # print("... reinsert")
+
+        return circuit
 
     """
         Verifications

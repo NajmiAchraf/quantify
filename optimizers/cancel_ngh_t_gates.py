@@ -62,5 +62,8 @@ class CancelNghTs(TransferFlagOptimizer):
         # Check for 4 T gates in series and replace with a single Z gate
         check_and_optimize(cirq.T, 4, insert_Z=True)
 
+        # Check for 4 T**-1 gates in series and replace with a single Z gate
+        check_and_optimize(cirq.T**-1, 4, insert_Z=True)
+
         # Check for 2 Z gates in series and remove them
         check_and_optimize(cirq.Z, 2)

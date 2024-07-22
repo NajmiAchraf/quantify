@@ -202,7 +202,8 @@ class QRAMCircuitExperiments:
     def __bb_decompose(
         self,
         toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
-        parallel_toffolis: bool
+        parallel_toffolis: bool,
+        mirror_in_to_out: bool = False
     ) -> bb.BucketBrigadeDecompType:
         """
         Decomposes the Toffoli gates in the bucket brigade circuit.
@@ -210,6 +211,7 @@ class QRAMCircuitExperiments:
         Args:
             toffoli_decomp_type (Union['list[ToffoliDecompType]', ToffoliDecompType]): The type of Toffoli decomposition.
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis.
+            mirror_in_to_out (bool): Flag indicating whether to mirror the input to the output.
 
         Returns:
             bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
@@ -222,7 +224,8 @@ class QRAMCircuitExperiments:
                     toffoli_decomp_type[1],    # mem_decomp
                     toffoli_decomp_type[2]     # fan_out_decomp
                 ],
-                parallel_toffolis=parallel_toffolis
+                parallel_toffolis=parallel_toffolis,
+                mirror_in_to_out=mirror_in_to_out
             )
         else:
             return bb.BucketBrigadeDecompType(
@@ -231,7 +234,8 @@ class QRAMCircuitExperiments:
                     toffoli_decomp_type,    # mem_decomp
                     toffoli_decomp_type     # fan_out_decomp
                 ],
-                parallel_toffolis=parallel_toffolis
+                parallel_toffolis=parallel_toffolis,
+                mirror_in_to_out=mirror_in_to_out
             )
 
     def bb_decompose_test(
@@ -240,7 +244,8 @@ class QRAMCircuitExperiments:
             parallel_toffolis: bool,
 
             dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
-            parallel_toffolis_mod: bool
+            parallel_toffolis_mod: bool,
+            mirror_in_to_out: bool = False
     ) -> None:
         """
         Tests the bucket brigade circuit with different decomposition scenarios.
@@ -250,6 +255,7 @@ class QRAMCircuitExperiments:
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis for the bucket brigade.
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
             parallel_toffolis_mod (bool): Flag indicating whether to use parallel toffolis for the modified bucket brigade.
+            mirror_in_to_out (bool): Flag indicating whether to mirror the input to the output.
 
         Returns:
             None
@@ -262,7 +268,10 @@ class QRAMCircuitExperiments:
         # ================MODDED================
 
         self.__decomp_scenario_modded = self.__bb_decompose(
-            dec_mod, parallel_toffolis_mod)
+            dec_mod, 
+            parallel_toffolis_mod,
+            mirror_in_to_out
+        )
 
         self.__run()
 
@@ -1339,16 +1348,6 @@ def main():
     #     ],
     #     True
     # )
-    # qram.bb_decompose_test(
-    #     ToffoliDecompType.NO_DECOMP,
-    #     False,
-    #     [
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE,
-    #     ],
-    #     True
-    # )
 
     """
         The Bucket brigade standard 7-T gate decomposition (QC10).
@@ -1378,27 +1377,29 @@ def main():
     #     True
     # )
 
-    qram.bb_decompose_test( # mix1 better in 3 qubits and up __{2q: 36, 3q: 61, 4q: 91}__
-        ToffoliDecompType.NO_DECOMP,
-        False,
-        [
-            ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-        ],
-        True
-    )
-
-    # qram.bb_decompose_test( # mix2 better in 3 qubits and up with +1 in depth __{2q: 36, 3q: 62, 4q: 92}__
+    # qram.bb_decompose_test( # mix1 better in 3 qubits and up __{2q: 36, 3q: 61, 4q: 91(88)}__
     #     ToffoliDecompType.NO_DECOMP,
     #     False,
     #     [
     #         ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #     ],
     #     True
     # )
+
+    qram.bb_decompose_test( # mix2 better in 3 qubits and up with +1 in depth __{2q: 36, 3q: 62(59), 4q: 92(85)}__
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
+
+        dec_mod=[
+            ToffoliDecompType.ZERO_ANCILLA_TD_5_CXD_6_INV,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+        ],
+        parallel_toffolis_mod=True,
+        mirror_in_to_out=True
+    )
 
     # qram.bb_decompose_test( # mix3 __{2q: 36, 3q: 70, 4q: 110}__
     #     ToffoliDecompType.NO_DECOMP,
