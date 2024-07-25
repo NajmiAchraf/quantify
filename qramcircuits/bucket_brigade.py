@@ -8,6 +8,7 @@ import utils.misc_utils as miscutils
 import optimizers as qopt
 import numpy as np
 
+global_qubit_order = []
 
 class BucketBrigadeDecompType:
     def __init__(self, toffoli_decomp_types, parallel_toffolis, mirror_in_to_out=False):
@@ -43,6 +44,7 @@ class BucketBrigadeDecompType:
 class BucketBrigade():
 
     def __init__(self, qubits, decomp_scenario):
+        global global_qubit_order
 
         self._qubit_order = []
 
@@ -52,6 +54,7 @@ class BucketBrigade():
 
         self.circuit = self.construct_circuit(qubits)
 
+        global_qubit_order = self.qubit_order
         # # Cancel other CNOTs
         # qopt.CancelNghCNOTs().apply_until_nothing_changes(self.circuit,
         #                                                   count_cnot_of_circuit)
@@ -303,6 +306,7 @@ class BucketBrigade():
             old_circuit_2 = cirq.Circuit(circuit_2)
 
             qopt.CommuteTGatesToStart().optimize_circuit(circuit_2)
+
             cirq.optimizers.DropEmptyMoments().optimize_circuit(circuit_2)
 
             qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2)
@@ -316,24 +320,86 @@ class BucketBrigade():
         # circuit_1 = circuit_2
         circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
 
-        return BucketBrigade.cancel_ngh_t(circuit_1)
+        # return circuit_1
+        return BucketBrigade.cancel_ngh_ts(circuit_1)
 
     @staticmethod
-    def cancel_ngh_t(circuit):
+    def cancel_ngh_ts(circuit):
+        """The circuit is optimized by cancelling the T gates that are neighbors horizontally
+
+        Args:
+            circuit (cirq.Circuit): The circuit to be optimized
+        
+        Returns:
+            cirq.Circuit: The optimized circuit
+        """
+
         old_circuit = cirq.Circuit()
 
         while old_circuit != circuit:
             old_circuit = cirq.Circuit(circuit)
 
+            # Cancel the T gates that are neighbors vertically
             qopt.CancelNghTs(circuit).optimize_circuit()
+
+            cirq.DropEmptyMoments().optimize_circuit(circuit)
+
+            # Compress the circuit without stratification
+            circuit = cirq.Circuit(circuit.all_operations())
+
             # print(circuit)
             # print("... reinsert")
 
+        # return circuit
+        # return BucketBrigade.cancel_ngh_tp(circuit)
+        return BucketBrigade.stratified_circuit(circuit)
+
+    @staticmethod
+    def stratified_circuit(circuit):
+        # Define the categories for stratification
+        categories = [
+            cirq.H,
+            cirq.T,
+            cirq.T**-1,
+            # cirq.CNOT,
+            # Add other gate families as needed
+        ]
+
+        old_circuit = cirq.Circuit()
+
+        while old_circuit != circuit:
+            old_circuit = cirq.Circuit(circuit)
+
+            # Compress the circuit without stratification
             circuit = cirq.Circuit(circuit.all_operations())
+
+            # Stratify the circuit
+            circuit = cirq.optimizers.stratified_circuit(circuit, categories=categories)
+
+            # Parallelize the CNOTs to the left
+            qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit)
+
+            # Drop empty moments
+            cirq.optimizers.DropEmptyMoments().optimize_circuit(circuit)
+
             # print(circuit)
             # print("... reinsert")
 
         return circuit
+
+    @staticmethod
+    def cancel_ngh_tp(circuit):
+        global global_qubit_order
+
+        qopt.CancelNghTp(circuit, global_qubit_order).optimize_circuit()
+        # print(circuit)
+        # print("... reinsert")
+
+        circuit = cirq.Circuit(circuit.all_operations())
+        # print(circuit)
+        # print("... reinsert")
+
+        return BucketBrigade.stratified_circuit(circuit)
 
     """
         Verifications

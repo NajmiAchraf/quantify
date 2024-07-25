@@ -3,7 +3,20 @@ import cirq
 from .transfer_flag_optimizer import TransferFlagOptimizer
 
 class CancelNghTs(TransferFlagOptimizer):
-    # cancel T gates series in every qubit
+    """
+    This optimizer cancels T gates that are neighbor horizontally on series qubits.
+
+    Example:
+        q0: ───T───T───T───T───  =>  q0: ───Z───
+
+        q0: ───T^-1───T^-1───T^-1───T^-1───  =>  q0: ───Z───
+
+        q0: ───Z───Z─── =>  q0: ───
+
+        only on qubit a:
+            a: ───T───T───  =>  a0: ───
+
+    """
     circuit: cirq.Circuit
     qubits_ops: dict = {}
     ops_to_cancel: list = []
@@ -38,16 +51,17 @@ class CancelNghTs(TransferFlagOptimizer):
                     return
                 if op == self.ops_to_cancel[0]:
                     self.ops_to_cancel.remove(op)
-                    index = self.circuit.moments.index(moment)
-                    self.circuit.clear_operations_touching(op.qubits, [index])
+                    self.circuit.clear_operations_touching(op.qubits, [mi])
                     if insert_Z and not Z_inserted:
-                        self.circuit.insert(index, cirq.Z(op.qubits[0]))
+                        self.circuit.insert(mi, cirq.Z(op.qubits[0]))
                         Z_inserted = True
 
     def optimize_circuit(self):
-        def check_and_optimize(gate, count_needed, insert_Z=False):
+        def check_and_optimize(gate, count_needed, insert_Z=False, qubit_name="abmt"):
             count = 0
             for qubit in self.qubits_ops:
+                if qubit[0] not in qubit_name:
+                    continue
                 for op in self.qubits_ops[qubit]:
                     if op.gate == gate:
                         self.ops_to_cancel.append(op)
@@ -67,3 +81,6 @@ class CancelNghTs(TransferFlagOptimizer):
 
         # Check for 2 Z gates in series and remove them
         check_and_optimize(cirq.Z, 2)
+
+        # Check for 2 T gates in series and remove them in a qubits
+        check_and_optimize(cirq.T, 2, qubit_name="a")
