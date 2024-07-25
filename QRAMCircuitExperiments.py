@@ -1341,50 +1341,78 @@ def main():
     # 18701s (5h 11m 41s) to simulate 3 qubits and still not finished
     """ #! THE ORIGINAL BUCKET BRIGADE DECOMPOSITION (THE BEST ONE)
         (0) ~ The Bucket brigade decomposition described in the paper with standard 7-T gate decomposition (QC10) for QUERY (mem) and the relative phase Toffoli decomposition (TD 4 CX 4) for FANIN and mirror the input to the output for FANOUT.
+            * Depth WITH parallel toffolis: #! NOT FULLY SIMULATED
+                #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+                #* 2 qubits |    30     |    10    |        36
+                #* 3 qubits |    45     |    18    |        80
+                #* 4 qubits |    64     |    31    |       168
+                #* 5 qubits |    91     |    53    |       344
+                #* 6 qubits |   134     |    92    |       696
+            * Depth WITH parallel toffolis and cancel ngh T gates in all qubits : #! NOT FULLY SIMULATED
+                #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+                #* 2 qubits |    27     |     8    |        32
+                #* 3 qubits |    38     |    12    |        72
+                #* 4 qubits |    49     |    17    |       152
+                #* 5 qubits |    60     |    23    |       312
+                #* 6 qubits |    71     |    30    |       632
             * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output:
-                #!    Depth |  Circuit  |  T Gate  | Count of T gates
-                #! 2 qubits |    32     |    12    |       40
-                #! 3 qubits |    46     |    20    |       96
-                #! 4 qubits |    60     |    30    |       208
-                #! 5 qubits |    74     |    42    |       432
-                #! 6 qubits |    88     |    56    |       880
+                #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+                #* 2 qubits |    32     |    12    |        40
+                #* 3 qubits |    46     |    20    |        96
+                #* 4 qubits |    60     |    30    |       208
+                #* 5 qubits |    74     |    42    |       432
+                #* 6 qubits |    88     |    56    |       880
             * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output and stratify the circuit:
-                #!    Depth |  Circuit  |  T Gate  | Count of T gates
-                #! 2 qubits |    36     |    13    |       40
-                #! 3 qubits |    50     |    17    |       96
-                #! 4 qubits |    64     |    21    |       208
-                #! 5 qubits |    78     |    25    |       432
-                #! 6 qubits |    92     |    29    |       880
+                #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+                #* 2 qubits |    36     |    13    |        40
+                #* 3 qubits |    50     |    17    |        96
+                #* 4 qubits |    64     |    21    |       208
+                #* 5 qubits |    78     |    25    |       432
+                #* 6 qubits |    92     |    29    |       880
     """
+    # qram.bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
+    #     ],
+    #     parallel_toffolis_mod=True,
+    #     mirror_in_to_out=True #! BY DEFAULT IS OFF (False)
+    # )
+
     qram.bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
 
         dec_mod=[
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+            ToffoliDecompType.TD_5_CXD_6_INV_RELATIVE_PHASE, #! SIMILAR TO TDEPTH_4_COMPUTE
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
+            # ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+            ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
         ],
         parallel_toffolis_mod=True,
-        mirror_in_to_out=True #! BY DEFAULT IS OFF (False)
+        mirror_in_to_out=True
     )
 
     """#! THE BUCKET BRIGADE DECOMPOSITION (THE SECOND BEST)
     (3) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the relative phase Toffoli decomposition (TD 4 CX 3) for FANIN and mirror the input to the output for FANOUT.
         * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output:
-            #!    Depth |  Circuit  |  T Gate  | Count of T gates
-            #! 2 qubits |    30     |    12    |       40
-            #! 3 qubits |    46     |    20    |       96
-            #! 4 qubits |    62     |    28    |       208
-            #! 5 qubits |    78     |    36    |       432
-            #! 6 qubits |    94     |    44    |       880
+            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+            #* 2 qubits |    30     |    12    |        40
+            #* 3 qubits |    46     |    20    |        96
+            #* 4 qubits |    62     |    28    |       208
+            #* 5 qubits |    78     |    36    |       432
+            #* 6 qubits |    94     |    44    |       880
         * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output and stratify the circuit:
-            #!    Depth |  Circuit  |  T Gate  | Count of T gates
-            #! 2 qubits |    36     |    13    |       40
-            #! 3 qubits |    52     |    19    |       96
-            #! 4 qubits |    68     |    25    |       208
-            #! 5 qubits |    84     |    31    |       432
-            #! 6 qubits |   100     |    37    |       880
+            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+            #* 2 qubits |    36     |    13    |        40
+            #* 3 qubits |    52     |    19    |        96
+            #* 4 qubits |    68     |    25    |       208
+            #* 5 qubits |    84     |    31    |       432
+            #* 6 qubits |   100     |    37    |       880
     """
     # qram.bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
@@ -1396,21 +1424,21 @@ def main():
     #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=True
+    #     mirror_in_to_out=True #! BY DEFAULT IS OFF (False)
     # )
 
     """
     (1) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the standard 7-T gate decomposition (QC10) Depth of T 5 and of CNOT 6 Inverse for FANIN and standard 7-T gate decomposition inversed (QC10) for FANOUT.
         * Depth WITH parallel toffolis and cancel ngh T gates only in target qubit:
-            #!    Depth |  Circuit  | T Gate
-            #! 2 qubits |    36  
-            #! 3 qubits |    62
-            #! 4 qubits |    92
+            #*    Depth |  Circuit  | T Gate
+            #* 2 qubits |    36  
+            #* 3 qubits |    62
+            #* 4 qubits |    92
         * Depth WITH parallel toffolis and cancel ngh T gates in all qubits:
-            #!    Depth |  Circuit  | T Gate
-            #! 2 qubits |    36     |   17
-            #! 3 qubits |    59     |   29
-            #! 4 qubits |    85     |   43
+            #*    Depth |  Circuit  | T Gate
+            #* 2 qubits |    36     |   17
+            #* 3 qubits |    59     |   29
+            #* 4 qubits |    85     |   43
     """
     # qram.bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
@@ -1428,15 +1456,15 @@ def main():
     """
     (2) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the standard 7-T gate decomposition (QC10) Depth of T 5 and of CNOT 6 Inverse for FANIN and mirror the input to the output for FANOUT.
         * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and mirror the input to the output:
-            #!    Depth |  Circuit  | T Gate = 8 * nq (static 8 and every up qubit +8)     | Count of T gates
-            #! 2 qubits |    36     |   16   = 8 * 2                                       |       52
-            #! 3 qubits |    58     |   24   = 8 * 3                                       |       124
-            #! 4 qubits |    80     |   32   = 8 * 4                                       |       268
+            #*    Depth |  Circuit  | T Gate = 8 * nq (static 8 and every up qubit +8)     | Count of T Gates
+            #* 2 qubits |    36     |   16   = 8 * 2                                       |        52
+            #* 3 qubits |    58     |   24   = 8 * 3                                       |       124
+            #* 4 qubits |    80     |   32   = 8 * 4                                       |       268
         * Depth WITH parallel toffolis and cancel ngh T gates in all qubits and delete 2 neighbor T gates in a qubits and mirror the input to the output:
-            #!    Depth |  Circuit  | T Gate = 8 * nq - 2 (static 6 and every up qubit +8) | Count of T gates = (serie(1, nq-1, 2^nq))*2 + 2^nq (6 for each Toffoli decomposition)
-            #! 2 qubits |    36     |   14   = 8 * 2 - 2                                   |       48
-            #! 3 qubits |    58     |   22   = 8 * 3 - 2                                   |       120
-            #! 4 qubits |    80     |   30   = 8 * 4 - 2                                   |       264
+            #*    Depth |  Circuit  | T Gate = 8 * nq - 2 (static 6 and every up qubit +8) | Count of T Gates
+            #* 2 qubits |    36     |   14   = 8 * 2 - 2                                   |        48
+            #* 3 qubits |    58     |   22   = 8 * 3 - 2                                   |       120
+            #* 4 qubits |    80     |   30   = 8 * 4 - 2                                   |       264
     """
     # qram.bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
@@ -1444,18 +1472,6 @@ def main():
 
     #     dec_mod=[
     #         ToffoliDecompType.TD_5_CXD_6_INV,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
-    #     ],
-    #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=True
-    # )
-    # qram.bb_decompose_test(
-    #     dec=ToffoliDecompType.NO_DECOMP,
-    #     parallel_toffolis=False,
-
-    #     dec_mod=[
-    #         ToffoliDecompType.TD_5_CXD_6_INV_RELATIVE_PHASE, #! SIMILAR TO TDEPTH_4_COMPUTE
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #         ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
     #     ],

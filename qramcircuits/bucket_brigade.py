@@ -232,7 +232,12 @@ class BucketBrigade():
         )
         if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+                                            ToffoliDecompType.TD_4_CXD_8,
+                                            ToffoliDecompType.TD_4_CXD_8_INV,
+                                            ToffoliDecompType.TD_5_CXD_6,
+                                            ToffoliDecompType.TD_5_CXD_6_INV,
                                             ]:
             BucketBrigade.optimise_h_and_cnot(memory_decomposed)
 
@@ -351,8 +356,8 @@ class BucketBrigade():
             # print("... reinsert")
 
         # return circuit
-        # return BucketBrigade.cancel_ngh_tp(circuit)
         return BucketBrigade.stratified_circuit(circuit)
+        return BucketBrigade.cancel_ngh_tp(circuit) #! UNDER TESTING (not working yet)
 
     @staticmethod
     def stratified_circuit(circuit):
