@@ -46,14 +46,16 @@ class ToffoliDecompType(Enum):
 
     FOUR_ANCILLA_TDEPTH_1_COMPUTE = auto()
 
-
-    RELATIVE_PHASE_TD_4_CX_3 = auto()
-
     # arXiv:2102.08451v1 _ figure 3
     # (Figure 5: topologies of near-term quantum devices : (a) 4, 5 qubit fully connected clusters)
     TD_5_CXD_6 = auto()
     TD_5_CXD_6_INV = auto()
-    TD_5_CXD_6_INV_RELATIVE_PHASE = auto()
+
+    # 10.1109/TQE.2021.3136195 _ Figure 17
+    RELATIVE_PHASE_TD_4_CX_3 = auto()
+
+    # 10.1109/TQE.2021.3136195 _ Figure 18
+    RELATIVE_PHASE_TD_4_CX_4 = auto()
 
     # from arXiv:2102.08451v1 _ figure 4
     # (Figure 5: topologies of near-term quantum devices : (b) 2D Grid)
@@ -704,31 +706,9 @@ class ToffoliDecomposition():
             ]
 
             return moments
-        elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3:
-            moments = [
 
-                cirq.Moment([cirq.H.on(self.qubits[2])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[2])]),
-                
-                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[2])]),
-
-                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
-            ]
-
-            # return moments
-
-        elif self.decomp_type == ToffoliDecompType.TD_5_CXD_6_INV_RELATIVE_PHASE:
+        elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4:
+            # 10.1109/TQE.2021.3136195 _ Figure 18
             moments = [
                 # cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
 
@@ -758,6 +738,32 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
 
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.H.on(self.target_qubit)])
+            ]
+
+            return moments
+
+        elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3:
+            # 10.1109/TQE.2021.3136195 _ Figure 17
+
+            moments = [
+
+                cirq.Moment([cirq.H.on(self.qubits[2])]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2])]),
+                
+                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+
+                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2])]),
+
+                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
 
                 cirq.Moment([cirq.H.on(self.target_qubit)])
             ]

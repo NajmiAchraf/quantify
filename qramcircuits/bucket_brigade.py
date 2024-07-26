@@ -267,8 +267,13 @@ class BucketBrigade():
                 )
 
             circuit.append(comp_fan_out)
-
+            if self.decomp_scenario.parallel_toffolis:
+                # Stratify the circuit
+                circuit = BucketBrigade.stratify(circuit)
         else:
+            if self.decomp_scenario.parallel_toffolis:
+                # Stratify the circuit
+                circuit = BucketBrigade.stratify(circuit)
             compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
             circuit.append(compute_fanout_moments)
 
@@ -360,7 +365,7 @@ class BucketBrigade():
         return BucketBrigade.cancel_ngh_tp(circuit) #! UNDER TESTING (not working yet)
 
     @staticmethod
-    def stratified_circuit(circuit):
+    def stratify(circuit):
         # Define the categories for stratification
         categories = [
             cirq.H,
@@ -370,6 +375,11 @@ class BucketBrigade():
             # Add other gate families as needed
         ]
 
+        # Stratify the circuit
+        return cirq.optimizers.stratified_circuit(circuit, categories=categories)
+
+    @staticmethod
+    def stratified_circuit(circuit):
         old_circuit = cirq.Circuit()
 
         while old_circuit != circuit:
@@ -379,7 +389,7 @@ class BucketBrigade():
             circuit = cirq.Circuit(circuit.all_operations())
 
             # Stratify the circuit
-            circuit = cirq.optimizers.stratified_circuit(circuit, categories=categories)
+            circuit = BucketBrigade.stratify(circuit)
 
             # Parallelize the CNOTs to the left
             qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit)
