@@ -10,6 +10,7 @@ import time
 from typing import Union
 
 import qramcircuits.bucket_brigade as bb
+from qramcircuits.bucket_brigade import MirrorMethod
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
 
 
@@ -200,10 +201,10 @@ class QRAMCircuitExperiments:
     #######################################
 
     def __bb_decompose(
-        self,
-        toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
-        parallel_toffolis: bool,
-        mirror_in_to_out: bool = False
+            self,
+            toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
+            parallel_toffolis: bool,
+            mirror_method: MirrorMethod = MirrorMethod.NO_MIRROR
     ) -> bb.BucketBrigadeDecompType:
         """
         Decomposes the Toffoli gates in the bucket brigade circuit.
@@ -211,7 +212,7 @@ class QRAMCircuitExperiments:
         Args:
             toffoli_decomp_type (Union['list[ToffoliDecompType]', ToffoliDecompType]): The type of Toffoli decomposition.
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis.
-            mirror_in_to_out (bool): Flag indicating whether to mirror the input to the output.
+            mirror_method (bool): Flag indicating whether to mirror the input to the output.
 
         Returns:
             bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
@@ -225,7 +226,7 @@ class QRAMCircuitExperiments:
                     toffoli_decomp_type[2]     # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                mirror_in_to_out=mirror_in_to_out
+                mirror_method=mirror_method
             )
         else:
             return bb.BucketBrigadeDecompType(
@@ -235,7 +236,7 @@ class QRAMCircuitExperiments:
                     toffoli_decomp_type     # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                mirror_in_to_out=mirror_in_to_out
+                mirror_method=mirror_method
             )
 
     def bb_decompose_test(
@@ -245,7 +246,7 @@ class QRAMCircuitExperiments:
 
             dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
             parallel_toffolis_mod: bool,
-            mirror_in_to_out: bool = False
+            mirror_method: MirrorMethod = MirrorMethod.NO_MIRROR
     ) -> None:
         """
         Tests the bucket brigade circuit with different decomposition scenarios.
@@ -255,7 +256,7 @@ class QRAMCircuitExperiments:
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis for the bucket brigade.
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
             parallel_toffolis_mod (bool): Flag indicating whether to use parallel toffolis for the modified bucket brigade.
-            mirror_in_to_out (bool): Flag indicating whether to mirror the input to the output.
+            mirror_method (bool): Flag indicating whether to mirror the input to the output.
 
         Returns:
             None
@@ -270,7 +271,7 @@ class QRAMCircuitExperiments:
         self.__decomp_scenario_modded = self.__bb_decompose(
             dec_mod, 
             parallel_toffolis_mod,
-            mirror_in_to_out
+            mirror_method
         )
 
         self.__run()
@@ -1339,7 +1340,7 @@ def main():
     qram: QRAMCircuitExperiments = QRAMCircuitExperiments()
 
     # 18701s (5h 11m 41s) to simulate 3 qubits and still not finished
-    """ #! THE ORIGINAL BUCKET BRIGADE DECOMPOSITION (THE BEST ONE)
+    """ #! THE ORIGINAL BUCKET BRIGADE DECOMPOSITION (THE SECOND BEST)
     (0) ~ The Bucket brigade decomposition described in the paper with standard 7-T gate decomposition (QC10) for QUERY (mem) and the relative phase Toffoli decomposition (TD 4 CX 4) for FANIN and mirror the input to the output for FANOUT.
         * parallel toffolis: #! NOT FULLY SIMULATED
             #*    Depth |  Circuit  |  T Gate  | Count of T Gates
@@ -1386,62 +1387,57 @@ def main():
     #     dec_mod=[
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE, #! NOT USED IF mirror_method IS ON (True)
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=True #! BY DEFAULT IS OFF (False)
+    #     mirror_method=MirrorMethod.IN_TO_OUT #! BY DEFAULT IS OFF (False)
     # )
 
-    qram.bb_decompose_test(
-        dec=ToffoliDecompType.NO_DECOMP,
-        parallel_toffolis=False,
-
-        dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! SIMILAR TO TDEPTH_4_COMPUTE
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            # ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
-        ],
-        parallel_toffolis_mod=True,
-        mirror_in_to_out=True
-    )
-
-    """#! THE BUCKET BRIGADE DECOMPOSITION (THE SECOND BEST)
-    (1) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the relative phase Toffoli decomposition (TD 4 CX 3) for FANIN and mirror the input to the output for FANOUT.
-        * parallel toffolis && cancel ngh T gates in all qubits && mirror the input to the output:
-            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
-            #* 2 qubits |    30     |    12    |        40
-            #* 3 qubits |    46     |    20    |        96
-            #* 4 qubits |    62     |    28    |       208
-            #* 5 qubits |    78     |    36    |       432
-            #* 6 qubits |    94     |    44    |       880
-        * parallel toffolis && cancel ngh T gates in all qubits && mirror the input to the output && stratify decompositions:
-            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
-            #* 2 qubits |    36     |    13    |        40
-            #* 3 qubits |    52     |    19    |        96
-            #* 4 qubits |    68     |    25    |       208
-            #* 5 qubits |    84     |    31    |       432
-            #* 6 qubits |   100     |    37    |       880
-        * parallel toffolis && cancel ngh T gates in all qubits && mirror the input to the output && stratify decompositions and circuit:
-            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
-            #* 2 qubits |    35     |    13    |        40
-            #* 3 qubits |    51     |    19    |        96
-            #* 4 qubits |    67     |    25    |       208
-            #* 5 qubits |    83     |    31    |       432
-            #* 6 qubits |    99     |    37    |       880
-    """
     # qram.bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
     #     parallel_toffolis=False,
 
     #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! SIMILAR TO TDEPTH_4_COMPUTE
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
+    #         # ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! NOT USED IF mirror_method IS ON (True)
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=True #! BY DEFAULT IS OFF (False)
+    #     mirror_method=MirrorMethod.IN_TO_OUT
     # )
+
+    """#! THE BUCKET BRIGADE DECOMPOSITION (THE BEST ONE)
+    (1) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the relative phase Toffoli decomposition (TD 4 CX 3) for FANOUT and mirror the output to the input for FANIN.
+        * parallel toffolis && cancel ngh T gates in all qubits && stratify decompositions and circuit:
+            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+            #* 2 qubits |    34     |    13    |        40
+            #* 3 qubits |    49     |    18    |        96
+            #* 4 qubits |    63     |    23    |       208
+            #* 5 qubits |    77     |    28    |       432
+            #* 6 qubits |    91     |    33    |       880
+            #* 7 qubits |   105     |    38    |      1776
+        * parallel toffolis && cancel ngh T gates in all qubits && mirror the output to the input && stratify decompositions and circuit:
+            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+            #* 2 qubits |    33     |    13    |        40
+            #* 3 qubits |    45     |    17    |        96
+            #* 4 qubits |    57     |    21    |       208
+            #* 5 qubits |    69     |    25    |       432
+            #* 6 qubits |    81     |    29    |       880
+            #* 7 qubits |    93     |    33    |      1776
+    """
+    qram.bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
+
+        dec_mod=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3, #! NOT USED IF mirror_method IS ON (True)
+        ],
+        parallel_toffolis_mod=True,
+        mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS OFF (False)
+    )
 
     """
     (2) ~ The Bucket brigade standard 7-T gate decomposition (QC10) for QUERY (mem) and the standard 7-T gate decomposition (QC10) Depth of T 5 and of CNOT 6 Inverse for FANIN and mirror the input to the output for FANOUT.
@@ -1472,10 +1468,10 @@ def main():
     #     dec_mod=[
     #         ToffoliDecompType.TD_5_CXD_6_INV,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF MIRROR_IN_TO_OUT IS ON (True)
+    #         ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF mirror_method IS ON (True)
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=True
+    #     mirror_method=MirrorMethod.IN_TO_OUT
     # )
 
     """
@@ -1501,7 +1497,7 @@ def main():
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=False
+    #     mirror_method=False
     # )
 
     """
@@ -1541,7 +1537,7 @@ def main():
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_in_to_out=False
+    #     mirror_method=False
     # )
 
     # qram.bb_decompose_test( # mix2 __{2q: 36, 3q: 70, 4q: 110}__

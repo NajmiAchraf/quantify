@@ -7,11 +7,21 @@ import utils.misc_utils as miscutils
 
 import optimizers as qopt
 import numpy as np
+from enum import Enum, auto
 
 global_qubit_order = []
 
+class MirrorMethod(Enum):
+
+    NO_MIRROR = auto()
+
+    IN_TO_OUT = auto()
+
+    OUT_TO_IN = auto()
+
+
 class BucketBrigadeDecompType:
-    def __init__(self, toffoli_decomp_types, parallel_toffolis, mirror_in_to_out=False):
+    def __init__(self, toffoli_decomp_types, parallel_toffolis, mirror_method=MirrorMethod.NO_MIRROR):
         self.dec_fan_in = toffoli_decomp_types[0]
         self.dec_mem = toffoli_decomp_types[1]
         self.dec_fan_out = toffoli_decomp_types[2]
@@ -23,8 +33,8 @@ class BucketBrigadeDecompType:
         self.parallel_toffolis = parallel_toffolis
 
         # If the FANIN is better in terms of depth than the FANOUT
-        # we can mirror the FANIN to FANOUT
-        self.mirror_in_to_out = mirror_in_to_out
+        # we can mirror the FANIN to FANOUT or vice versa
+        self.mirror_method = mirror_method
 
     # def get_dec_fan_in(self):
     #     return self.dec_fan_in
@@ -202,8 +212,6 @@ class BucketBrigade():
         if self.decomp_scenario.parallel_toffolis:
             comp_fan_in = BucketBrigade.parallelise_toffolis(comp_fan_in)
 
-        circuit.append(comp_fan_in)
-
         """
             Adding Memory wiring
         """
@@ -246,35 +254,57 @@ class BucketBrigade():
             memory_decomposed = BucketBrigade.parallelise_toffolis(
                 memory_decomposed)
 
-        circuit.append(memory_decomposed)
-
         """
             Adding the FANOUT
         """
-        if not self.decomp_scenario.mirror_in_to_out:
-            compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
+        compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
 
-            # If necessary, parallelise the Toffoli decompositions
-            comp_fan_out = cirq.Circuit(
-                ToffoliDecomposition.
-                construct_decomposed_moments(compute_fanout_moments,
-                                            self.decomp_scenario.dec_fan_out,
-                                            [1, 0, 2]))
+        # If necessary, parallelise the Toffoli decompositions
+        comp_fan_out = cirq.Circuit(
+            ToffoliDecomposition.
+            construct_decomposed_moments(compute_fanout_moments,
+                                        self.decomp_scenario.dec_fan_out,
+                                        [1, 0, 2]))
 
-            if self.decomp_scenario.parallel_toffolis:
-                comp_fan_out = BucketBrigade.parallelise_toffolis(
-                    cirq.Circuit(comp_fan_out.all_operations())
-                )
+        if self.decomp_scenario.parallel_toffolis:
+            comp_fan_out = BucketBrigade.parallelise_toffolis(
+                cirq.Circuit(comp_fan_out.all_operations())
+            )
 
+        """
+            Inserting Mirror Methods for FANIN and FANOUT
+        """
+        if self.decomp_scenario.mirror_method == MirrorMethod.NO_MIRROR:
+            circuit.append(comp_fan_in)
+            circuit.append(memory_decomposed)
             circuit.append(comp_fan_out)
+
             if self.decomp_scenario.parallel_toffolis:
-                # Stratify the circuit
                 circuit = BucketBrigade.stratify(circuit)
-        else:
+
+        elif self.decomp_scenario.mirror_method == MirrorMethod.IN_TO_OUT:
+            circuit.append(comp_fan_in)
+            circuit.append(memory_decomposed)
+
             if self.decomp_scenario.parallel_toffolis:
-                # Stratify the circuit
                 circuit = BucketBrigade.stratify(circuit)
+
             compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
+            circuit.append(compute_fanout_moments)
+
+        elif self.decomp_scenario.mirror_method == MirrorMethod.OUT_TO_IN:
+            compute_fanin_moments = ctu.reverse_moments(comp_fan_out)
+
+            if self.decomp_scenario.parallel_toffolis:
+                compute_fanin_moments = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
+
+            circuit.append(compute_fanin_moments)
+            circuit.append(memory_decomposed)
+
+            if self.decomp_scenario.parallel_toffolis:
+                circuit = BucketBrigade.stratify(circuit)
+
+            compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
             circuit.append(compute_fanout_moments)
 
         # This is the qubit order for drawing the circuits
