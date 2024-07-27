@@ -1387,10 +1387,10 @@ def main():
     #     dec_mod=[
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE, #! NOT USED IF mirror_method IS ON (True)
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_method=MirrorMethod.IN_TO_OUT #! BY DEFAULT IS OFF (False)
+    #     mirror_method=MirrorMethod.IN_TO_OUT #! BY DEFAULT IS NO_MIRROR
     # )
 
     # qram.bb_decompose_test(
@@ -1401,7 +1401,7 @@ def main():
     #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! SIMILAR TO TDEPTH_4_COMPUTE
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #         # ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4, #! NOT USED IF mirror_method IS ON (True)
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4,
     #     ],
     #     parallel_toffolis_mod=True,
     #     mirror_method=MirrorMethod.IN_TO_OUT
@@ -1433,10 +1433,10 @@ def main():
         dec_mod=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3, #! NOT USED IF mirror_method IS ON (True)
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
         ],
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS OFF (False)
+        mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
     )
 
     """
@@ -1468,7 +1468,7 @@ def main():
     #     dec_mod=[
     #         ToffoliDecompType.TD_5_CXD_6_INV,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.TD_5_CXD_6, #! NOT USED IF mirror_method IS ON (True)
+    #         ToffoliDecompType.TD_5_CXD_6,
     #     ],
     #     parallel_toffolis_mod=True,
     #     mirror_method=MirrorMethod.IN_TO_OUT
