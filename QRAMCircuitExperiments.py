@@ -381,29 +381,39 @@ class QRAMCircuitExperiments:
         vms: aka “Virtual Memory Size”, this is the total amount of virtual memory used by the process. On UNIX it matches “top“‘s VIRT column.
         """
 
-        print(
-            "--> mem bucket brigade -> Qbits: {:<1} "
-            "| Time: {:<12} | rss: {:<10} | vms: {:<10}\n".format(
+        self.__colpr(
+            "c",
+            "Bucket Brigade circuit creation:\n"
+            "\t• {:<1} Qbits\n"
+            "\t• Time spent on creation: {:<12}\n"
+            "\t• rss: {:<10}\n"
+            "\t• vms: {:<10}".format(
                 self.__start_range_qubits,
                 self.__stop_time, process.memory_info().rss,
                 process.memory_info().vms),
-            flush=True)
+            end="\n\n")
 
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
         for decirc in [
             [self.__decomp_scenario, self.__bbcircuit, name], 
             [self.__decomp_scenario_modded, self.__bbcircuit_modded, "modded"]
         ]:
+            self.__colpr("y", f"Decomposition scenario of {decirc[2]} circuit:", end="\n\n")
             print(
-                f"--> Decomposition scenario of {decirc[2]} circuit:\n"
-                "fan_in_decomp:\t\t{}\n"
-                "mem_decomp:\t\t{}\n"
-                "fan_out_decomp:\t\t{}\n"
-                "parallel_toffolis:\t{}\n".format(
+                "\tfan_in_decomp:\t\t{}\n"
+                "\tmem_decomp:\t\t{}\n"
+                "\tfan_out_decomp:\t\t{}\n\n".format(
                     decirc[0].dec_fan_in,
                     decirc[0].dec_mem,
-                    decirc[0].dec_fan_out,
-                    "YES !!" if decirc[0].parallel_toffolis else "NO !!"
+                    decirc[0].dec_fan_out
+                ))
+
+            self.__colpr("y", f"Optimization methods of {decirc[2]} circuit:", end="\n\n")
+            print(
+                "\tparallel_toffolis:\t{}\n"
+                "\tmirror_method:\t\t{}\n\n".format(
+                    "YES !!" if decirc[0].parallel_toffolis else "NO !!",
+                    decirc[0].mirror_method
                 ))
             
             for decomposition_type in self.__fan_in_mem_out(decirc[0]):
@@ -412,66 +422,70 @@ class QRAMCircuitExperiments:
                 circuit, qubits = self.__create_decomposition_circuit(decomposition_type)
                 self.__printCircuit(circuit, qubits, f"decomposition {str(decomposition_type)}")
 
-            self.__check_depth_of_circuit(decirc[1], decirc[0])
+            self.__check_depth_of_circuit(decirc[0], decirc[1], decirc[2])
             self.__printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
 
     def __check_depth_of_circuit(
             self, 
+            decomp_scenario: bb.BucketBrigadeDecompType,
             bbcircuit: bb.BucketBrigade, 
-            decomp_scenario: bb.BucketBrigadeDecompType
+            name: str
     ) -> None:
         """
         Checks the depth of the circuit decomposition.
 
         Args:
             decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+            bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
+            name (str): The name of the circuit.
 
         Returns:
             None
         """
 
-        self.__colpr("y", "Checking depth of the circuit decomposition ...", end="\n\n")
+        self.__colpr("y", f"Checking depth of {name} circuit ...", end="\n\n")
 
-        print("Number of qubits: ", end="")
+
+        print("\tNumber of qubits: ", end="")
         try:
             assert (bbcircuit.verify_number_qubits() == True)
         except Exception:
-            self.__colpr("v", "Number of qubits not as expected\n")
+            self.__colpr("v", "\t\tNumber of qubits not as expected\n")
         else:
-            self.__colpr("g", "Number of qubits passed\n")
+            self.__colpr("g", "\t\tNumber of qubits passed\n")
 
-        print("Depth of the circuit: ", end="")
+        print("\tDepth of the circuit: ", end="")
         try:
             assert (bbcircuit.verify_depth(
                 Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
         except Exception:
-            self.__colpr("b", "Depth of the circuit not as expected\n")
+            self.__colpr("b", "\t\tDepth of the circuit not as expected\n")
         else:
-            self.__colpr("g", "Depth of the circuit passed\n")
+            self.__colpr("g", "\t\tDepth of the circuit passed\n")
 
         if decomp_scenario.get_decomp_types()[0] != ToffoliDecompType.NO_DECOMP:
 
-            print("T count: ", end="")
+            print("\tT count: ", end="")
             try:
                 assert (bbcircuit.verify_T_count() == True)
             except Exception:
-                self.__colpr("b", "T count not as expected\n")
+                self.__colpr("b", "\t\tT count not as expected\n")
             else:
-                self.__colpr("g", "T count passed\n")
+                self.__colpr("g", "\t\tT count passed\n")
 
-            print("T depth: ", end="")
+            print("\tT depth: ", end="")
             try:
                 assert (bbcircuit.verify_T_depth(
                     Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
             except Exception:
-                self.__colpr("b", "T depth not as expected\n")
+                self.__colpr("b", "\t\tT depth not as expected\n")
             else:
-                self.__colpr("g", "T depth passed\n")
+                self.__colpr("g", "\t\tT depth passed\n")
 
             # assert (bbcircuit.verify_hadamard_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
             # assert (bbcircuit.verify_cnot_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
 
-            print("\n")
+        print("\n")
 
     #######################################
     # simulate decompositions methods
