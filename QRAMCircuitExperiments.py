@@ -1,6 +1,7 @@
 import cirq
 import copy
 import math
+import cirq.optimizers
 import numpy as np
 import os
 import psutil
@@ -543,6 +544,7 @@ class QRAMCircuitExperiments:
                 measurements.append(cirq.measure(qubit))
 
         circuit.append(measurements)
+        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(circuit)
 
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
             self.__printCircuit(circuit, qubits, f"decomposition {str(decomposition_type)}")
@@ -1100,6 +1102,7 @@ class QRAMCircuitExperiments:
                         measurements.append(cirq.measure(qubit))
 
         self.__bbcircuit.circuit.append(measurements)
+        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(self.__bbcircuit.circuit)
 
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
         self.__printCircuit(self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
@@ -1118,6 +1121,7 @@ class QRAMCircuitExperiments:
                         measurements_modded.append(cirq.measure(qubit))
 
         self.__bbcircuit_modded.circuit.append(measurements_modded)
+        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(self.__bbcircuit_modded.circuit)
 
         self.__printCircuit(self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
