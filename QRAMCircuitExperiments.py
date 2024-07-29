@@ -15,7 +15,8 @@ from qramcircuits.bucket_brigade import MirrorMethod
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
 
 
-"""How to run the QRAMCircuitExperiments.py file:
+help: str = """
+How to run the QRAMCircuitExperiments.py file:
 
 Run the following command in the terminal:
 
@@ -67,7 +68,7 @@ class QRAMCircuitExperiments:
         __core(): Core function of the experiment.
         __results(): Prints the results of the experiment.
         __essential_checks(): Performs essential checks on the experiment.
-        __check_depth_of_circuit(): Checks the depth of the circuit decomposition.
+        __verify_circuit_depth_count(): Verifies the depth and count of the circuit.
         __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
         __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
         __decomposed_circuit(): Creates a Toffoli decomposition with measurements circuit.
@@ -121,7 +122,13 @@ class QRAMCircuitExperiments:
         self.__colpr("c", f"Print the full simulation result: {'yes' if self.__print_sim else 'no'}")
         self.__colpr("c", f"Start Range of Qubits: {self.__start_range_qubits}")
         self.__colpr("c", f"End Range of Qubits: {self.__end_range_qubits}")
-        self.__colpr("c", f"Specific Simulation: {self.__specific_simulation}", end="\n\n")
+
+        if self.__simulate:
+            if self.__specific_simulation == "all":
+                self.__colpr("c", f"Simulate All Qubits")
+            else:
+                self.__colpr("c", f"Simulate Specific Measurement: {self.__specific_simulation}")
+        print("\n")
 
     def __del__(self):
         """
@@ -144,35 +151,39 @@ class QRAMCircuitExperiments:
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
-        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is target qubit"
+        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is all qubits"
         len_argv = 6
+        
+        try:
+            if len(sys.argv) == len_argv or len(sys.argv) == len_argv + 1:
+                if sys.argv[1].lower() in ["y", "yes"]:
+                    self.__simulate = True
 
-        if len(sys.argv) == len_argv or len(sys.argv) == len_argv + 1:
-            if sys.argv[1].lower() in ["y", "yes"]:
-                self.__simulate = True
+                if sys.argv[2].lower() in ["y", "yes"]:
+                    self.__print_circuit = True
 
-            if sys.argv[2].lower() in ["y", "yes"]:
-                self.__print_circuit = True
+                if sys.argv[3].lower() in ["y", "yes"]:
+                    self.__print_sim = True
 
-            if sys.argv[3].lower() in ["y", "yes"]:
-                self.__print_sim = True
+                self.__start_range_qubits = int(sys.argv[4])
+                if self.__start_range_qubits < 2:
+                    self.__colpr("r", msg0, end="\n\n")
+                    raise Exception
 
-            self.__start_range_qubits = int(sys.argv[4])
-            if self.__start_range_qubits < 2:
-                self.__colpr("r", msg0, end="\n\n")
-                flag = False
+                self.__end_range_qubits = int(sys.argv[5])
+                if self.__end_range_qubits < self.__start_range_qubits:
+                    self.__end_range_qubits = self.__start_range_qubits
 
-            self.__end_range_qubits = int(sys.argv[5])
-            if self.__end_range_qubits < self.__start_range_qubits:
-                self.__end_range_qubits = self.__start_range_qubits
-
-            if len(sys.argv) == len_argv + 1 and self.__simulate:
+                if len(sys.argv) == len_argv + 1 and self.__simulate:
                     if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
                         self.__colpr("r", msg2, end="\n\n")
-                        return
+                        raise Exception
                     self.__specific_simulation = str(sys.argv[6])
+        except Exception:
+            flag = False
+            self.__colpr("y", help, end="\n\n")
 
-        if flag == False or len(sys.argv) < len_argv or len_argv + 1 < len(sys.argv) :
+        if not flag or len(sys.argv) < len_argv or len_argv + 1 < len(sys.argv) :
             if input("Simulate Toffoli decompositions and circuit? (y/n): ").lower() in ["y", "yes"]:
                 self.__simulate = True
 
@@ -400,9 +411,9 @@ class QRAMCircuitExperiments:
         ]:
             self.__colpr("y", f"Decomposition scenario of {decirc[2]} circuit:", end="\n\n")
             print(
-                "\tfan_in_decomp:\t\t{}\n"
-                "\tmem_decomp:\t\t{}\n"
-                "\tfan_out_decomp:\t\t{}\n\n".format(
+                "\t• fan_in_decomp: \t{}\n"
+                "\t• mem_decomp:    \t{}\n"
+                "\t• fan_out_decomp:\t{}\n\n".format(
                     decirc[0].dec_fan_in,
                     decirc[0].dec_mem,
                     decirc[0].dec_fan_out
@@ -410,8 +421,8 @@ class QRAMCircuitExperiments:
 
             self.__colpr("y", f"Optimization methods of {decirc[2]} circuit:", end="\n\n")
             print(
-                "\tparallel_toffolis:\t{}\n"
-                "\tmirror_method:\t\t{}\n\n".format(
+                "\t• parallel_toffolis:\t{}\n"
+                "\t• mirror_method:    \t{}\n\n".format(
                     "YES !!" if decirc[0].parallel_toffolis else "NO !!",
                     decirc[0].mirror_method
                 ))
@@ -422,17 +433,17 @@ class QRAMCircuitExperiments:
                 circuit, qubits = self.__create_decomposition_circuit(decomposition_type)
                 self.__printCircuit(circuit, qubits, f"decomposition {str(decomposition_type)}")
 
-            self.__check_depth_of_circuit(decirc[0], decirc[1], decirc[2])
+            self.__verify_circuit_depth_count(decirc[0], decirc[1], decirc[2])
             self.__printCircuit(decirc[1].circuit, decirc[1].qubit_order, decirc[2])
 
-    def __check_depth_of_circuit(
+    def __verify_circuit_depth_count(
             self, 
             decomp_scenario: bb.BucketBrigadeDecompType,
             bbcircuit: bb.BucketBrigade, 
             name: str
     ) -> None:
         """
-        Checks the depth of the circuit decomposition.
+        Verifies the depth and count of the circuit.
 
         Args:
             decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
@@ -443,10 +454,10 @@ class QRAMCircuitExperiments:
             None
         """
 
-        self.__colpr("y", f"Checking depth of {name} circuit ...", end="\n\n")
+        self.__colpr("y", f"Verifying the depth and count of the {name} circuit:", end="\n\n")
 
 
-        print("\tNumber of qubits: ", end="")
+        print("\t• Number of qubits: ", end="")
         try:
             assert (bbcircuit.verify_number_qubits() == True)
         except Exception:
@@ -454,7 +465,7 @@ class QRAMCircuitExperiments:
         else:
             self.__colpr("g", "\t\tNumber of qubits passed\n")
 
-        print("\tDepth of the circuit: ", end="")
+        print("\t• Depth of the circuit: ", end="")
         try:
             assert (bbcircuit.verify_depth(
                 Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
@@ -465,15 +476,7 @@ class QRAMCircuitExperiments:
 
         if decomp_scenario.get_decomp_types()[0] != ToffoliDecompType.NO_DECOMP:
 
-            print("\tT count: ", end="")
-            try:
-                assert (bbcircuit.verify_T_count() == True)
-            except Exception:
-                self.__colpr("b", "\t\tT count not as expected\n")
-            else:
-                self.__colpr("g", "\t\tT count passed\n")
-
-            print("\tT depth: ", end="")
+            print("\t• T depth: ", end="")
             try:
                 assert (bbcircuit.verify_T_depth(
                     Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
@@ -482,8 +485,31 @@ class QRAMCircuitExperiments:
             else:
                 self.__colpr("g", "\t\tT depth passed\n")
 
-            # assert (bbcircuit.verify_hadamard_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
-            # assert (bbcircuit.verify_cnot_count(Alexandru_scenario=self.decomp_scenario.parallel_toffolis) == True)
+            print("\t• T count: ", end="")
+            try:
+                assert (bbcircuit.verify_T_count() == True)
+            except Exception:
+                self.__colpr("b", "\t\tT count not as expected\n")
+            else:
+                self.__colpr("g", "\t\tT count passed\n")
+
+            print("\t• Hadamard count: ", end="")
+            try:
+                assert (bbcircuit.verify_hadamard_count(
+                    Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
+            except Exception:
+                self.__colpr("b", "\t\tHadamard count not as expected\n")
+            else:
+                self.__colpr("g", "\t\tHadamard count passed\n")
+
+            # print("\t• CNOT count: ", end="")
+            # try:
+            #     assert (bbcircuit.verify_cnot_count(
+            #         Alexandru_scenario=self.__decomp_scenario.parallel_toffolis) == True)
+            # except Exception:
+            #     self.__colpr("b", "\t\tCNOT count not as expected\n")
+            # else:
+            #     self.__colpr("g", "\t\tCNOT count passed\n")
 
         print("\n")
 
@@ -1443,6 +1469,7 @@ def main():
             #* 5 qubits |    69     |    25    |       432
             #* 6 qubits |    81     |    29    |       880
             #* 7 qubits |    93     |    33    |      1776
+            #* 8 qubits |   105     |    37    |      3568
     """
     qram.bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
