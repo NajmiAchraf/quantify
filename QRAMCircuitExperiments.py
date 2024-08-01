@@ -1314,6 +1314,11 @@ class QRAMCircuitExperiments:
 
             stop = self.__spent_time(start)
             self.__colpr("w", "Time of printing the circuit: ", stop, end="\n\n")
+        # import cirq.contrib.svg as sv
+
+        # # Save the circuit as an SVG file
+        # with open(f"images/{self.__start_range_qubits}_{name}_circuit.svg", "w") as f:
+        #     f.write(sv.circuit_to_svg(circuit))
 
     #######################################
     # static methods
@@ -1400,6 +1405,13 @@ def main():
             #* 4 qubits |    49     |    17    |       152
             #* 5 qubits |    60     |    23    |       312
             #* 6 qubits |    71     |    30    |       632
+        * parallel toffolis && cancel ngh T gates in all qubits same fans: #! FULLY SIMULATED
+            #*    Depth |  Circuit  |  T Gate  | Count of T Gates
+            #* 2 qubits |    33     |    13    |        40
+            #* 3 qubits |    52     |    24    |        96
+            #* 4 qubits |    71     |    36    |       208
+            #* 5 qubits |    90     |    49    |       432
+            #* 6 qubits |   109     |    63    |       880
         * parallel toffolis && cancel ngh T gates in all qubits && mirror the input to the output:
             #*    Depth |  Circuit  |  T Gate  | Count of T Gates
             #* 2 qubits |    32     |    12    |        40
@@ -1481,7 +1493,8 @@ def main():
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
         ],
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
+        mirror_method=MirrorMethod.IN_TO_OUT#! BY DEFAULT IS NO_MIRROR
+        # mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
     )
 
     """
