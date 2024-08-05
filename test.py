@@ -6,12 +6,17 @@ qubits = [cirq.NamedQubit("q" + str(1))]
 
 moments = []
 for _ in range(2):
-    # moments += [cirq.Moment([cirq.T(qubit)**-1]) for qubit in qubits]
-    moments += [cirq.Moment([cirq.T(qubit)]) for qubit in qubits]
+    moments += [cirq.Moment([cirq.T(qubit)**-1]) for qubit in qubits]
+    # moments += [cirq.Moment([cirq.T(qubit)]) for qubit in qubits]
+
+moments = []
+for _ in range(2):
+    # moments += [cirq.Moment([cirq.S(qubit)**-1]) for qubit in qubits]
+    moments += [cirq.Moment([cirq.S(qubit)]) for qubit in qubits]
 
 
-# moments = []
-# moments += [cirq.Moment([cirq.Z(qubits[0])])]
+moments = []
+moments += [cirq.Moment([cirq.Z(qubits[0])**-1])]
 
 # moments = []
 # # gate anything input the gate will be zeroed

@@ -32,9 +32,9 @@ Arguments:
 - arg 3: Print full simulation result (y/n).
 - arg 4: Start range of qubits, starting from 2.
 - arg 5: End range of qubits, should be equal to or greater than the start range.
-- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, t).
-    leave it empty to simulate the all qubits.
-    only for all qubits we compare the output vector.
+- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, abmt, t).
+    leave it empty to simulate the full circuit.
+    only for full circuit we compare the output vector.
 """
 
 
@@ -81,8 +81,9 @@ class QRAMCircuitExperiments:
         _simulation_ab_qubits(): Simulates the circuit and measure addressing and uncomputation of the a and b qubits.
         _simulation_bm_qubits(): Simulates the circuit and measure computation and uncomputation of the b and m qubits.
         _simulation_abm_qubits(): Simulates the circuit and measure addressing and uncomputation and computation of the a, b, and m qubits.
+        _simulation_abmt_qubits(): Simulates the circuit and measure addressing and uncomputation and computation of the a, b, m, and target qubits.
         _simulation_t_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
-        _simulation_all_qubits(): Simulates the circuit and measure all qubits.
+        _simulation_full_qubits(): Simulates the circuit and measure all full circuit.
         __simulation(): Simulates the circuit.
         __simulate_and_compare(): Simulate and compares the results of the simulation and measurement.
         __printCircuit(): Prints the circuit.
@@ -95,7 +96,7 @@ class QRAMCircuitExperiments:
     __print_sim: bool = False
     __start_range_qubits: int
     __end_range_qubits: int
-    __specific_simulation: str = "all"
+    __specific_simulation: str = "full"
     __simulated: bool = False
 
     __start_time: float = 0
@@ -124,8 +125,8 @@ class QRAMCircuitExperiments:
         self.__colpr("c", f"End Range of Qubits: {self.__end_range_qubits}")
 
         if self.__simulate:
-            if self.__specific_simulation == "all":
-                self.__colpr("c", f"Simulate All Qubits")
+            if self.__specific_simulation == "full":
+                self.__colpr("c", f"Simulate full circuit")
             else:
                 self.__colpr("c", f"Simulate Specific Measurement: {self.__specific_simulation}")
         print("\n")
@@ -151,7 +152,7 @@ class QRAMCircuitExperiments:
         flag = True
         msg0 = "Start range of qubits must be greater than 1"
         msg1 = "End range of qubits must be greater than start range of qubits or equal to it"
-        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is all qubits"
+        msg2 = "Specific simulation must be (a, b, m, ab, bm, abm, abmt, t), by default it is full circuit"
         len_argv = 6
         
         try:
@@ -175,7 +176,7 @@ class QRAMCircuitExperiments:
                     self.__end_range_qubits = self.__start_range_qubits
 
                 if len(sys.argv) == len_argv + 1 and self.__simulate:
-                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
+                    if str(sys.argv[6]) not in ['a', 'b', 'm', "ab", "bm", "abm", "abmt", "t"]:
                         self.__colpr("r", msg2, end="\n\n")
                         raise Exception
                     self.__specific_simulation = str(sys.argv[6])
@@ -205,8 +206,8 @@ class QRAMCircuitExperiments:
 
             if self.__simulate:
                 if input("Simulate specific measurement for specific qubits wires? (y/n): ").lower() in ["y", "yes"]:
-                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
-                        self.__specific_simulation = input("Choose specific qubits wires (a, b, m, ab, bm, abm, t): ")
+                    while self.__specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "abmt", "t"]:
+                        self.__specific_simulation = input("Choose specific qubits wires (a, b, m, ab, bm, abm, abmt, t): ")
 
     #######################################
     # decomposition methods
@@ -1021,6 +1022,38 @@ class QRAMCircuitExperiments:
         self.__colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
+    def _simulation_abmt_qubits(self) -> None:
+        """
+        _simulation_abmt_qubits(): Simulates the circuit and measure addressing and uncomputation and computation of the a, b, m, and target qubits.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        """ 2
+        the range of all qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0000 1 -> 1 : step
+        ...
+        1 00 0000 0000 0 -> 2048 : stop 
+        """
+        """ 3
+        the range of all qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 000 00000000 00000000 1 -> 0 : 1
+        ...
+        1 000 00000000 00000000 0 -> 1048576 : stop
+        """
+
+        start = 0
+        # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
+        stop = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + self.__start_range_qubits + 1 )
+        print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, m, and target qubits.", end="\n\n")
+        self.__simulation(start, stop, 1)
+
     def _simulation_t_qubits(self) -> None:
         """
         Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
@@ -1076,7 +1109,7 @@ class QRAMCircuitExperiments:
         print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
-    def _simulation_all_qubits(self) -> None:
+    def _simulation_full_qubits(self) -> None:
         """
         Simulates the circuit and measure all qubits.
 
@@ -1134,7 +1167,7 @@ class QRAMCircuitExperiments:
         # add measurements to the reference circuit ############################################
         measurements = []
         for qubit in self.__bbcircuit.qubit_order:
-            if self.__specific_simulation == "all":
+            if self.__specific_simulation == "full":
                 measurements.append(cirq.measure(qubit))
             else:
                 for _name in self.__specific_simulation:
@@ -1153,7 +1186,7 @@ class QRAMCircuitExperiments:
         # add measurements to the modded circuit ##############################################
         measurements_modded = []
         for qubit in self.__bbcircuit_modded.qubit_order:
-            if self.__specific_simulation == "all":
+            if self.__specific_simulation == "full":
                 measurements_modded.append(cirq.measure(qubit))
             else:
                 for _name in self.__specific_simulation:
@@ -1170,7 +1203,7 @@ class QRAMCircuitExperiments:
 
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
-        _type = "output vector" if self.__specific_simulation == "all" else "measurements"
+        _type = "output vector" if self.__specific_simulation == "full" else "measurements"
         self.__colpr("c", f"Simulating both the modded and {name} circuits and comparing their {_type} ...", end="\n\n")
 
         for i in range(start, stop, step):
@@ -1241,7 +1274,7 @@ class QRAMCircuitExperiments:
             self.__colpr("w", str(result))
 
         try:
-            if self.__specific_simulation == "all":
+            if self.__specific_simulation == "full":
                 if self.__print_sim:
                     self.__colpr("c", "Comparing the output vector of the circuits ...", end="\n")
                 # Compare final state which is the output vector, only for all qubits
@@ -1483,18 +1516,46 @@ def main():
             #* 7 qubits |    93     |    33    |      1776
             #* 8 qubits |   105     |    37    |      3568
     """
+    # qram.bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
+    # )
+
+    # qram.bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
+    # )
+
     qram.bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
 
         dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3_MOD,
+            # ToffoliDecompType.ANCILLA_0_TD4_MOD,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3_MOD,
         ],
+
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.IN_TO_OUT#! BY DEFAULT IS NO_MIRROR
-        # mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
+        mirror_method=MirrorMethod.OUT_TO_IN #! BY DEFAULT IS NO_MIRROR
     )
 
     """

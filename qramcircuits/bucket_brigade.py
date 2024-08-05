@@ -70,14 +70,29 @@ class BucketBrigade():
         #                                                   count_cnot_of_circuit)
 
     @staticmethod
-    def optimise_h_and_cnot(circuit_1):
-        # Allow the optimization of Hadamard gates
-        miscutils.flag_operations(circuit_1, [cirq.ops.H])
+    def optimise_clifford_and_t_and_cnot(circuit_1: cirq.Circuit):
+        while True:
+            # Allow the optimization of Clifford + T gates
+            miscutils.flag_operations(circuit_1, [
+                cirq.ops.H,
+                cirq.ops.T,
+                cirq.ops.T**-1,
+                cirq.ops.S,
+                cirq.ops.S**-1,
+                cirq.ops.Z
+            ])
+            circuit_before = circuit_1.copy()
 
-        # Hadamards that cancel transfer the flag to neighbouring gates
-        qopt.CancelNghHadamards(transfer_flag=True).optimize_circuit(circuit_1)
-        #
-        # The hope is that the neighbouring gates are CNOTs that will transfer
+            # Cancel the neighboring gates
+            qopt.CancelNghGates(transfer_flag=True).optimize_circuit(circuit_1)
+
+            # Transform the neighboring gates
+            qopt.TransformeNghGates(transfer_flag=True).optimize_circuit(circuit_1)
+
+            if circuit_1 == circuit_before:
+                break
+
+        # The hope is that the neighboring gates are CNOTs that will transfer
         # optimization flags
         qopt.CancelNghCNOTs(transfer_flag=True) \
             .apply_until_nothing_changes(circuit_1, count_cnot_of_circuit)
@@ -229,6 +244,9 @@ class BucketBrigade():
         # If necessary, prepare for the parallelisation of Toffoli decompositions
         if self.decomp_scenario.parallel_toffolis:
             permutation = [0, 2, 1]
+            # permutation = [1, 0, 2]
+            # permutation = [2, 1, 0]
+            pass
 
         # Create a sub-circuit from the moments
         # TODO: This is redundant, should be from the beginning
@@ -238,21 +256,32 @@ class BucketBrigade():
                                          self.decomp_scenario.dec_mem,
                                          permutation)
         )
+        # memory_decomposed = cirq.Circuit(
+        #     ToffoliDecomposition.
+        #     construct_decomposed_compressed_moments(memory_operations,
+        #                                  self.decomp_scenario.dec_mem,
+        #                                  permutation)
+        # )
         if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                                            ToffoliDecompType.ANCILLA_0_TD4_MOD,
                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
                                             ToffoliDecompType.TD_4_CXD_8,
                                             ToffoliDecompType.TD_4_CXD_8_INV,
                                             ToffoliDecompType.TD_5_CXD_6,
                                             ToffoliDecompType.TD_5_CXD_6_INV,
+                                            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4,
+                                            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+                                            ToffoliDecompType.RELATIVE_PHASE_CX_3_TD_4,
                                             ]:
-            BucketBrigade.optimise_h_and_cnot(memory_decomposed)
+            BucketBrigade.optimise_clifford_and_t_and_cnot(memory_decomposed)
 
-            # If necessary, parallelise the Toffoli decompositions
+        # If necessary, parallelise the Toffoli decompositions
         if self.decomp_scenario.parallel_toffolis:
             memory_decomposed = BucketBrigade.parallelise_toffolis(
                 memory_decomposed)
+            BucketBrigade.optimise_clifford_and_t_and_cnot(memory_decomposed)
 
         """
             Adding the FANOUT
@@ -333,6 +362,18 @@ class BucketBrigade():
         # circuit_2 = circuit_1
         # print(circuit_2)
 
+        # Check if circuit_1 is empty
+        if not circuit_1:
+            raise ValueError("circuit_1 is empty, cannot access its elements")
+
+        # Check if circuit_2 is empty
+        if not circuit_2:
+            raise ValueError("circuit_2 is empty, cannot access its elements")
+
+        # Ensure circuit_1 has at least two elements
+        if len(circuit_1) < 2:
+            raise ValueError("circuit_1 does not have enough elements to access first and last")
+
         """
             This is to say that as long as the circuit has been changed
             Very expensive in terms of computation, because drawing the
@@ -351,6 +392,7 @@ class BucketBrigade():
 
             qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2)
 
+            # qopt.CancelNghTs(circuit_2).optimize_circuit()
             # print(circuit_2)
 
             # print("... reinsert")
@@ -361,38 +403,8 @@ class BucketBrigade():
         circuit_1 = cirq.Circuit(circuit_1[0] + circuit_2 + circuit_1[-1])
 
         # return circuit_1
-        return BucketBrigade.cancel_ngh_ts(circuit_1)
-
-    @staticmethod
-    def cancel_ngh_ts(circuit):
-        """The circuit is optimized by cancelling the T gates that are neighbors horizontally
-
-        Args:
-            circuit (cirq.Circuit): The circuit to be optimized
-        
-        Returns:
-            cirq.Circuit: The optimized circuit
-        """
-
-        old_circuit = cirq.Circuit()
-
-        while old_circuit != circuit:
-            old_circuit = cirq.Circuit(circuit)
-
-            # Cancel the T gates that are neighbors vertically
-            qopt.CancelNghTs(circuit).optimize_circuit()
-
-            cirq.DropEmptyMoments().optimize_circuit(circuit)
-
-            # Compress the circuit without stratification
-            circuit = cirq.Circuit(circuit.all_operations())
-
-            # print(circuit)
-            # print("... reinsert")
-
-        # return circuit
-        return BucketBrigade.stratified_circuit(circuit)
-        return BucketBrigade.cancel_ngh_tp(circuit) #! UNDER TESTING (not working yet)
+        return BucketBrigade.stratified_circuit(circuit_1)
+        return BucketBrigade.cancel_ngh_tp(circuit_1) #! UNDER TESTING (not working yet)
 
     @staticmethod
     def stratify(circuit):
