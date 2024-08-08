@@ -390,9 +390,10 @@ class BucketBrigade():
 
             cirq.optimizers.DropEmptyMoments().optimize_circuit(circuit_2)
 
-            qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2)
+            qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2) #! UNDER TESTING (not working yet)
 
-            # qopt.CancelNghTs(circuit_2).optimize_circuit()
+            # qopt.CancelNghTs(circuit_2).optimize_circuit() 
+
             # print(circuit_2)
 
             # print("... reinsert")

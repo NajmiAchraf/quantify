@@ -46,8 +46,6 @@ class CancelNghTs(TransferFlagOptimizer):
     Example:
         b_*0
 
-        q0: ───T^-1───T^-1───T^-1───T^-1───  =>  q0: ───Z───
-
     """
     circuit: cirq.Circuit
     qubits_ops: dict = {}
@@ -92,7 +90,7 @@ class CancelNghTs(TransferFlagOptimizer):
                 qubit_name = qubit_name[2:-1]
 
                 for qubit in qubit_name:
-                    if qubit != "0":
+                    if qubit != "1":
                         return False
                 return True
 
