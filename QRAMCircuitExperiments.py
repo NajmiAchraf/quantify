@@ -105,6 +105,7 @@ class QRAMCircuitExperiments:
     __stop_time: str = ""
 
     __data: list = []
+    __data_modded: list = []
     __decomp_scenario: bb.BucketBrigadeDecompType
     __decomp_scenario_modded: bb.BucketBrigadeDecompType
     __bbcircuit: bb.BucketBrigade
@@ -286,7 +287,11 @@ class QRAMCircuitExperiments:
 
         # ===============REFERENCE==============
 
-        self.__decomp_scenario = self.__bb_decompose(dec, parallel_toffolis)
+        self.__decomp_scenario = self.__bb_decompose(
+            dec, 
+            parallel_toffolis, 
+            mirror_method
+        )
 
         # ================MODDED================
 
@@ -328,6 +333,7 @@ class QRAMCircuitExperiments:
 
         # Clear data for multiple tests on series
         self.__data.clear()
+        self.__data_modded.clear()
 
         for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
             self.__start_range_qubits = i
@@ -359,10 +365,9 @@ class QRAMCircuitExperiments:
 
         self.__start_time = time.time()
 
-        if not bilan:
-            self.__bbcircuit = bb.BucketBrigade(
-                qubits=qubits, 
-                decomp_scenario=self.__decomp_scenario)
+        self.__bbcircuit = bb.BucketBrigade(
+            qubits=qubits, 
+            decomp_scenario=self.__decomp_scenario)
 
         self.__bbcircuit_modded = bb.BucketBrigade(
             qubits=qubits, 
@@ -520,6 +525,24 @@ class QRAMCircuitExperiments:
             None
         """
 
+        if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+
+            num_qubits = len(self.__bbcircuit.circuit.all_qubits())
+            circuit_depth = len(self.__bbcircuit.circuit)
+
+            t_depth = count_t_depth_of_circuit(self.__bbcircuit.circuit)
+            t_count = count_t_of_circuit(self.__bbcircuit.circuit)
+            hadamard_count = count_h_of_circuit(self.__bbcircuit.circuit)
+            
+            self.__data.append([
+                self.__start_range_qubits,
+                num_qubits,
+                circuit_depth,
+                t_depth,
+                t_count,
+                hadamard_count
+            ])
+
         num_qubits = len(self.__bbcircuit_modded.circuit.all_qubits())
         circuit_depth = len(self.__bbcircuit_modded.circuit)
 
@@ -527,7 +550,7 @@ class QRAMCircuitExperiments:
         t_count = count_t_of_circuit(self.__bbcircuit_modded.circuit)
         hadamard_count = count_h_of_circuit(self.__bbcircuit_modded.circuit)
         
-        self.__data.append([
+        self.__data_modded.append([
             self.__start_range_qubits,
             num_qubits,
             circuit_depth,
@@ -547,16 +570,60 @@ class QRAMCircuitExperiments:
             None
         """
 
-        self.__colpr("y", "\n\nBilan of the experiment:", end="\n\n")
+        self.__colpr("y", "\n\nBilan of the experiment", end="\n\n")
+
+        if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+            self.__colpr("b", "Reference circuit results:", end="\n\n")
+            # Create the Markdown table
+            table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
+            table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
+
+            for row in self.__data:
+                table += f"| {row[0]:<16} | {row[1]:<16} | {row[2]:<20} | {row[3]:<16} | {row[4]:<16} | {row[5]:<17} |\n"
+
+            print(table, end="\n\n")
+
 
         # Create the Markdown table
+        self.__colpr("b", "Modded circuit results:", end="\n\n")
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
-        
-        for row in self.__data:
+
+        for row in self.__data_modded:
             table += f"| {row[0]:<16} | {row[1]:<16} | {row[2]:<20} | {row[3]:<16} | {row[4]:<16} | {row[5]:<17} |\n"
-        
+
         print(table, end="\n\n")
+
+        if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+            self.__colpr("y", "\n\nComparing results", end="\n\n")
+
+            self.__colpr("b", "T count comparison:", end="\n\n")
+            table = "| Qubits Range     | T Count Reference  | T Count Modded     | T Count Cancelled      |\n"
+            table += "|------------------|--------------------|--------------------|------------------------|\n"
+
+            for i in range(len(self.__data)):
+                modded_percent = format(((self.__data_modded[i][4] / self.__data[i][4]) * 100), ',.2f')
+                modded = str(self.__data_modded[i][4]) + f" ({modded_percent}%)"
+                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
+                cancelled = str(self.__data[i][4] - self.__data_modded[i][4]) + f" (-{cancelled_percent}%)"
+
+                table += f"| {self.__data[i][0]:<16} | {self.__data[i][4]:<18} | {modded :<18} | {cancelled:<22} |\n"
+
+            print(table, end="\n\n")
+
+            self.__colpr("b", "T depth comparison:", end="\n\n")
+            table = "| Qubits Range     | T Depth Reference  | T Depth Modded     | T Depth Cancelled      |\n"
+            table += "|------------------|--------------------|--------------------|------------------------|\n"
+
+            for i in range(len(self.__data)):
+                modded_percent = format(((self.__data_modded[i][3] / self.__data[i][3]) * 100), ',.2f')
+                modded = str(self.__data_modded[i][3]) + f" ({modded_percent}%)"
+                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
+                cancelled = str(self.__data[i][3] - self.__data_modded[i][3]) + f" (-{cancelled_percent}%)"
+
+                table += f"| {self.__data[i][0]:<16} | {self.__data[i][3]:<18} | {modded :<18} | {cancelled:<22} |\n"
+
+            print(table, end="\n\n")
 
 
     #######################################
@@ -1599,8 +1666,12 @@ def main():
     # )
 
     qram.bb_decompose_test(
-        dec=ToffoliDecompType.NO_DECOMP,
-        parallel_toffolis=False,
+        dec=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+        ],
+        parallel_toffolis=True,
 
         dec_mod=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3_MOD,
