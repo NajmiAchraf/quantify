@@ -281,6 +281,7 @@ class BucketBrigade():
         if self.decomp_scenario.parallel_toffolis:
             memory_decomposed = BucketBrigade.parallelise_toffolis(
                 memory_decomposed)
+            # qopt.CancelNghTs(memory_decomposed).optimize_circuit()
             BucketBrigade.optimise_clifford_and_t_and_cnot(memory_decomposed)
 
         """
@@ -390,9 +391,9 @@ class BucketBrigade():
 
             cirq.optimizers.DropEmptyMoments().optimize_circuit(circuit_2)
 
-            qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2) #! UNDER TESTING (not working yet)
+            qopt.ParallelizeCNOTSToLeft().optimize_circuit(circuit_2)
 
-            # qopt.CancelNghTs(circuit_2).optimize_circuit() 
+            # qopt.CancelNghTs(circuit_2).optimize_circuit()  #! UNDER TESTING (not working yet)
 
             # print(circuit_2)
 

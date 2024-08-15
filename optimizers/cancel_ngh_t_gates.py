@@ -90,7 +90,7 @@ class CancelNghTs(TransferFlagOptimizer):
                 qubit_name = qubit_name[2:-1]
 
                 for qubit in qubit_name:
-                    if qubit != "1":
+                    if qubit != "0":
                         return False
                 return True
 
@@ -104,4 +104,4 @@ class CancelNghTs(TransferFlagOptimizer):
 
         check_and_optimize(cirq.T)
 
-        check_and_optimize(cirq.T**-1)
+        # check_and_optimize(cirq.T**-1)
