@@ -29,9 +29,9 @@ def main():
 
     ls1 = Python.list()
 
-    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_0_CX_3)
+    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
     ls1.append(ToffoliDecompType.ANCILLA_0_TD4_MOD)
-    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_0_CX_3)
+    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
 
     # Call the function from the imported module
     QRAM().bb_decompose_test(

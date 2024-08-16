@@ -7,6 +7,9 @@ import psutil
 import sys
 import time
 
+import multiprocessing
+from functools import partial
+
 from IPython.display import display
 from cirq.contrib.svg import SVGCircuit, circuit_to_svg
 from typing import Union
@@ -104,8 +107,8 @@ class QRAMCircuitExperiments:
     __start_time: float = 0
     __stop_time: str = ""
 
-    __data: list = []
-    __data_modded: list = []
+    __data: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
+    __data_modded: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
     __simulation_results: list = []
     __decomp_scenario: bb.BucketBrigadeDecompType
     __decomp_scenario_modded: bb.BucketBrigadeDecompType
@@ -136,12 +139,12 @@ class QRAMCircuitExperiments:
                 self.__colpr("c", f"Simulate Specific Measurement: {self.__specific_simulation}")
         print("\n")
 
-    def __del__(self):
-        """
-        Destructor of the QRAMCircuitExperiments class.
-        """
+    # def __del__(self):
+    #     """
+    #     Destructor of the QRAMCircuitExperiments class.
+    #     """
 
-        self.__colpr("y", "Goodbye QRAM circuit experiments!")
+    #     self.__colpr("y", "Goodbye QRAM circuit experiments!")
 
     def __get_input(self) -> None:
         """
@@ -357,22 +360,23 @@ class QRAMCircuitExperiments:
         for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
             self.__start_range_qubits = i
             self.__simulated = False
-            self.__core(False)
+            self._core(i, False)
 
         # This is for final bilan from 2 qubits to 6 qubits
         self.__start_range_qubits = 2
         self.__end_range_qubits = 6
 
-        # Clear data for multiple tests on series
-        self.__data.clear()
-        self.__data_modded.clear()
+        # Reset data for multiple tests on series
+        self.__data = multiprocessing.Manager().dict()
+        self.__data_modded = multiprocessing.Manager().dict()
 
-        for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
-            self.__start_range_qubits = i
-            self.__core(True)
+        # Use multiprocessing to get the bilan
+        with multiprocessing.Pool() as pool:
+            pool.map(partial(self._core, bilan=True), range(self.__start_range_qubits, self.__end_range_qubits + 1))
+
         self.__print_bilan()
 
-    def __core(self, bilan: bool) -> None:
+    def _core(self, nr_qubits: int, bilan: bool) -> None:
         """
         Core function of the experiment.
 
@@ -384,8 +388,6 @@ class QRAMCircuitExperiments:
         """
 
         qubits: 'list[cirq.NamedQubit]' = []
-
-        nr_qubits = self.__start_range_qubits
 
         qubits.clear()
         for i in range(nr_qubits):
@@ -408,7 +410,7 @@ class QRAMCircuitExperiments:
         self.__stop_time = self.__spent_time(self.__start_time)
 
         if bilan:
-            self.__bilan()
+            self.__bilan(nr_qubits=nr_qubits)
         else:
             self.__results()
 
@@ -546,7 +548,7 @@ class QRAMCircuitExperiments:
         
         print(table)
 
-    def __bilan(self) -> None:
+    def __bilan(self, nr_qubits: int) -> None:
         """
         Collect the bilan of the experiment
 
@@ -565,15 +567,15 @@ class QRAMCircuitExperiments:
             t_depth = count_t_depth_of_circuit(self.__bbcircuit.circuit)
             t_count = count_t_of_circuit(self.__bbcircuit.circuit)
             hadamard_count = count_h_of_circuit(self.__bbcircuit.circuit)
-            
-            self.__data.append([
-                self.__start_range_qubits,
+
+            self.__data[nr_qubits] = [
+                nr_qubits,
                 num_qubits,
                 circuit_depth,
                 t_depth,
                 t_count,
                 hadamard_count
-            ])
+            ]
 
         num_qubits = len(self.__bbcircuit_modded.circuit.all_qubits())
         circuit_depth = len(self.__bbcircuit_modded.circuit)
@@ -581,15 +583,16 @@ class QRAMCircuitExperiments:
         t_depth = count_t_depth_of_circuit(self.__bbcircuit_modded.circuit)
         t_count = count_t_of_circuit(self.__bbcircuit_modded.circuit)
         hadamard_count = count_h_of_circuit(self.__bbcircuit_modded.circuit)
-        
-        self.__data_modded.append([
-            self.__start_range_qubits,
+
+        self.__data_modded[nr_qubits] = [
+            nr_qubits,
             num_qubits,
             circuit_depth,
             t_depth,
             t_count,
-            hadamard_count
-        ])
+            hadamard_count,
+            self.__stop_time
+        ]
 
     def __print_bilan(self) -> None:
         """
@@ -610,8 +613,8 @@ class QRAMCircuitExperiments:
             table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
             table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
-            for row in self.__data:
-                table += f"| {row[0]:<16} | {row[1]:<16} | {row[2]:<20} | {row[3]:<16} | {row[4]:<16} | {row[5]:<17} |\n"
+            for x in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+                table += f"| {self.__data[x][0]:<16} | {self.__data[x][1]:<16} | {self.__data[x][2]:<20} | {self.__data[x][3]:<16} | {self.__data[x][4]:<16} | {self.__data[x][5]:<17} |\n"
 
             print(table, end="\n\n")
 
@@ -620,29 +623,45 @@ class QRAMCircuitExperiments:
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
-        for row in self.__data_modded:
-            table += f"| {row[0]:<16} | {row[1]:<16} | {row[2]:<20} | {row[3]:<16} | {row[4]:<16} | {row[5]:<17} |\n"
+        for x in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+            table += f"| {self.__data_modded[x][0]:<16} | {self.__data_modded[x][1]:<16} | {self.__data_modded[x][2]:<20} | {self.__data_modded[x][3]:<16} | {self.__data_modded[x][4]:<16} | {self.__data_modded[x][5]:<17} |\n"
 
         print(table, end="\n\n")
 
-        self.__colpr('y', "Simulation circuit result: ", end="\n\n")
+        # Create the Markdown table
+        self.__colpr("b", "Time Spent on Creation of the Bucket Brigade Circuits:", end="\n\n")
+        table = "| Qubits Range     | Spent Time       |\n"
+        table += "|------------------|------------------|\n"
 
-        self.__colpr("r", "Failed: ", str(self.__simulation_results[0]), "%")
-        self.__colpr("g", "Succeed: ", str(self.__simulation_results[1]), "%", end="\n\n")
+        for x in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+            table += f"| {self.__data_modded[x][0]:<16} | {self.__data_modded[x][6]:<16} |\n"
+
+        print(table, end="\n\n")
+
+        if self.__simulate:
+            self.__colpr('y', "Simulation circuit result: ", end="\n\n")
+
+            self.__colpr("r", "Failed: ", str(self.__simulation_results[0]), "%")
+            self.__colpr("g", "Succeed: ", str(self.__simulation_results[1]), "%", end="\n\n")
 
         if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+
+            def calculate(i: int, j: int) -> 'tuple[str, str]':
+                modded_percent = format(((self.__data_modded[i][j] / self.__data[i][j]) * 100), ',.2f')
+                modded = str(self.__data_modded[i][j]) + f" ({modded_percent}%)"
+                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
+                cancelled = str(self.__data[i][j] - self.__data_modded[i][j]) + f" ({cancelled_percent}%)"
+
+                return modded, cancelled
+
             self.__colpr("y", "Comparing bilans", end="\n\n")
 
             self.__colpr("b", "T count comparison:", end="\n\n")
             table = "| Qubits Range     | T Count Reference  | T Count Modded     | T Count Cancelled      |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(len(self.__data)):
-                modded_percent = format(((self.__data_modded[i][4] / self.__data[i][4]) * 100), ',.2f')
-                modded = str(self.__data_modded[i][4]) + f" ({modded_percent}%)"
-                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
-                cancelled = str(self.__data[i][4] - self.__data_modded[i][4]) + f" ({cancelled_percent}%)"
-
+            for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+                modded, cancelled = calculate(i, 4)
                 table += f"| {self.__data[i][0]:<16} | {self.__data[i][4]:<18} | {modded :<18} | {cancelled:<22} |\n"
 
             print(table, end="\n\n")
@@ -651,12 +670,8 @@ class QRAMCircuitExperiments:
             table = "| Qubits Range     | T Depth Reference  | T Depth Modded     | T Depth Cancelled      |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(len(self.__data)):
-                modded_percent = format(((self.__data_modded[i][3] / self.__data[i][3]) * 100), ',.2f')
-                modded = str(self.__data_modded[i][3]) + f" ({modded_percent}%)"
-                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
-                cancelled = str(self.__data[i][3] - self.__data_modded[i][3]) + f" ({cancelled_percent}%)"
-
+            for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+                modded, cancelled = calculate(i, 3)
                 table += f"| {self.__data[i][0]:<16} | {self.__data[i][3]:<18} | {modded :<18} | {cancelled:<22} |\n"
 
             print(table, end="\n\n")
@@ -665,12 +680,8 @@ class QRAMCircuitExperiments:
             table = "| Qubits Range     | Depth Reference    | Depth Modded       | Depth Cancelled        |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(len(self.__data)):
-                modded_percent = format(((self.__data_modded[i][2] / self.__data[i][2]) * 100), ',.2f')
-                modded = str(self.__data_modded[i][2]) + f" ({modded_percent}%)"
-                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
-                cancelled = str(self.__data[i][2] - self.__data_modded[i][2]) + f" ({cancelled_percent}%)"
-
+            for i in range(self.__start_range_qubits, self.__end_range_qubits + 1):
+                modded, cancelled = calculate(i, 2)
                 table += f"| {self.__data[i][0]:<16} | {self.__data[i][2]:<18} | {modded :<18} | {cancelled:<22} |\n"
 
             print(table, end="\n\n")
@@ -1367,16 +1378,14 @@ class QRAMCircuitExperiments:
         _type = "output vector" if self.__specific_simulation == "full" else "measurements"
         self.__colpr("c", f"Simulating both the modded and {name} circuits and comparing their {_type} ...", end="\n\n")
 
-        for i in range(start, stop, step):
-            initial_state[i] = 1
-            initial_state_modded[i] = 1
+        # Use multiprocessing to parallelize the simulation
+        with multiprocessing.Pool() as pool:
+            results = pool.map(partial(self._worker, initial_state=initial_state, initial_state_modded=initial_state_modded), range(start, stop, step))
 
-            f, s = self.__simulate_and_compare(i, initial_state, initial_state_modded)
+        # Aggregate results
+        for f, s in results:
             fail += f
             success += s
-
-            initial_state[i] = 0
-            initial_state_modded[i] = 0
             total_tests += 1
 
         self.__stop_time = self.__spent_time(self.__start_time)
@@ -1390,6 +1399,17 @@ class QRAMCircuitExperiments:
         self.__simulation_results = [f, s]
 
         self.__colpr("w", "Time spent on simulation and comparison: ", self.__stop_time, end="\n\n")
+
+    # Define worker function for multiprocessing
+    def _worker(self, i, initial_state, initial_state_modded):
+        initial_state[i] = 1
+        initial_state_modded[i] = 1
+
+        f, s = self.__simulate_and_compare(i, initial_state, initial_state_modded)
+
+        initial_state[i] = 0
+        initial_state_modded[i] = 0
+        return f, s
 
     def __simulate_and_compare(
             self,
