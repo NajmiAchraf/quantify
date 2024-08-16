@@ -1,5 +1,6 @@
-from python import Python
 # import os.path as path
+from python import Python
+from sys import argv
 
 def main():
     # # Add the directory containing the modules to the Python path
@@ -10,6 +11,12 @@ def main():
     # Python.add_to_path(module_dir)
 
     # Import the modules as if they were Python modules
+    sis = Python.import_module("sys")
+    sis.argv = Python.list()
+
+    for arg in argv():
+        sis.argv.append(arg)
+
     QRAMModule = Python.import_module("QRAMCircuitExperiments")
     QRAM = QRAMModule.QRAMCircuitExperiments
 
@@ -18,8 +25,6 @@ def main():
 
     MirrorMethodModule = Python.import_module("qramcircuits.bucket_brigade")
     MirrorMethod = MirrorMethodModule.MirrorMethod
-
-    var inputs = ['y', 'd', 'n', '2', '2', "abmt"]
 
     ls0 = Python.list()
 
