@@ -968,7 +968,7 @@ class ToffoliDecomposition():
             moments = [
                 cirq.H.on(self.target_qubit),
 
-                
+
                 cirq.T.on(self.qubits[0]),
                 cirq.T.on(self.qubits[1]),
                 cirq.T.on(self.qubits[2]),

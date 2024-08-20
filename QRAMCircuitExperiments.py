@@ -6,6 +6,7 @@ import os
 import psutil
 import sys
 import time
+from datetime import timedelta
 
 from functools import partial
 import multiprocessing
@@ -98,7 +99,7 @@ class QRAMCircuitExperiments:
         __print_simulation_results(): Prints the simulation results.
         __printCircuit(): Prints the circuit.
         __colpr(): Prints colored text.
-        __spent_time(): Calculates the spent time.
+        __elapsed_time(): Calculates the elapsed time.
         __loading_animation(): Displays the loading animation.
     """
 
@@ -422,7 +423,7 @@ class QRAMCircuitExperiments:
             qubits=qubits, 
             decomp_scenario=self.__decomp_scenario_modded)
 
-        self.__stop_time = self.__spent_time(self.__start_time)
+        self.__stop_time = self.__elapsed_time(self.__start_time)
 
         if bilan:
             self.__bilan(nr_qubits=nr_qubits)
@@ -469,7 +470,6 @@ class QRAMCircuitExperiments:
             return
 
         process = psutil.Process(os.getpid())
-        # print("\npid", os.getpid())
 
         """
         rss: aka “Resident Set Size”, this is the non-swapped physical memory a process has used. On UNIX it matches “top“‘s RES column).
@@ -480,13 +480,13 @@ class QRAMCircuitExperiments:
             "c",
             "Bucket Brigade circuit creation:\n"
             "\t• {:<1} Qbits\n"
-            "\t• Time spent on creation: {:<12}\n"
-            "\t• rss: {:<10}\n"
-            "\t• vms: {:<10}".format(
+            "\t• Time elapsed on creation: {:<12}\n"
+            "\t• RSS (Memory Usage): {:<10}\n"
+            "\t• VMS (Memory Usage): {:<10}".format(
                 self.__start_range_qubits,
                 self.__stop_time,
-                process.memory_info().rss,
-                process.memory_info().vms),
+                self.__format_bytes(process.memory_info().rss),
+                self.__format_bytes(process.memory_info().vms)),
             end="\n\n")
 
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
@@ -602,6 +602,9 @@ class QRAMCircuitExperiments:
         t_count = count_t_of_circuit(self.__bbcircuit_modded.circuit)
         hadamard_count = count_h_of_circuit(self.__bbcircuit_modded.circuit)
 
+        rss = self.__format_bytes(process.memory_info().rss)
+        vms = self.__format_bytes(process.memory_info().vms)
+        
         self.__data_modded[nr_qubits] = [
             nr_qubits,
             num_qubits,
@@ -610,8 +613,8 @@ class QRAMCircuitExperiments:
             t_count,
             hadamard_count,
             self.__stop_time,
-            process.memory_info().rss,
-            process.memory_info().vms
+            rss,
+            vms
         ]
 
     def __print_bilan(self) -> None:
@@ -627,25 +630,32 @@ class QRAMCircuitExperiments:
 
         self.__colpr("y", "\n\nBilan of the experiment:", end="\n\n")
 
-        # Create the Markdown table
+        # Bilan of essential checks
         self.__colpr("b", "Creation of the Bucket Brigade Circuits:", end="\n\n")
-        table = "| Qubits Range     | Spent Time       | rss                  | vms                  |\n"
-        table += "|------------------|------------------|----------------------|----------------------|\n"
+        table = "| Qubits Range     | Elapsed Time               | RSS (Memory Usage)     | VMS (Memory Usage)     |\n"
+        table += "|------------------|----------------------------|------------------------|------------------------|\n"
 
         for x in range(self.__start_range_qubits, self.__end_range_qubits + 1):
-            table += f"| {self.__data_modded[x][0]:<16} | {self.__data_modded[x][6]:<16} | {self.__data_modded[x][7]:<20} | {self.__data_modded[x][8]:<20} |\n"
+            table += f"| {self.__data_modded[x][0]:<16} | {self.__data_modded[x][6]:<26} | {self.__data_modded[x][7]:<22} | {self.__data_modded[x][8]:<22} |\n"
 
         print(table, end="\n\n")
 
+        # Bilan of simulation circuit
         if self.__simulate:
             self.__colpr('b', "Simulation circuit result: ", end="\n\n")
 
             self.__colpr("r", "\t• Failed: ", str(self.__simulation_bilan[0]), "%")
-            self.__colpr("g", "\t• Succeed: ", str(self.__simulation_bilan[1]), "%", end="\n\n")
+            if str(self.__simulation_bilan[4]) == 0:
+                self.__colpr("g", "\t• Succeed: ", str(self.__simulation_bilan[1]), "%", end="\n\n")
+            else:
+                self.__colpr("y", "\t• Succeed: ", str(self.__simulation_bilan[1]), "%", end="\t( ")
+                self.__colpr("b", "Measurements: ", str(self.__simulation_bilan[2]), "%", end=" • ")
+                self.__colpr("g", "Output vector: ", str(self.__simulation_bilan[3]), "%", end=" )\n\n")
 
+        # Bilan of the reference circuit
         if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
             self.__colpr("b", "Reference circuit bilan:", end="\n\n")
-            # Create the Markdown table
+
             table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
             table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
@@ -654,7 +664,7 @@ class QRAMCircuitExperiments:
 
             print(table, end="\n\n")
 
-        # Create the Markdown table
+        # Bilan of the modded circuit
         self.__colpr("b", "Modded circuit bilan:", end="\n\n")
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
@@ -664,6 +674,7 @@ class QRAMCircuitExperiments:
 
         print(table, end="\n\n")
 
+        # Comparing bilans
         if self.__decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
 
             def calculate(i: int, j: int) -> 'tuple[str, str]':
@@ -821,7 +832,9 @@ class QRAMCircuitExperiments:
         """
 
         fail:int = 0
-        success:int = 0
+        success_measurements:int = 0
+        success_vector:int = 0
+        total_success:int = 0
         total_tests:int = 0
 
         self.__start_time = time.time()
@@ -880,23 +893,39 @@ class QRAMCircuitExperiments:
                 self.__colpr("w", str(result))
 
             try:
-                # Compare specific measurements for the specific qubits
-                for o_qubit in qubits:
-                    for qubit in measurements.keys():
-                        if str(o_qubit) == str(qubit):
-                            assert np.array_equal(
-                                measurements.get(qubit, np.array([])),
-                                measurements_modded.get(qubit, np.array([]))
-                            )
+                # Compare final state which is the output vector
+                assert np.array_equal(
+                    np.array(np.around(result.final_state[i])),
+                    np.array(np.around(result_modded.final_state[i]))
+                )
             except Exception:
-                fail += 1
-                if self.__print_sim:    
-                    self.__colpr("r","decomposed toffoli circuit result: ")
-                    self.__colpr("r", str(result_modded), end="\n\n")
+                try:
+                    # Compare specific measurements for the specific qubits
+                    for o_qubit in self.__bbcircuit.qubit_order:
+                        for qubit in measurements.keys():
+                            if str(o_qubit) == str(qubit):
+                                assert np.array_equal(
+                                    measurements.get(qubit, np.array([])),
+                                    measurements_modded.get(qubit, np.array([]))
+                                )
+                except Exception:
+                    fail += 1
+                    if self.__print_sim:    
+                        self.__colpr("r","decomposed toffoli circuit result: ")
+                        self.__colpr("r", str(result_modded), end="\n\n")
+                    else:
+                        self.__colpr("r", "•", end="")
                 else:
-                    self.__colpr("r", "•", end="")
+                    success_measurements += 1
+                    total_success += 1
+                    if self.__print_sim:
+                        self.__colpr("b","decomposed toffoli circuit result: ")
+                        self.__colpr("b", str(result_modded), end="\n\n")
+                    else:
+                        self.__colpr("b", "•", end="")
             else:
-                success += 1
+                success_vector += 1
+                total_success += 1
                 if self.__print_sim:
                     self.__colpr("g","decomposed toffoli circuit result: ")
                     self.__colpr("g", str(result_modded), end="\n\n")
@@ -907,16 +936,23 @@ class QRAMCircuitExperiments:
             initial_state_modded[i] = 0
             total_tests += 1
 
-        self.__stop_time = self.__spent_time(self.__start_time)
+        self.__stop_time = self.__elapsed_time(self.__start_time)
 
         f = format(((fail * 100)/total_tests), ',.2f')
-        s = format(((success * 100)/total_tests), ',.2f')
+        sm = format(((success_measurements * 100)/total_tests), ',.2f')
+        sv = format(((success_vector * 100)/total_tests), ',.2f')
+        ts = format(((total_success * 100)/total_tests), ',.2f')
 
-        print("\n")
+        print("\n\nResults of the simulation:\n")
         self.__colpr("r", "\t• Failed: ", str(f), "%")
-        self.__colpr("g", "\t• Succeed: ", str(s), "%", end="\n\n")
+        if success_measurements == 0:
+            self.__colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
+        else:
+            self.__colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
+            self.__colpr("b", "Measurements: ", str(sm), "%", end=" • ")
+            self.__colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
 
-        self.__colpr("w", "Time spent on simulate the decomposition: ", self.__stop_time, end="\n\n")
+        self.__colpr("w", "Time elapsed on simulate the decomposition: ", self.__stop_time, end="\n\n")
 
     #######################################
     # simulate circuit methods
@@ -1022,7 +1058,7 @@ class QRAMCircuitExperiments:
         start = 0
         step = 2 ** ( 2 ** self.__start_range_qubits + 1 )
         stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
-        self.__colpr("y", "\nSimulating the circuit ... checking the uncomputation of FANOUT...were the b qubits are returned to their initial state.", end="\n\n")
+        self.__colpr("y", "\nSimulating the circuit ... checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state.", end="\n\n")
         self.__simulation(start, stop, step)
 
     def _simulation_m_qubits(self) -> None:
@@ -1063,7 +1099,7 @@ class QRAMCircuitExperiments:
         start = 0
         step = 2
         stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
-        self.__colpr("y", "\nSimulating the circuit ... checking the computation of MEM...were the m qubits are getting the result of the computation.", end="\n\n")
+        self.__colpr("y", "\nSimulating the circuit ... checking the computation of MEM ... were the m qubits are getting the result of the computation.", end="\n\n")
         self.__simulation(start, stop, step)
 
     def _simulation_ab_qubits(self) -> None:
@@ -1352,7 +1388,8 @@ class QRAMCircuitExperiments:
         self.__simulated = True
 
         fail:int = 0
-        success:int = 0
+        success_measurements:int = 0
+        success_vector:int = 0
         total_tests:int = 0
 
         self.__start_time = time.time()
@@ -1396,35 +1433,42 @@ class QRAMCircuitExperiments:
 
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
-        _type = "output vector" if self.__specific_simulation == "full" else "measurements"
-        self.__colpr("c", f"Simulating both the modded and {name} circuits and comparing their {_type} ...", end="\n\n")
+        self.__colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
         # Use multiprocessing to parallelize the simulation
         with multiprocessing.Pool() as pool:
             results = pool.map(partial(self._worker, initial_state=initial_state, initial_state_modded=initial_state_modded), range(start, stop, step))
 
         # Aggregate results
-        for f, s in results:
+        for f, sm, sv in results:
             fail += f
-            success += s
+            success_measurements += sm
+            success_vector += sv
             total_tests += 1
 
-        self.__stop_time = self.__spent_time(self.__start_time)
+        self.__stop_time = self.__elapsed_time(self.__start_time)
 
         f = format(((fail * 100)/total_tests), ',.2f')
-        s = format(((success * 100)/total_tests), ',.2f')
+        sm = format(((success_measurements * 100)/total_tests), ',.2f')
+        sv = format(((success_vector * 100)/total_tests), ',.2f')
+        ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
 
-        print("\n")
+        print("\n\nResults of the simulation:\n")
         self.__colpr("r", "\t• Failed: ", str(f), "%")
-        self.__colpr("g", "\t• Succeed: ", str(s), "%", end="\n\n")
+        if success_measurements == 0:
+            self.__colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
+        else:
+            self.__colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
+            self.__colpr("b", "Measurements: ", str(sm), "%", end=" • ")
+            self.__colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
 
-        self.__simulation_bilan = [f, s]
+        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
 
-        self.__colpr("w", "Time spent on simulation and comparison: ", self.__stop_time, end="\n\n")
+        self.__colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
 
         self.__print_simulation_results(start, stop, step)
 
-    def _worker(self, i:int, initial_state:np.ndarray, initial_state_modded:np.ndarray) -> 'tuple[int, int]':
+    def _worker(self, i:int, initial_state:np.ndarray, initial_state_modded:np.ndarray) -> 'tuple[int, int, int]':
         """
         Worker function for multiprocessing.
 
@@ -1434,24 +1478,24 @@ class QRAMCircuitExperiments:
             initial_state_modded (np.ndarray): The initial state of the modded circuit.
 
         Returns:
-            tuple[int, int]: The number of failed tests and the number of successful tests.
+            tuple[int, int, int]: The number of failed tests and the number of measurements and full tests success.
         """
 
         initial_state[i] = 1
         initial_state_modded[i] = 1
 
-        f, s = self.__simulate_and_compare(i, initial_state, initial_state_modded)
+        f, sm, sv = self.__simulate_and_compare(i, initial_state, initial_state_modded)
 
         initial_state[i] = 0
         initial_state_modded[i] = 0
-        return f, s
+        return f, sm, sv
 
     def __simulate_and_compare(
             self,
             i: int,
             initial_state: np.ndarray,
             initial_state_modded: np.ndarray
-        ) -> 'tuple[int, int]':
+        ) -> 'tuple[int, int, int]':
         """
         Simulate and compares the results of the simulation.
 
@@ -1462,11 +1506,13 @@ class QRAMCircuitExperiments:
 
         Returns:
             int: The number of failed tests.
-            int: The number of successful tests.
+            int: The number of measurements tests success.
+            int: The number of full tests success.
         """
 
         fail:int = 0
-        success:int = 0
+        success_measurements:int = 0
+        success_vector:int = 0
 
         result = self.__simulator.simulate(
             self.__bbcircuit.circuit,
@@ -1485,13 +1531,13 @@ class QRAMCircuitExperiments:
         measurements_modded = result_modded.measurements
 
         try:
-            if self.__specific_simulation == "full":
-                # Compare final state which is the output vector, only for all qubits
-                assert np.array_equal(
-                    np.array(np.around(result.final_state[i])),
-                    np.array(np.around(result_modded.final_state[i]))
-                )
-            else:
+            # Compare final state which is the output vector, only for all qubits
+            assert np.array_equal(
+                np.array(np.around(result.final_state[i])),
+                np.array(np.around(result_modded.final_state[i]))
+            )
+        except Exception:
+            try:
                 # Compare specific measurements for the specific qubits
                 for o_qubit in self.__bbcircuit.qubit_order:
                     for qubit in measurements.keys():
@@ -1500,18 +1546,23 @@ class QRAMCircuitExperiments:
                                 measurements.get(qubit, np.array([])),
                                 measurements_modded.get(qubit, np.array([]))
                             )
-        except Exception:
-            fail += 1
-            self.__colpr("r", "•", end="")
-            if self.__print_sim:
-                self.__simulation_results[i] = ['r', result, result_modded]
+            except Exception:
+                fail += 1
+                self.__colpr("r", "•", end="")
+                if self.__print_sim:
+                    self.__simulation_results[i] = ['r', result, result_modded]
+            else:
+                success_measurements += 1
+                self.__colpr("b", "•", end="")
+                if self.__print_sim:
+                    self.__simulation_results[i] = ['b', result, result_modded]
         else:
-            success += 1
+            success_vector += 1
             self.__colpr("g", "•", end="")
             if self.__print_sim:
                 self.__simulation_results[i] = ['g', result, result_modded]
 
-        return (fail, success)
+        return (fail, success_measurements, success_vector)
 
     def __print_simulation_results(self, start:int, stop:int, step:int) -> None:
         """
@@ -1536,11 +1587,7 @@ class QRAMCircuitExperiments:
             self.__colpr("c", f"Index of array {i}", end="\n")
             self.__colpr("w", f"{name} circuit result: ")
             self.__colpr("w", str(result))
-            if self.__specific_simulation == "full":
-                self.__colpr("c", "Comparing the output vector of the circuits ...", end="\n")
-            else:
-                self.__colpr("c", "Comparing the measurements of the circuits ...", end="\n")
-            self.__colpr(color, "Modded circuit result: ")
+            self.__colpr("c", "Comparing the output vector and measurements of both circuits ...", end="\n")
             self.__colpr(color, str(result_modded), end="\n\n")
 
     #######################################
@@ -1578,7 +1625,7 @@ class QRAMCircuitExperiments:
                 end="\n\n"
             )
 
-            stop = self.__spent_time(start)
+            stop = self.__elapsed_time(start)
             self.__colpr("w", "Time of printing the circuit: ", stop, end="\n\n")
 
         elif self.__print_circuit == "Display":
@@ -1589,7 +1636,7 @@ class QRAMCircuitExperiments:
 
             display(SVGCircuit(circuit))
 
-            stop = self.__spent_time(start)
+            stop = self.__elapsed_time(start)
             self.__colpr("w", "Time of displaying the circuit: ", stop, end="\n\n")
 
         # # Save the circuit as an SVG file
@@ -1630,27 +1677,32 @@ class QRAMCircuitExperiments:
         print(colors[color] + "".join(args) + "\033[0m", flush=True, end=end)
 
     @ staticmethod
-    def __spent_time(start: float) -> str:
+    def __elapsed_time(start: float) -> str:
         """
-        Calculates the spent time.
+        Format the elapsed time from the start time to the current time.
 
         Args:
-            start (float): The start time.
+            start (float): The start time in seconds.
 
         Returns:
-            str: The spent time.
+            str: The formatted elapsed time.
         """
 
         elapsed_time = time.time() - start
-        hms = "%H:%M:%S"
-        if elapsed_time < 60:
-            hms = "%S"
-        elif elapsed_time < 3600:
-            hms = "%M:%S"
-        formatted_time = time.strftime(hms, time.gmtime(elapsed_time))
-        milliseconds = (elapsed_time - int(elapsed_time)) * 1000
-        final_output = f"{formatted_time},{int(milliseconds)}"
-        return final_output
+        delta = timedelta(seconds=elapsed_time)
+        
+        hours, remainder = divmod(delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        milliseconds = delta.microseconds // 1000
+
+        if hours > 0:
+            return f"{hours}h {minutes}min {seconds}s {milliseconds}ms"
+        elif minutes > 0:
+            return f"{minutes}min {seconds}s {milliseconds}ms"
+        elif seconds > 0:
+            return f"{seconds}s {milliseconds}ms"
+        else:
+            return f"{milliseconds}ms"
 
     @staticmethod
     def __loading_animation(stop_event: threading.Event, title: str) -> None:
@@ -1661,6 +1713,26 @@ class QRAMCircuitExperiments:
             idx += 1
             time.sleep(0.1)
         print("\r" + " " * (10 + len(title)) + "\r", end="")
+
+
+    @staticmethod
+    def __format_bytes(num_bytes):
+        """
+        Convert bytes to a human-readable format using SI units.
+
+        Args:
+            num_bytes (int): The number of bytes.
+
+        Returns:
+            str: The human-readable format.
+        """
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if num_bytes < 1024:
+                return f"{num_bytes:.2f} {unit}"
+            num_bytes /= 1024
+
+
+    
 
 
 #######################################

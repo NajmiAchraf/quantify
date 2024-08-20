@@ -1,14 +1,11 @@
-# import os.path as path
 from python import Python
 from sys import argv
+from pathlib import cwd
 
 def main():
-    # # Add the directory containing the modules to the Python path
-    Python.add_to_path('/home/anajmi/Desktop/quantify-mojo')
-
-    # current_dir = path.dirname(path.abspath(__file__))
-    # module_dir = path.join(current_dir, 'quantify-mojo')
-    # Python.add_to_path(module_dir)
+    # Add the directory containing the modules to the Python path
+    current_dir = str(cwd())
+    Python.add_to_path(current_dir)
 
     # Import the modules as if they were Python modules
     sis = Python.import_module("sys")
@@ -26,23 +23,23 @@ def main():
     MirrorMethodModule = Python.import_module("qramcircuits.bucket_brigade")
     MirrorMethod = MirrorMethodModule.MirrorMethod
 
-    ls0 = Python.list()
+    bbr = Python.list()
 
-    ls0.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
-    ls0.append(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4)
-    ls0.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbr.append(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4)
+    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
 
-    ls1 = Python.list()
+    bbm = Python.list()
 
-    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
-    ls1.append(ToffoliDecompType.ANCILLA_0_TD4_MOD)
-    ls1.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbm.append(ToffoliDecompType.ANCILLA_0_TD4_MOD)
+    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
 
     # Call the function from the imported module
     QRAM().bb_decompose_test(
-        dec=ls0,
+        dec=bbr,
         parallel_toffolis=True,
-        dec_mod=ls1,
+        dec_mod=bbm,
         parallel_toffolis_mod=True,
         mirror_method=MirrorMethod.OUT_TO_IN
     )
