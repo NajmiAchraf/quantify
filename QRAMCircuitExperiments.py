@@ -77,6 +77,7 @@ def colpr(color: str, *args: str, end: str="\n") -> None:
     }
     print(colors[color] + "".join(args) + "\033[0m", flush=True, end=end)
 
+
 def elapsed_time(start: float) -> str:
     """
     Format the elapsed time from the start time to the current time.
@@ -104,6 +105,7 @@ def elapsed_time(start: float) -> str:
     else:
         return f"{milliseconds}ms"
 
+
 def loading_animation(stop_event: threading.Event, title: str) -> None:
     animation = "|/-\\"
     idx = 0
@@ -112,6 +114,7 @@ def loading_animation(stop_event: threading.Event, title: str) -> None:
         idx += 1
         time.sleep(0.1)
     print("\r" + " " * (10 + len(title)) + "\r", end="")
+
 
 def format_bytes(num_bytes):
     """
@@ -127,6 +130,7 @@ def format_bytes(num_bytes):
         if num_bytes < 1024:
             return f"{num_bytes:.2f} {unit}"
         num_bytes /= 1024
+
 
 def printCircuit(
         print_circuit: str,
@@ -178,13 +182,12 @@ def printCircuit(
 
 
 #######################################
-# class CircuitSimulator
+# QRAM Circuit Simulator
 #######################################
 
-class CircuitSimulator:
+class QRAMCircuitSimulator:
     """
-    The CircuitSimulator class to simulate
-    the bucket brigade circuit.
+    The QRAMCircuitSimulator class to simulate the bucket brigade circuit.
 
     Attributes:
         __specific_simulation (str): The specific simulation.
@@ -203,6 +206,13 @@ class CircuitSimulator:
         get_simulation_bilan(): Returns the simulation bilan.
         __init__(self, bbcircuit, bbcircuit_modded, specific_simulation, start_range_qubits, print_circuit, print_sim):
             Constructor of the CircuitSimulator class.
+        
+        __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
+        __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
+        __decomposed_circuit(): Creates a Toffoli decomposition with measurements circuit.
+        __simulate_decompositions(): Simulates the Toffoli decompositions.
+        __simulate_decomposition(): Simulates a Toffoli decomposition.
+
         __simulate_circuit(): Simulates the circuit.
         _simulation_a_qubits(): Simulates the circuit and measure addressing of the a qubits.
         _simulation_b_qubits(): Simulates the circuit and measure uncomputation of FANOUT.
@@ -214,6 +224,7 @@ class CircuitSimulator:
         _simulation_t_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
         _simulation_full_qubits(): Simulates the circuit and measure all full circuit.
         __simulation(): Simulates the circuit.
+
         _worker(): Worker function for multiprocessing.
         __simulate_and_compare(): Simulate and compares the results of the simulation and measurement.
         __print_simulation_results(): Prints the simulation results.
@@ -223,6 +234,7 @@ class CircuitSimulator:
     __start_range_qubits: int
     __print_circuit: str
     __print_sim: bool
+    __simulation_kind: str = "dec"
 
     __simulation_results: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
     __simulation_bilan: list = []
@@ -396,12 +408,6 @@ class CircuitSimulator:
             None
         """
 
-        fail:int = 0
-        success_measurements:int = 0
-        success_vector:int = 0
-        total_success:int = 0
-        total_tests:int = 0
-
         self.__start_time = time.time()
 
         circuit, qubits, initial_state = self.__decomposed_circuit(ToffoliDecompType.NO_DECOMP)
@@ -428,96 +434,29 @@ class CircuitSimulator:
         step = 2 ** nbr_anc
         stop = 8 * step
 
+        # prints ##############################################################################
+        print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
+
         colpr("c", "Simulating the decomposition ... ", str(decomposition_type),  end="\n\n")
 
-        for i in range(start, stop, step):
-            j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
+        # reset the simulation results ########################################################
+        self.__simulation_results = multiprocessing.Manager().dict()
 
-            initial_state[j] = 1
-            initial_state_modded[i] = 1
+        # Use multiprocessing to parallelize the simulation ###################################
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._worker,
+                    step=step,
+                    circuit=circuit,
+                    circuit_modded=circuit_modded,
+                    qubit_order=qubits,
+                    qubit_order_modded=qubits_modded,
+                    initial_state=initial_state,
+                    initial_state_modded=initial_state_modded),
+                range(start, stop, step))
 
-            result = self.__simulator.simulate(
-                circuit,
-                qubit_order=qubits,
-                initial_state=initial_state
-            )
-
-            result_modded = self.__simulator.simulate(
-                circuit_modded,
-                qubit_order=qubits_modded,
-                initial_state=initial_state_modded
-            )
-
-            # Extract specific measurements
-            measurements = result.measurements
-            measurements_modded = result_modded.measurements
-
-            if self.__print_sim:
-                colpr("c", f"Index of array {j} {i}", end="\n")
-                colpr("w", f"Toffoli circuit result: ")
-                colpr("w", str(result))
-
-            try:
-                # Compare final state which is the output vector
-                assert np.array_equal(
-                    np.array(np.around(result.final_state[i])),
-                    np.array(np.around(result_modded.final_state[i]))
-                )
-            except Exception:
-                try:
-                    # Compare specific measurements for the specific qubits
-                    for o_qubit in self.__bbcircuit.qubit_order:
-                        for qubit in measurements.keys():
-                            if str(o_qubit) == str(qubit):
-                                assert np.array_equal(
-                                    measurements.get(qubit, np.array([])),
-                                    measurements_modded.get(qubit, np.array([]))
-                                )
-                except Exception:
-                    fail += 1
-                    if self.__print_sim:    
-                        colpr("r","decomposed toffoli circuit result: ")
-                        colpr("r", str(result_modded), end="\n\n")
-                    else:
-                        colpr("r", "•", end="")
-                else:
-                    success_measurements += 1
-                    total_success += 1
-                    if self.__print_sim:
-                        colpr("b","decomposed toffoli circuit result: ")
-                        colpr("b", str(result_modded), end="\n\n")
-                    else:
-                        colpr("b", "•", end="")
-            else:
-                success_vector += 1
-                total_success += 1
-                if self.__print_sim:
-                    colpr("g","decomposed toffoli circuit result: ")
-                    colpr("g", str(result_modded), end="\n\n")
-                else:
-                    colpr("g", "•", end="")
-
-            initial_state[j] = 0
-            initial_state_modded[i] = 0
-            total_tests += 1
-
-        self.__stop_time = elapsed_time(self.__start_time)
-
-        f = format(((fail * 100)/total_tests), ',.2f')
-        sm = format(((success_measurements * 100)/total_tests), ',.2f')
-        sv = format(((success_vector * 100)/total_tests), ',.2f')
-        ts = format(((total_success * 100)/total_tests), ',.2f')
-
-        print("\n\nResults of the simulation:\n")
-        colpr("r", "\t• Failed: ", str(f), "%")
-        if success_measurements == 0:
-            colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
-        else:
-            colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
-            colpr("b", "Measurements: ", str(sm), "%", end=" • ")
-            colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
-
-        colpr("w", "Time elapsed on simulate the decomposition: ", self.__stop_time, end="\n\n")
+        self.__print_simulation_results(results, start, stop, step)
 
     #######################################
     # simulate circuit methods
@@ -533,6 +472,8 @@ class CircuitSimulator:
         Returns:
             None
         """
+
+        self.__simulation_kind = "bb"
 
         # Construct the method name
         method_name = f"_simulation_{self.__specific_simulation}_qubits"
@@ -945,11 +886,6 @@ class CircuitSimulator:
             None
         """
 
-        fail:int = 0
-        success_measurements:int = 0
-        success_vector:int = 0
-        total_tests:int = 0
-
         self.__start_time = time.time()
 
         # add measurements to the reference circuit ############################################
@@ -989,49 +925,55 @@ class CircuitSimulator:
         ls_modded = [0 for _ in range(2**len(self.__bbcircuit_modded.qubit_order))]
         initial_state_modded = np.array(ls_modded, dtype=np.complex64)
 
+        # prints ##############################################################################
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
         colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
-        # Use multiprocessing to parallelize the simulation
+        # reset the simulation results ########################################################
+        self.__simulation_results = multiprocessing.Manager().dict()
+
+        # Use multiprocessing to parallelize the simulation ###################################
         with multiprocessing.Pool() as pool:
-            results = pool.map(partial(self._worker, initial_state=initial_state, initial_state_modded=initial_state_modded), range(start, stop, step))
+            results = pool.map(
+                partial(
+                    self._worker,
+                    step=step,
+                    circuit=self.__bbcircuit.circuit,
+                    circuit_modded=self.__bbcircuit_modded.circuit,
+                    qubit_order=self.__bbcircuit.qubit_order,
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order,
+                    initial_state=initial_state,
+                    initial_state_modded=initial_state_modded),
+                range(start, stop, step))
 
-        # Aggregate results
-        for f, sm, sv in results:
-            fail += f
-            success_measurements += sm
-            success_vector += sv
-            total_tests += 1
+        self.__print_simulation_results(results, start, stop, step)
 
-        self.__stop_time = elapsed_time(self.__start_time)
+    #######################################
+    # Core methods
+    #######################################
 
-        f = format(((fail * 100)/total_tests), ',.2f')
-        sm = format(((success_measurements * 100)/total_tests), ',.2f')
-        sv = format(((success_vector * 100)/total_tests), ',.2f')
-        ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
-
-        print("\n\nResults of the simulation:\n")
-        colpr("r", "\t• Failed: ", str(f), "%")
-        if success_measurements == 0:
-            colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
-        else:
-            colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
-            colpr("b", "Measurements: ", str(sm), "%", end=" • ")
-            colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
-
-        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
-
-        colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
-
-        self.__print_simulation_results(start, stop, step)
-
-    def _worker(self, i:int, initial_state:np.ndarray, initial_state_modded:np.ndarray) -> 'tuple[int, int, int]':
+    def _worker(
+            self,
+            i: int,
+            step: int,
+            circuit: cirq.Circuit,
+            circuit_modded: cirq.Circuit,
+            qubit_order: 'list[cirq.NamedQubit]',
+            qubit_order_modded: 'list[cirq.NamedQubit]',
+            initial_state: np.ndarray,
+            initial_state_modded: np.ndarray
+        ) -> 'tuple[int, int, int]':
         """
         Worker function for multiprocessing.
 
         Args:
             i (int): The index of the simulation.
+            step (int): The step index.
+            circuit (cirq.Circuit): The circuit.
+            circuit_modded (cirq.Circuit): The modded circuit.
+            qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
+            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
             initial_state (np.ndarray): The initial state of the circuit.
             initial_state_modded (np.ndarray): The initial state of the modded circuit.
 
@@ -1039,18 +981,36 @@ class CircuitSimulator:
             tuple[int, int, int]: The number of failed tests and the number of measurements and full tests success.
         """
 
-        initial_state[i] = 1
+        j = i
+        if self.__simulation_kind == 'dec':
+            j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
+
+        initial_state[j] = 1
         initial_state_modded[i] = 1
 
-        f, sm, sv = self.__simulate_and_compare(i, initial_state, initial_state_modded)
+        f, sm, sv = self.__simulate_and_compare(
+            i,
+            j,
+            circuit,
+            circuit_modded,
+            qubit_order,
+            qubit_order_modded,
+            initial_state,
+            initial_state_modded
+        )
 
-        initial_state[i] = 0
+        initial_state[j] = 0
         initial_state_modded[i] = 0
         return f, sm, sv
 
     def __simulate_and_compare(
             self,
             i: int,
+            j: int,
+            circuit: cirq.Circuit,
+            circuit_modded: cirq.Circuit,
+            qubit_order: 'list[cirq.NamedQubit]',
+            qubit_order_modded: 'list[cirq.NamedQubit]',
             initial_state: np.ndarray,
             initial_state_modded: np.ndarray
         ) -> 'tuple[int, int, int]':
@@ -1059,6 +1019,11 @@ class CircuitSimulator:
 
         Args:
             i (int): The index of the simulation.
+            j (int): The index of the reversed binary number.
+            circuit (cirq.Circuit): The circuit.
+            circuit_modded (cirq.Circuit): The modded circuit.
+            qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
+            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
             initial_state (np.ndarray): The initial state of the circuit.
             initial_state_modded (np.ndarray): The initial state of the modded circuit.
 
@@ -1073,14 +1038,14 @@ class CircuitSimulator:
         success_vector:int = 0
 
         result = self.__simulator.simulate(
-            self.__bbcircuit.circuit,
-            qubit_order=self.__bbcircuit.qubit_order,
+            circuit,
+            qubit_order=qubit_order,
             initial_state=initial_state
         )
 
         result_modded = self.__simulator.simulate(
-            self.__bbcircuit_modded.circuit,
-            qubit_order=self.__bbcircuit_modded.qubit_order,
+            circuit_modded,
+            qubit_order=qubit_order_modded,
             initial_state=initial_state_modded
         )
 
@@ -1091,7 +1056,7 @@ class CircuitSimulator:
         try:
             # Compare final state which is the output vector, only for all qubits
             assert np.array_equal(
-                np.array(np.around(result.final_state[i])),
+                np.array(np.around(result.final_state[j])),
                 np.array(np.around(result_modded.final_state[i]))
             )
         except Exception:
@@ -1122,30 +1087,74 @@ class CircuitSimulator:
 
         return (fail, success_measurements, success_vector)
 
-    def __print_simulation_results(self, start:int, stop:int, step:int) -> None:
+    def __print_simulation_results(self, results: 'list[tuple[int, int, int]]', start:int, stop:int, step:int) -> None:
         """
         Prints the simulation results.
 
         Args:
-            None
+            results (list[tuple[int, int, int]]): The results of the simulation.
+            start (int): The start index.
+            stop (int): The stop index.
+            step (int): The step index.
 
         Returns:
             None
         """
 
+        fail:int = 0
+        success_measurements:int = 0
+        success_vector:int = 0
+        total_tests:int = 0
+
+        # Aggregate results
+        for f, sm, sv in results:
+            fail += f
+            success_measurements += sm
+            success_vector += sv
+            total_tests += 1
+
+        self.__stop_time = elapsed_time(self.__start_time)
+
+        f = format(((fail * 100)/total_tests), ',.2f')
+        sm = format(((success_measurements * 100)/total_tests), ',.2f')
+        sv = format(((success_vector * 100)/total_tests), ',.2f')
+        ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
+
+        print("\n\nResults of the simulation:\n")
+        colpr("r", "\t• Failed: ", str(f), "%")
+        if success_measurements == 0:
+            colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
+        else:
+            colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
+            colpr("b", "Measurements: ", str(sm), "%", end=" • ")
+            colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
+
+        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
+
+        colpr("w", "Time elapsed on simulate the decomposition: ", self.__stop_time, end="\n\n")
+
         if not self.__print_sim:
             return
 
-        name = "Bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "Reference"
+        if self.__simulation_kind == 'dec':
+            name = "Toffoli"
+            name_modded = "Decomposed Toffoli"
+        else:
+            name = "Bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "Reference"
+            name_modded = "Modded circuit"
 
         colpr("c", "Printing the simulation results ...", end="\n\n")
 
         for i in range(start, stop, step):
+            j = i
+            if self.__simulation_kind == 'dec':
+                j = math.floor(i/step)
             (color, result, result_modded) = self.__simulation_results[i]
-            colpr("c", f"Index of array {i}", end="\n")
+            colpr("c", f"Index of array {j} {i}", end="\n")
             colpr("w", f"{name} circuit result: ")
             colpr("w", str(result))
             colpr("c", "Comparing the output vector and measurements of both circuits ...", end="\n")
+            colpr(color, f"{name_modded} circuit result: ")
             colpr(color, str(result_modded), end="\n\n")
 
 
@@ -1186,11 +1195,6 @@ class QRAMCircuitExperiments:
         __verify_circuit_depth_count(): Verifies the depth and count of the circuit.
         __bilan(): Collect the bilan of the experiment.
         __print_bilan(): Prints the bilan of the experiment.
-        __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
-        __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
-        __decomposed_circuit(): Creates a Toffoli decomposition with measurements circuit.
-        __simulate_decompositions(): Simulates the Toffoli decompositions.
-        __simulate_decomposition(): Simulates a Toffoli decomposition.
         __simulate_circuit(): Simulates the circuit.
     """
 
@@ -1823,7 +1827,7 @@ class QRAMCircuitExperiments:
             return
         self.__simulated = True
 
-        self.__simulation_bilan = CircuitSimulator(
+        self.__simulation_bilan = QRAMCircuitSimulator(
             self.__bbcircuit,
             self.__bbcircuit_modded,
             self.__specific_simulation,
