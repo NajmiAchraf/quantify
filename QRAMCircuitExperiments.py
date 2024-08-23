@@ -1409,7 +1409,7 @@ class QRAMCircuitExperiments:
         try:
             # Use multiprocessing to get the bilan
             with multiprocessing.Pool() as pool:
-                pool.map(partial(self._core, bilan="bilan"), range(self._start_range_qubits, self._end_range_qubits + 1))
+                pool.map(partial(self._core, state="bilan"), range(self._start_range_qubits, self._end_range_qubits + 1))
         finally:
             stop_event.set()
             loading_thread.join()
@@ -1812,15 +1812,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         # Bilan of the stress experiment
         colpr("b", "Stress experiment bilan:", end="\n\n")
 
-        table = "| T Gate Index     | Failed            | Succeed           | Measurements      | Output Vector     |\n"
+        table = "| T Gate Index     | Failed (%)        | Succeed (%)       | Measurements (%)  | Output Vector (%) |\n"
         table += "|------------------|-------------------|-------------------|-------------------|-------------------|\n"
 
         # sort depend in the high success rate
-        for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][0]), reverse=False):
-            table += f"| {bil:<16} | {str(self._stress_bilan[bil][0]) + '%':<17} | {str(self._stress_bilan[bil][1]) + '%':<17} | {str(self._stress_bilan[bil][2]) + '%':<17} | {str(self._stress_bilan[bil][3]) + '%':<17} |\n"
-
         # for bil in self._stress_bilan:
-        #     table += f"| {bil:<16} | {self._stress_bilan[bil][0]:<16}% | {self._stress_bilan[bil][1]:<16}% | {self._stress_bilan[bil][2]:<16}% | {self._stress_bilan[bil][3]:<16}% |\n"
+        for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][0]), reverse=False):
+            table += f"| {bil:<16} | {self._stress_bilan[bil][0]:<17} | {self._stress_bilan[bil][1]:<17} | {self._stress_bilan[bil][2]:<17} | {self._stress_bilan[bil][3]:<17} |\n"
+
 
         print(table, end="\n\n")
 
@@ -1856,7 +1855,7 @@ def main():
     Main function of the experiments.
     """
 
-    # QRAMCircuitExperiments()bb_decompose_test(
+    # QRAMCircuitExperiments().bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
     #     parallel_toffolis=False,
 
@@ -1869,43 +1868,7 @@ def main():
     #     mirror_method=MirrorMethod.OUT_TO_IN
     # )
 
-    # QRAMCircuitExperiments()bb_decompose_test(
-    #     dec=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-    #     ],
-    #     parallel_toffolis=True,
-
-    #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_0_CX_3,
-    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_0_CX_3,
-    #     ],
-
-    #     parallel_toffolis_mod=True,
-    #     mirror_method=MirrorMethod.OUT_TO_IN
-    # )
-
-#     QRAMCircuitStress().bb_decompose_test(
-#     dec=[
-#         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-#         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-#         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-#     ],
-#     parallel_toffolis=True,
-
-#     dec_mod=[
-#         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-#         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-#         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-#     ],
-
-#     parallel_toffolis_mod=True,
-#     mirror_method=MirrorMethod.OUT_TO_IN
-# )
-
-    QRAMCircuitStress().bb_decompose_test(
+    QRAMCircuitExperiments().bb_decompose_test(
         dec=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
@@ -1922,6 +1885,42 @@ def main():
         parallel_toffolis_mod=True,
         mirror_method=MirrorMethod.OUT_TO_IN
     )
+
+    # QRAMCircuitStress().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis=True,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
+
+    # QRAMCircuitStress().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis=True,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
 
 if __name__ == "__main__":
     main()
