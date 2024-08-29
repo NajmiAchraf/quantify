@@ -1170,7 +1170,7 @@ class QRAMCircuitExperiments:
 
         colpr("c", f"Simulate Toffoli decompositions and circuit: {'yes' if self._simulate else 'no'}")
         colpr("c", f"{self._print_circuit} circuits")
-        colpr("c", f"Print the full simulation result: {'yes' if self._print_sim else 'no'}")
+        colpr("c", f"{self._print_sim} simulation results")
         colpr("c", f"Start Range of Qubits: {self._start_range_qubits}")
         colpr("c", f"End Range of Qubits: {self._end_range_qubits}")
 
@@ -1181,12 +1181,12 @@ class QRAMCircuitExperiments:
                 colpr("c", f"Simulate Specific Measurement: {self._specific_simulation}")
         print("\n")
 
-    # def __del__(self):
-    #     """
-    #     Destructor of the QRAMCircuitExperiments class.
-    #     """
+    def __del__(self):
+        """
+        Destructor of the QRAMCircuitExperiments class.
+        """
 
-    #     colpr("y", "Goodbye QRAM circuit experiments!")
+        colpr("y", "Goodbye QRAM circuit experiments!")
 
     def __get_input(self) -> None:
         """
@@ -1858,7 +1858,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
 def main():
     """
-    Main function of the experiments.
+    Main function for the QRAM circuit experiments.
     """
 
     # QRAMCircuitExperiments().bb_decompose_test(

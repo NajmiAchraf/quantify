@@ -157,66 +157,6 @@ class ToffoliDecomposition():
 
         return decomp_moments
 
-    @staticmethod
-    def construct_decomposed_compressed_moments(subcircuit,
-                                                toff_decomp,
-                                                qubit_permutation=[0, 1, 2]):
-        decomp_moments = []
-        h = False
-        t = False
-        t_inv = False
-
-        decomposed_moment = ToffoliDecomposition(toff_decomp).decomposition()
-
-        moments_toffoli_decomps = []
-        for dec_op_mom in decomposed_moment:
-            h = False
-            t = False
-            t_inv = False
-            for moment in subcircuit:
-                # Extract from the moments the Toffoli gates
-                for op in moment:
-                    toff_qubits = cirq.Moment().with_operation(dec_op_mom)
-                    # print(toff_qubits.qubits, moment_w_toffolis.qubits)
-                    print(toff_qubits.qubits, op.qubits)
-
-                    l = []
-                    for toff in op.qubits:
-                        l.append(toff)
-
-                    qubit = []  # Initialize as a list
-                    for decoml in toff_qubits.qubits:
-                        print("decoml: ", decoml)
-                        qubit_index = int(eval(str(decoml)[-1]))
-                        qubit.append(l[qubit_index])
-                        print("qubit: ", qubit, end="\n\n")
-                    # inverse
-                    qubit.sort()
-                    # if dec_op_mom.gate != cirq.ops.TOFFOLI:
-                    #     qubit = [_ for _ in reversed(qubit)]
-                if dec_op_mom.gate == cirq.H:
-                    if not h:
-                        h = True
-                        moments_toffoli_decomps.append(dec_op_mom.gate(*qubit))
-                    continue
-                if dec_op_mom.gate == cirq.T:
-                    if not t:
-                        t = True
-                        moments_toffoli_decomps.append(dec_op_mom.gate(*qubit))
-                    continue
-                if dec_op_mom.gate == cirq.T ** -1:
-                    if not t_inv:
-                        t_inv = True
-                        moments_toffoli_decomps.append(dec_op_mom.gate(*qubit))
-                    continue
-                moments_toffoli_decomps.append(dec_op_mom.gate(*qubit))
-                print(dec_op_mom.gate, *qubit, end="\n\n")
-
-        # Add the moments corresponding to the Toffoli decompositions
-        decomp_moments += moments_toffoli_decomps
-
-        return decomp_moments
-
     def decomposition(self):
         moments = []
 

@@ -1,7 +1,6 @@
 from .cancel_ngh_cnots import CancelNghCNOTs
-from .cancel_ngh_hadamard import CancelNghHadamards
 from .cancel_ngh_clifford_t_gates import CancelNghGates
-from .cancel_ngh_t_gates import CancelNghTp, CancelNghTs, CancelTGate
+from .cancel_t_gates import CancelTGate
 from .transforme_ngh_gates import TransformeNghGates
 
 from .transfer_flag_optimizer import TransferFlagOptimizer
