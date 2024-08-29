@@ -14,14 +14,17 @@ def main():
     for arg in argv():
         sis.argv.append(arg)
 
-    QRAMModule = Python.import_module("QRAMCircuitExperiments")
+    MirrorMethodModule = Python.import_module("qramcircuits.bucket_brigade")
+    MirrorMethod = MirrorMethodModule.MirrorMethod
+
+    QRAMModule = Python.import_module("qramcircuits.qram_circuit_experiments")
     QRAM = QRAMModule.QRAMCircuitExperiments
+
+    # QRAMSModule = Python.import_module("qramcircuits.qram_circuit_stress")
+    # QRAMS = QRAMModule.QRAMCircuitsStress
 
     ToffoliDecompModule = Python.import_module("qramcircuits.toffoli_decomposition")
     ToffoliDecompType = ToffoliDecompModule.ToffoliDecompType
-
-    MirrorMethodModule = Python.import_module("qramcircuits.bucket_brigade")
-    MirrorMethod = MirrorMethodModule.MirrorMethod
 
     bbr = Python.list()
 

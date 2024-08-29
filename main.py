@@ -1,162 +1,107 @@
-import cirq
-from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
-from mathematics.draper0406142 import CarryLookaheadAdder
-import qramcircuits.bucket_brigade as bb
+from qramcircuits.bucket_brigade import MirrorMethod
+from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
+from qramcircuits.qram_circuit_stress import QRAMCircuitStress
+from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
-import optimizers as qopt
 
+"""
+How to run the main.py file:
+
+Run the following command in the terminal:
+
+    python3 main.py
+
+or by adding arguments:
+
+    python3 main.py y p d 2 2
+
+Arguments:
+- arg 1: Simulate Toffoli decompositions and circuit (y/n).
+- arg 2: (P) print or (D) display or (H) hide circuits.
+- arg 3: (F) full simulation or (D) just dots or (H) hide the simulation.
+- arg 4: Start range of qubits, starting from 2.
+- arg 5: End range of qubits, should be equal to or greater than the start range.
+- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, t).
+    leave it empty to simulate the full circuit.
+    only for full circuit we compare the output vector.
+"""
+
+
+#######################################
+# main function
+#######################################
 
 def main():
     """
-    print("Hello QRAM circuits!")
-    
-    #Create the qubis of the circuits
-    
-    nr_qubits = 5
-    qubits = []
-    for i in range(nr_qubits):
-        qubits.append(cirq.NamedQubit("a" + str(i)))
-
-    # #
-    # #
-    # # #Create the search
-    # #
-    search = [0, 1, 2, 3]
-    # search = list(range(0, 15))
-    #
-
+    Main function for the QRAM circuit experiments.
     """
-       # Bucket brigade
-    """
-    print("*** Bucket Brigade:")
 
-    decomp_scenario = bb.BucketBrigadeDecompType(
-        [
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # fan_in_decomp
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,    # fan_out_decomp
+    #######################################
+    # QRAM Circuit Experiments
+    #######################################
+
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
+
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis=True,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
+
+    #######################################
+    # QRAM Circuit Stress
+    #######################################
+
+    # QRAMCircuitStress(1).bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
+
+    QRAMCircuitStress(1).bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
+
+        dec_mod=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
         ],
-        True
+
+        parallel_toffolis_mod=True,
+        mirror_method=MirrorMethod.OUT_TO_IN
     )
-
-    no_decomp = bb.BucketBrigadeDecompType(
-        [
-            ToffoliDecompType.NO_DECOMP,  # fan_in_decomp
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
-            ToffoliDecompType.NO_DECOMP,  # fan_out_decomp
-        ],
-        True
-    )
-
-
-    olivia_decomposition = bb.BucketBrigadeDecompType(
-        [
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # fan_in_decomp
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # mem_decomp
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # fan_out_decomp
-        ],
-        False
-    )
-
-    bbcircuit = bb.BucketBrigade(qubits,
-                                 decomp_scenario = decomp_scenario)
-    #
-    # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
-    #                                         qubit_order = bbcircuit.qubit_order))
-
-    # #Verification
-    print("Verify N_q:      {}\n".format(bbcircuit.verify_number_qubits()))
-    print("Verify D:        {}\n".format(bbcircuit.verify_depth(
-        Alexandru_scenario=decomp_scenario.parallel_toffolis))
-    )
-    print("Verify T_c:      {}\n".format(bbcircuit.verify_T_count()))
-    print("Verify T_d:      {}\n".format(bbcircuit.verify_T_depth(
-        Alexandru_scenario=decomp_scenario.parallel_toffolis))
-    )
-    print("Verify H_c:      {}\n".format(bbcircuit.verify_hadamard_count(
-        Alexandru_scenario=decomp_scenario.parallel_toffolis))
-    )
-    print("Verify CNOT_c:   {}\n".format(bbcircuit.verify_cnot_count(
-        Alexandru_scenario=olivia_decomposition.parallel_toffolis))
-    )
-
-    # qopt.CommuteTGatesToStart().optimize_circuit(bbcircuit.circuit)
-    #
-    # print(bbcircuit.circuit)
-
-    # qopt.SearchCNOTPattern().optimize_circuit(bbcircuit.circuit)
-
-    # qopt.CancelNghCNOTs().apply_until_nothing_changes(bbcircuit.circuit,
-    #                                                   cu.count_cnot_of_circuit)
-    # print(bbcircuit.circuit)
-    # print("*** Large Depth Small Width:")
-    # """
-    # be sure while testing that the number of search values are a power of 2
-    # and that the binary decomposition of each search value is less or equal to the number of qubits' address
-    # like if we have 4 qubits then the search values should range between 0 and 15
-    # """
-    # ldsmcircuit = ldsw.LargeDepthSmallWidth(qubits,
-    #                                         search,
-    #                                         decomp_type = MPMCTDecompType.ALLOW_DECOMP)
-    # print((ldsmcircuit.circuit))
-    # print("Verify N_q:      {}\n".format(ldsmcircuit.verify_number_qubits()))
-    # print("Verify D:        {}\n".format(ldsmcircuit.verify_depth()))
-    # print("Verify T_c:      {}\n".format(ldsmcircuit.verify_T_count()))
-    # print("Verify T_d:      {}\n".format(ldsmcircuit.verify_T_depth()))
-    # print("Verify H_c:      {}\n".format(ldsmcircuit.verify_hadamard_count()))
-    # print("Verify CNOT_c:   {}\n".format(ldsmcircuit.verify_cnot_count()))
-    # #
-    # qopt.CommuteTGatesToStart().optimize_circuit(ldsmcircuit.circuit)
-
-    # print("*** Small Depth Large Width:")
-    # #be sure while testing that the number of search values are a power of 2
-    # #and that the binary decomposition of each search value is less or equal to the number of qubits' address
-    # # like if we have 4 qubits then the search values should range between 0 and 15
-    # sdlwcircuit = sdlw.SmallDepthLargeWidth(qubits,
-    #                                         search,
-    #                                         decomp_type = MPMCTDecompType.ALLOW_DECOMP)
-    # print(sdlwcircuit.circuit)
-    # print("Verify N_q:      {}\n".format(sdlwcircuit.verify_number_qubits()))
-    # print("Verify D:        {}\n".format(sdlwcircuit.verify_depth()))  #still working on the depth
-    # print("Verify T_d:      {}\n".format(sdlwcircuit.verify_T_depth()))
-    # print("Verify T_c:      {}\n".format(sdlwcircuit.verify_T_count()))
-    # print("Verify H_c:      {}\n".format(sdlwcircuit.verify_hadamard_count()))
-    # print("Verify CNOT_c:   {}\n".format(sdlwcircuit.verify_cnot_count()))
-    
-    """
-        CLA example
-    """
-    # Size of the operand; At this stage always gives the even number >= to the wanted size
-    n = 10
-    A = [cirq.NamedQubit("A"+str(i)) for i in range(n)]
-        
-        # Second operand
-    B = [cirq.NamedQubit("B"+str(i)) for i in range(n)]
-    
-    # CLA class with the default decomposition strategy (NO_DECOMP)
-    decompositon_strategy = [(ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)]*2
-    cl = CarryLookaheadAdder(A, B, decompositon_strategy=decompositon_strategy)
-    # Printing the CLA circuit
-    # print(cl.circuit)
-
-
-    results = []
-    for n in range(8, 32, 2):
-        
-        # First operand
-        A = [cirq.NamedQubit("A"+str(i)) for i in range(n)]
-        
-        # Second operand
-        B = [cirq.NamedQubit("B"+str(i)) for i in range(n)]
-        
-        # CLA class with the default decomposition strategy (NO_DECOMP)
-        decompositon_strategy = [(ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)]*2
-        cl = CarryLookaheadAdder(A, B, decompositon_strategy=decompositon_strategy)
-        # Printing the CLA circuit
-        results.append(len(cl.circuit))
-    print(results)
 
 if __name__ == "__main__":
     main()
-
-
