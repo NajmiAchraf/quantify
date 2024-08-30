@@ -1,13 +1,17 @@
-from utils.counting_utils import *
-from qramcircuits.toffoli_decomposition import ToffoliDecomposition, \
-    ToffoliDecompType
+import cirq
+from enum import Enum, auto
+import multiprocessing
+import numpy as np
+
+import optimizers as qopt
+from qramcircuits.toffoli_decomposition import ToffoliDecomposition, ToffoliDecompType
 
 import utils.clifford_t_utils as ctu
 import utils.misc_utils as miscutils
 
-import optimizers as qopt
-import numpy as np
-from enum import Enum, auto
+from utils.counting_utils import *
+from utils.print_utils import *
+
 
 global_qubit_order = []
 
@@ -70,7 +74,7 @@ class BucketBrigade():
         #                                                   count_cnot_of_circuit)
 
     @staticmethod
-    def optimise_clifford_and_t_and_cnot(circuit_1: cirq.Circuit):
+    def optimize_clifford_t_cnot_gates(circuit_1: cirq.Circuit):
         while True:
             # Allow the optimization of Clifford + T gates
             miscutils.flag_operations(circuit_1, [
@@ -179,163 +183,119 @@ class BucketBrigade():
 
         return anc_previous, compute_fanin_moments
 
-    def construct_circuit(self, qubits):
-
-        # first part of the circuit (in case n = 2)
-
-        circuit = cirq.Circuit()
-
-        # number of qubits
-        n = len(qubits)
-        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n))
-                  for i in range(2 ** (n))]
-        target = cirq.NamedQubit("target")
-
-        """
-            According to the notes received from Olivia DiMatteo the 
-            the FANIN and the FANOUT Toffolis are decomposed differently
-            to the Toffolis connected to the memory
-        """
-        # if self.decomposition_type == ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B:
-        #     dec_fan_in = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A
-        #     dec_fan_out = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A
-        #     dec_mem = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B
-        # elif self.decomposition_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE:
-        #     dec_fan_in = ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE
-        #     dec_fan_out = ToffoliDecompType.NO_DECOMP
-        #     dec_mem = ToffoliDecompType.NO_DECOMP
-        # else:
-        #     dec_fan_in = self.decomposition_type
-        #     dec_fan_out = self.decomposition_type
-        #     dec_mem = self.decomposition_type
-        # [dec_fan_in, dec_fan_out, dec_mem] = self.decomp_scenario.get_decomp_type()
-
-        all_ancillas, compute_fanin_moments = self.construct_fan_structure(
-            qubits)
-
-        """
-            Adding the FANIN
-        """
-
-        comp_fan_in = cirq.Circuit(
-            ToffoliDecomposition.
-            construct_decomposed_moments(compute_fanin_moments,
-                                         self.decomp_scenario.dec_fan_in)
-        )
-
-        # If necessary, parallelise the Toffoli decompositions
-        if self.decomp_scenario.parallel_toffolis:
-            comp_fan_in = BucketBrigade.parallelise_toffolis(comp_fan_in)
-
-        """
-            Adding Memory wiring
-        """
-        # wiring with the memory
+    def wiring_memory(self, all_ancillas, memory, target):
         memory_operations = []
         for i in range(len(memory)):
             mem_toff = cirq.TOFFOLI.on(
                 all_ancillas[len(memory) - 1 - i],
                 memory[i],
-                target)
-
+                target
+            )
             memory_operations.append(cirq.Moment([mem_toff]))
 
-        permutation = [0, 1, 2]
-        # If necessary, prepare for the parallelisation of Toffoli decompositions
-        if self.decomp_scenario.parallel_toffolis:
-            permutation = [0, 2, 1]
+        return memory_operations
 
-        # Create a sub-circuit from the moments
-        # TODO: This is redundant, should be from the beginning
-        memory_decomposed = cirq.Circuit(
-            ToffoliDecomposition.
-            construct_decomposed_moments(memory_operations,
-                                         self.decomp_scenario.dec_mem,
-                                         permutation)
-        )
-
-        if self.decomp_scenario.dec_mem in [ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
-                                            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                                            ToffoliDecompType.ANCILLA_0_TD4_MOD,
-                                            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
-                                            ToffoliDecompType.TD_4_CXD_8,
-                                            ToffoliDecompType.TD_4_CXD_8_INV,
-                                            ToffoliDecompType.TD_5_CXD_6,
-                                            ToffoliDecompType.TD_5_CXD_6_INV,
-                                            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4,
-                                            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-                                            ToffoliDecompType.RELATIVE_PHASE_CX_3_TD_4,
-                                            ]:
-            BucketBrigade.optimise_clifford_and_t_and_cnot(memory_decomposed)
-
-        # If necessary, parallelise the Toffoli decompositions
-        if self.decomp_scenario.parallel_toffolis:
-            memory_decomposed = BucketBrigade.parallelise_toffolis(
-                memory_decomposed)
-            BucketBrigade.optimise_clifford_and_t_and_cnot(memory_decomposed)
-
-        """
-            Adding the FANOUT
-        """
+    def construct_fanout(self, compute_fanin_moments):
         compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
 
-        # If necessary, parallelise the Toffoli decompositions
-        comp_fan_out = cirq.Circuit(
-            ToffoliDecomposition.
-            construct_decomposed_moments(compute_fanout_moments,
-                                        self.decomp_scenario.dec_fan_out,
-                                        [1, 0, 2]))
+        return compute_fanout_moments
+
+    def optimize_toffolis_parallelization(self, circuit, decomp_scenario, permutation=[0, 1, 2]):
+        if not self.decomp_scenario.parallel_toffolis:
+            permutation = [0, 1, 2]
+
+        circuit = cirq.Circuit(
+            ToffoliDecomposition.construct_decomposed_moments(
+                circuit, decomp_scenario, permutation
+            )
+        )
+
+        if permutation == [0, 2, 1] and self.decomp_scenario.dec_mem in [
+            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
+            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+            ToffoliDecompType.TD_4_CXD_8,
+            ToffoliDecompType.TD_4_CXD_8_INV,
+            ToffoliDecompType.TD_5_CXD_6,
+            ToffoliDecompType.TD_5_CXD_6_INV,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.RELATIVE_PHASE_CX_3_TD_4,
+        ]:
+            BucketBrigade.optimize_clifford_t_cnot_gates(circuit)
 
         if self.decomp_scenario.parallel_toffolis:
-            comp_fan_out = BucketBrigade.parallelise_toffolis(
-                cirq.Circuit(comp_fan_out.all_operations())
+            circuit = BucketBrigade.parallelise_toffolis(
+                cirq.Circuit(circuit.all_operations())
             )
+            BucketBrigade.optimize_clifford_t_cnot_gates(circuit)
 
-        """
-            Inserting Mirror Methods for FANIN and FANOUT
-        """
+        return circuit
+
+    def linking_and_mirroring(self, comp_fan_in, memory_decomposed, comp_fan_out) -> cirq.Circuit:
+        circuit = cirq.Circuit()
+
         if self.decomp_scenario.mirror_method == MirrorMethod.NO_MIRROR:
             circuit.append(comp_fan_in)
             circuit.append(memory_decomposed)
             circuit.append(comp_fan_out)
-
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
 
         elif self.decomp_scenario.mirror_method == MirrorMethod.IN_TO_OUT:
             circuit.append(comp_fan_in)
             circuit.append(memory_decomposed)
-
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
-
             compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
             circuit.append(compute_fanout_moments)
 
         elif self.decomp_scenario.mirror_method == MirrorMethod.OUT_TO_IN:
             compute_fanin_moments = ctu.reverse_moments(comp_fan_out)
-
             if self.decomp_scenario.parallel_toffolis:
                 compute_fanin_moments = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
-
             circuit.append(compute_fanin_moments)
             circuit.append(memory_decomposed)
-
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
-
             compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
             circuit.append(compute_fanout_moments)
+        
+        return circuit
 
-        # This is the qubit order for drawing the circuits
-        # similar to Olivia's paper
+    def construct_circuit(self, qubits):
+        n = len(qubits)
+        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n)) for i in range(2 ** n)]
+        target = cirq.NamedQubit("target")
+
+        # Construct the fan structure
+        all_ancillas, compute_fanin_moments = self.construct_fan_structure(qubits)
+
+        # Construct the memory wiring
+        memory_operations = self.wiring_memory(all_ancillas, memory, target)
+
+        # Construct the fanout structure
+        compute_fanout_moments = self.construct_fanout(compute_fanin_moments)
+
+        # Parallelize the Toffolis
+        with multiprocessing.Pool(processes=3) as pool:
+            circuits = pool.starmap(
+                self.optimize_toffolis_parallelization, [
+                    (compute_fanin_moments, self.decomp_scenario.dec_fan_in),
+                    (memory_operations, self.decomp_scenario.dec_mem, [0, 2, 1]),
+                    (compute_fanout_moments, self.decomp_scenario.dec_fan_out, [1, 0, 2])
+                ])
+        comp_fan_in, memory_decomposed, comp_fan_out = circuits
+
+        # Link the circuits and apply the mirroring
+        circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
+
         self._qubit_order += qubits[::-1]
-        # Sort the ancillas by their name
         self._qubit_order += sorted(all_ancillas)
         self._qubit_order += memory[::-1]
 
-        # Add only the necessary ancilla
         all_qubits = circuit.all_qubits()
         for qub in ToffoliDecomposition(None, None).ancilla:
             if qub in all_qubits:
@@ -353,18 +313,6 @@ class BucketBrigade():
         circuit_2 = circuit_1[1:-1]
         # circuit_2 = circuit_1
         # print(circuit_2)
-
-        # Check if circuit_1 is empty
-        if not circuit_1:
-            raise ValueError("circuit_1 is empty, cannot access its elements")
-
-        # Check if circuit_2 is empty
-        if not circuit_2:
-            raise ValueError("circuit_2 is empty, cannot access its elements")
-
-        # Ensure circuit_1 has at least two elements
-        if len(circuit_1) < 2:
-            raise ValueError("circuit_1 does not have enough elements to access first and last")
 
         """
             This is to say that as long as the circuit has been changed

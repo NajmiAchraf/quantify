@@ -9,7 +9,9 @@ import multiprocessing
 import threading
 
 import qramcircuits.bucket_brigade as bb
+
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
+
 from utils.counting_utils import *
 from utils.print_utils import *
 
@@ -901,7 +903,7 @@ class QRAMCircuitSimulator:
 
         self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
 
-        colpr("w", "Time elapsed on simulate the decomposition: ", self.__stop_time, end="\n\n")
+        colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
 
         if self.__print_sim == "Hide" or self.__print_sim == "Dot":
             return

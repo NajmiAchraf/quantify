@@ -15,6 +15,7 @@ import qramcircuits.bucket_brigade as bb
 from qramcircuits.bucket_brigade import MirrorMethod
 from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
+
 from utils.counting_utils import *
 from utils.print_utils import *
 
@@ -379,15 +380,20 @@ class QRAMCircuitExperiments:
 
         self._start_time = time.time()
 
-        # Use multiprocessing.Pool to parallelize the construction
-        with multiprocessing.Pool(processes=2) as pool:
-            results = pool.starmap(bb.BucketBrigade, [
-                (qubits, self._decomp_scenario),
-                (qubits, self._decomp_scenario_modded)
-            ])
+        def _create_bbcircuit():
+            self._bbcircuit = bb.BucketBrigade(qubits, self._decomp_scenario)
 
-        # Retrieve the results
-        self._bbcircuit, self._bbcircuit_modded = results
+        def _create_bbcircuit_modded():
+            self._bbcircuit_modded = bb.BucketBrigade(qubits, self._decomp_scenario_modded)
+
+        thread1 = threading.Thread(target=_create_bbcircuit)
+        thread2 = threading.Thread(target=_create_bbcircuit_modded)
+
+        thread1.start()
+        thread2.start()
+
+        thread1.join()
+        thread2.join()
 
         self._stop_time = elapsed_time(self._start_time)
 

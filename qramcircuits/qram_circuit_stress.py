@@ -7,6 +7,7 @@ import time
 import optimizers as qopt
 
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
+
 from utils.counting_utils import *
 from utils.print_utils import *
 
@@ -68,7 +69,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         bbcircuit_modded_save = copy.deepcopy(self._bbcircuit_modded)
 
         t_count = count_t_of_circuit(bbcircuit_modded_save.circuit)
-        t_count = 2
+        # t_count = 2
 
         for indices in itertools.product(range(1, t_count + 1), repeat=self.__nbr_combinations):
             adjusted_indices = []
