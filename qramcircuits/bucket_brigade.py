@@ -13,8 +13,6 @@ from utils.counting_utils import *
 from utils.print_utils import *
 
 
-global_qubit_order = []
-
 class MirrorMethod(Enum):
 
     NO_MIRROR = auto()
@@ -58,7 +56,6 @@ class BucketBrigadeDecompType:
 class BucketBrigade():
 
     def __init__(self, qubits, decomp_scenario):
-        global global_qubit_order
 
         self._qubit_order = []
 
@@ -68,7 +65,6 @@ class BucketBrigade():
 
         self.circuit = self.construct_circuit(qubits)
 
-        global_qubit_order = self.qubit_order
         # # Cancel other CNOTs
         # qopt.CancelNghCNOTs().apply_until_nothing_changes(self.circuit,
         #                                                   count_cnot_of_circuit)
@@ -116,72 +112,68 @@ class BucketBrigade():
 
     def construct_fan_structure(self, qubits):
         n = len(qubits)
-
         all_ancillas = []
 
-        anc_created = [cirq.NamedQubit(
-            self.get_b_ancilla_name(i, n)) for i in range(2)]
+        # Create initial ancillas
+        anc_created = [cirq.NamedQubit(self.get_b_ancilla_name(i, n)) for i in range(2)]
         all_ancillas += anc_created
 
+        # Initialize compute fan-in moments with initial CNOT operations
         compute_fanin_moments = [
             cirq.Moment([cirq.ops.CNOT(qubits[0], anc_created[0])]),
             cirq.Moment([cirq.ops.CNOT(anc_created[0], anc_created[1])])
         ]
 
-        # circuit.append(cirq.ops.CNOT(qubits[0], anc_created[0]))
-        # circuit.append(cirq.ops.CNOT(anc_created[0], anc_created[1]))
         # we will need the ancillae
         anc_previous = anc_created
 
+        # Iterate to create ancillas and Toffoli gates
         for i in range(1, n):
-            # defining the new ancillae
-            # in each iteration we create 2**i new ancillae
-            anc_created = [cirq.NamedQubit(self.get_b_ancilla_name(i, n)) for i in
-                           range(2 ** i, 2 ** (i + 1))]
-            # all_ancillas += anc_created
+            anc_created = [cirq.NamedQubit(self.get_b_ancilla_name(j, n)) for j in range(2 ** i, 2 ** (i + 1))]
 
-            # The number of created ancillas equals the number of previous ancilla
-            assert (len(anc_created) == len(anc_previous))
+            # Ensure the number of created ancillas equals the number of previous ancillas
+            assert len(anc_created) == len(anc_previous)
 
-            # appending the Toffoli operations to the circuit
-            # ccx_ops = []
-            cnot_moment_ops = []
+            # Create Toffoli and CNOT operations for the current iteration
+            compute_fanin_moments += self.create_toffoli_and_cnot_moments(qubits, anc_previous, anc_created, i)
 
-            for j in range(2 ** i):
-                ccx_first_control = qubits[i]
-                ccx_second_control = anc_previous[j]
-                ccx_target = anc_created[j]
+            # Prepare ancillas for the next iteration
+            anc_previous = self.interleave_ancillas(anc_created, anc_previous)
 
-                compute_fanin_moments += [
-                    cirq.Moment([cirq.TOFFOLI(ccx_first_control,
-                                              ccx_second_control,
-                                              ccx_target)])
-                ]
-
-                cnot_control = ccx_target
-                cnot_target = ccx_second_control
-                cnot_moment_ops.append(
-                    cirq.ops.CNOT(cnot_control, cnot_target))
-
-            # circuit.append(ccx_ops)
-            # circuit.append(cirq.Moment(cnot_moment_ops))
-            compute_fanin_moments.append(cirq.Moment(cnot_moment_ops))
-
-            """
-            Create the pattern necessary for the next step to work
-            One created ancilla followed by one existing ancilla
-            """
-            # saving the current ancillae to use them in the next iteration
-            prev_ancilla_2 = anc_previous
-            anc_previous = []
-
-            for l in range(0, len(anc_created)):
-                anc_previous.append(anc_created[l])
-                anc_previous.append(prev_ancilla_2[l])
-
-        assert (len(anc_previous) == 2 ** n)
+        assert len(anc_previous) == 2 ** n
 
         return anc_previous, compute_fanin_moments
+
+    @staticmethod
+    def create_toffoli_and_cnot_moments(qubits, anc_previous, anc_created, i):
+        toffoli_moments = []
+        cnot_moment_ops = []
+
+        for j in range(2 ** i):
+            ccx_first_control = qubits[i]
+            ccx_second_control = anc_previous[j]
+            ccx_target = anc_created[j]
+
+            # Add Toffoli gate
+            toffoli_moments.append(cirq.Moment([cirq.TOFFOLI(ccx_first_control, ccx_second_control, ccx_target)]))
+
+            # Prepare CNOT operation
+            cnot_control = ccx_target
+            cnot_target = ccx_second_control
+            cnot_moment_ops.append(cirq.ops.CNOT(cnot_control, cnot_target))
+
+        # Add CNOT operations as a single moment
+        toffoli_moments.append(cirq.Moment(cnot_moment_ops))
+
+        return toffoli_moments
+
+    @staticmethod
+    def interleave_ancillas(anc_created, anc_previous):
+        interleaved_ancillas = []
+        for l in range(len(anc_created)):
+            interleaved_ancillas.append(anc_created[l])
+            interleaved_ancillas.append(anc_previous[l])
+        return interleaved_ancillas
 
     def wiring_memory(self, all_ancillas, memory, target):
         memory_operations = []
@@ -195,12 +187,7 @@ class BucketBrigade():
 
         return memory_operations
 
-    def construct_fanout(self, compute_fanin_moments):
-        compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
-
-        return compute_fanout_moments
-
-    def optimize_toffolis_parallelization(self, circuit, decomp_scenario, permutation=[0, 1, 2]):
+    def optimize_toffolis_parallelization(self, circuit, decomp_scenario, permutation):
         if not self.decomp_scenario.parallel_toffolis:
             permutation = [0, 1, 2]
 
@@ -210,7 +197,9 @@ class BucketBrigade():
             )
         )
 
-        if permutation == [0, 2, 1] and self.decomp_scenario.dec_mem in [
+        if permutation == [0, 2, 1] \
+            and decomp_scenario == self.decomp_scenario.dec_mem \
+            and decomp_scenario in [
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
@@ -249,49 +238,21 @@ class BucketBrigade():
             circuit.append(memory_decomposed)
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
-            compute_fanout_moments = ctu.reverse_moments(comp_fan_in)
-            circuit.append(compute_fanout_moments)
+            comp_fan_out = ctu.reverse_moments(comp_fan_in)
+            circuit.append(comp_fan_out)
 
         elif self.decomp_scenario.mirror_method == MirrorMethod.OUT_TO_IN:
             compute_fanin_moments = ctu.reverse_moments(comp_fan_out)
             if self.decomp_scenario.parallel_toffolis:
-                compute_fanin_moments = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
-            circuit.append(compute_fanin_moments)
-            circuit.append(memory_decomposed)
-            if self.decomp_scenario.parallel_toffolis:
-                circuit = BucketBrigade.stratify(circuit)
-            compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
-            circuit.append(compute_fanout_moments)
-        
+                comp_fan_in = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
+
+            self.decomp_scenario.mirror_method = MirrorMethod.IN_TO_OUT
+            circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
+            self.decomp_scenario.mirror_method = MirrorMethod.OUT_TO_IN
+
         return circuit
 
-    def construct_circuit(self, qubits):
-        n = len(qubits)
-        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n)) for i in range(2 ** n)]
-        target = cirq.NamedQubit("target")
-
-        # Construct the fan structure
-        all_ancillas, compute_fanin_moments = self.construct_fan_structure(qubits)
-
-        # Construct the memory wiring
-        memory_operations = self.wiring_memory(all_ancillas, memory, target)
-
-        # Construct the fanout structure
-        compute_fanout_moments = self.construct_fanout(compute_fanin_moments)
-
-        # Parallelize the Toffolis
-        with multiprocessing.Pool(processes=3) as pool:
-            circuits = pool.starmap(
-                self.optimize_toffolis_parallelization, [
-                    (compute_fanin_moments, self.decomp_scenario.dec_fan_in),
-                    (memory_operations, self.decomp_scenario.dec_mem, [0, 2, 1]),
-                    (compute_fanout_moments, self.decomp_scenario.dec_fan_out, [1, 0, 2])
-                ])
-        comp_fan_in, memory_decomposed, comp_fan_out = circuits
-
-        # Link the circuits and apply the mirroring
-        circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
-
+    def construct_qubit_order(self, circuit, qubits, all_ancillas, memory, target):
         self._qubit_order += qubits[::-1]
         self._qubit_order += sorted(all_ancillas)
         self._qubit_order += memory[::-1]
@@ -302,6 +263,36 @@ class BucketBrigade():
                 self._qubit_order += [qub]
 
         self._qubit_order += [target]
+
+    def construct_circuit(self, qubits):
+        n = len(qubits)
+        memory = [cirq.NamedQubit("m" + miscutils.my_bin(i, n)) for i in range(2 ** n)]
+        target = cirq.NamedQubit("target")
+
+        # Construct the fanin structure
+        all_ancillas, compute_fanin_moments = self.construct_fan_structure(qubits)
+
+        # Wiring the memory
+        compute_memory_moments = self.wiring_memory(all_ancillas, memory, target)
+
+        # Construct the fanout structure
+        compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
+
+        # Parallelize the Toffolis with multiprocessing
+        with multiprocessing.Pool(processes=3) as pool:
+            fanin_args = (compute_fanin_moments, self.decomp_scenario.dec_fan_in, [0, 1, 2])
+            mem_args = (compute_memory_moments, self.decomp_scenario.dec_mem, [0, 2, 1])
+            fanout_args = (compute_fanout_moments, self.decomp_scenario.dec_fan_out, [1, 0, 2])
+
+            circuits = pool.starmap(self.optimize_toffolis_parallelization, [fanin_args, mem_args, fanout_args])
+
+        comp_fan_in, memory_decomposed, comp_fan_out = circuits
+
+        # Link the circuits and apply the mirroring
+        circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
+
+        # Construct the qubit order
+        self.construct_qubit_order(circuit, qubits, all_ancillas, memory, target)
 
         return circuit
 
