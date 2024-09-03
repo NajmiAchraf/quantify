@@ -5,7 +5,6 @@ import psutil
 import sys
 import time
 
-import multiprocessing
 import threading
 
 from typing import Union
@@ -94,8 +93,8 @@ class QRAMCircuitExperiments:
     _start_time: float = 0
     _stop_time: str = ""
 
-    _data: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
-    _data_modded: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
+    _data: dict = {}
+    _data_modded: dict = {}
     _simulation_bilan: list = []
     _decomp_scenario: bb.BucketBrigadeDecompType
     _decomp_scenario_modded: bb.BucketBrigadeDecompType
@@ -342,13 +341,13 @@ class QRAMCircuitExperiments:
             self._simulated = False
             self._core(i, "results")
 
-        # This is for final bilan from 2 qubits to 8 qubits
+        # This is for final bilan range of qubits
         self._start_range_qubits = 2
         self._end_range_qubits = 7
 
         # Reset data for multiple tests on series
-        self._data = multiprocessing.Manager().dict()
-        self._data_modded = multiprocessing.Manager().dict()
+        self._data.clear()
+        self._data_modded.clear()
 
         stop_event = threading.Event()
         loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'bilan',))

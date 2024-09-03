@@ -65,7 +65,7 @@ class QRAMCircuitSimulator:
     """
 
     __specific_simulation: str
-    __start_range_qubits: int
+    __qubits_number: int
     __print_circuit: str
     __print_sim: str
     __simulation_kind: str = "dec"
@@ -97,7 +97,7 @@ class QRAMCircuitSimulator:
             bbcircuit: bb.BucketBrigade,
             bbcircuit_modded: bb.BucketBrigade,
             specific_simulation: str,
-            start_range_qubits: int,
+            qubits_number: int,
             print_circuit: str,
             print_sim: str
         ) -> None:
@@ -109,7 +109,7 @@ class QRAMCircuitSimulator:
             bbcircuit_modded (BBCircuit): The modded circuit.
             decomp_scenario (DecompScenario): The decomposition scenario.
             specific_simulation (str): The specific simulation.
-            start_range_qubits (int): The start range of the qubits.
+            qubits_number (int): The number of qubits.
             simulate (bool): The simulation flag.
             print_circuit (str): The print circuit flag.
             print_sim (str): The print simulation flag.
@@ -123,7 +123,7 @@ class QRAMCircuitSimulator:
         self.__decomp_scenario = bbcircuit.decomp_scenario
         self.__decomp_scenario_modded = bbcircuit_modded.decomp_scenario
         self.__specific_simulation = specific_simulation
-        self.__start_range_qubits = start_range_qubits
+        self.__qubits_number = qubits_number
         self.__print_circuit = print_circuit
         self.__print_sim = print_sim
     
@@ -353,8 +353,8 @@ class QRAMCircuitSimulator:
 
         start = 0
         # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
-        step = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
-        stop = step * ( 2 ** self.__start_range_qubits )
+        step = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
+        stop = step * ( 2 ** self.__qubits_number )
         colpr("y", "\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
         self.__simulation(start, stop, step)
 
@@ -385,8 +385,8 @@ class QRAMCircuitSimulator:
         """
 
         start = 0
-        step = 2 ** ( 2 ** self.__start_range_qubits + 1 )
-        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
+        step = 2 ** ( 2 ** self.__qubits_number + 1 )
+        stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
         colpr("y", "\nSimulating the circuit ... checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state.", end="\n\n")
         self.__simulation(start, stop, step)
 
@@ -421,7 +421,7 @@ class QRAMCircuitSimulator:
 
         start = 0
         step = 2
-        stop = step * ( 2 ** ( 2 ** self.__start_range_qubits ) )
+        stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
         colpr("y", "\nSimulating the circuit ... checking the computation of MEM ... were the m qubits are getting the result of the computation.", end="\n\n")
         self.__simulation(start, stop, step)
 
@@ -457,10 +457,10 @@ class QRAMCircuitSimulator:
         """
 
         start = 0
-        step_b = 2 ** ( 2 ** self.__start_range_qubits + 1 )
+        step_b = 2 ** ( 2 ** self.__qubits_number + 1 )
 
-        step_a = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
-        stop = step_a * ( 2 ** self.__start_range_qubits )
+        step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
+        stop = step_a * ( 2 ** self.__qubits_number )
         colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the a and b qubits.", end="\n\n")
         self.__simulation(start, stop, step_b)
 
@@ -502,8 +502,8 @@ class QRAMCircuitSimulator:
         start = 0
         step_m = 2
 
-        step_b = 2 ** ( 2 ** self.__start_range_qubits + 1 )
-        stop = step_b * ( 2 ** ( 2 ** self.__start_range_qubits ) )
+        step_b = 2 ** ( 2 ** self.__qubits_number + 1 )
+        stop = step_b * ( 2 ** ( 2 ** self.__qubits_number ) )
         colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the b and m qubits.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
@@ -551,8 +551,8 @@ class QRAMCircuitSimulator:
 
         start = 0
         step_m = 2
-        step_a = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
-        stop = step_a * ( 2 ** self.__start_range_qubits )
+        step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
+        stop = step_a * ( 2 ** self.__qubits_number )
         colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
@@ -600,8 +600,8 @@ class QRAMCircuitSimulator:
 
         start = 0
         step_m = 2
-        step_a = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + 1 )
-        stop = step_a * ( 2 ** self.__start_range_qubits )
+        step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
+        stop = step_a * ( 2 ** self.__qubits_number )
         print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit.", end="\n\n")
         self.__simulation(start, stop, step_m)
 
@@ -627,7 +627,7 @@ class QRAMCircuitSimulator:
 
         start = 0
         # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
-        stop = 2 ** ( 2 * ( 2 ** self.__start_range_qubits ) + self.__start_range_qubits + 1 )
+        stop = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + self.__qubits_number + 1 )
         print("\nSimulating the circuit ... checking the all qubits.", end="\n\n")
         self.__simulation(start, stop, 1)
 
