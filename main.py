@@ -53,23 +53,23 @@ def main():
     #     mirror_method=MirrorMethod.OUT_TO_IN
     # )
 
-    QRAMCircuitExperiments().bb_decompose_test(
-        dec=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-        ],
-        parallel_toffolis=True,
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
+    #     parallel_toffolis=True,
 
-        dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-            ToffoliDecompType.ANCILLA_0_TD4_MOD,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-        ],
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #     ],
 
-        parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN
-    )
+    #     parallel_toffolis_mod=True,
+    #     mirror_method=MirrorMethod.OUT_TO_IN
+    # )
 
     #######################################
     # QRAM Circuit Stress
@@ -89,19 +89,19 @@ def main():
     #     mirror_method=MirrorMethod.OUT_TO_IN
     # )
 
-    # QRAMCircuitStress(1).bb_decompose_test(
-    #     dec=ToffoliDecompType.NO_DECOMP,
-    #     parallel_toffolis=False,
+    QRAMCircuitStress(2).bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
 
-    #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-    #     ],
+        dec_mod=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+        ],
 
-    #     parallel_toffolis_mod=True,
-    #     mirror_method=MirrorMethod.OUT_TO_IN
-    # )
+        parallel_toffolis_mod=True,
+        mirror_method=MirrorMethod.OUT_TO_IN
+    )
 
 if __name__ == "__main__":
     main()

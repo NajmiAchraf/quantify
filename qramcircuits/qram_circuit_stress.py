@@ -65,12 +65,15 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             self._results()
             self._stress_bilan[",".join(map(str, indices))] = self._simulation_bilan
 
+        # For three T gates
+        self._bbcircuit_modded.circuit = recursive_cancel_t_gate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, [4])
         bbcircuit_save = copy.deepcopy(self._bbcircuit)
         bbcircuit_modded_save = copy.deepcopy(self._bbcircuit_modded)
 
         t_count = count_t_of_circuit(bbcircuit_modded_save.circuit)
         # t_count = 2
 
+        start = time.time()
         for indices in itertools.product(range(1, t_count + 1), repeat=self.__nbr_combinations):
             adjusted_indices = []
             for i, index in enumerate(indices):
@@ -84,7 +87,11 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             # print(tuple(adjusted_indices))
             stress_experiment(tuple(adjusted_indices))
 
+        end = elapsed_time(start)
+
         self.__print_bilan()
+
+        print("Time elapsed on stress experiment: ", end, end="\n\n")
 
     def __print_bilan(self) -> None:
         """
@@ -122,7 +129,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         # export in file
         len_bilan = len(self._stress_bilan)
         time_stamp = time.strftime("%Y%m%d-%H%M%S")
-        with open(f"stress_bilan_{len_bilan}_{time_stamp}.txt", "w") as file:
+        with open(f"bilans/stress_bilan_{len_bilan}_{time_stamp}.csv", "w") as file:
             file.write(csv)
 
     #######################################
