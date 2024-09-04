@@ -1,5 +1,4 @@
 import cirq
-import cirq.optimizers
 import copy
 import itertools
 import time
@@ -17,7 +16,24 @@ from utils.print_utils import *
 #######################################
 
 class QRAMCircuitStress(QRAMCircuitExperiments):
+    """
+    QRAM circuit stress experiment.
 
+    Attributes:
+        _simulation_bilan (list): The simulation bilan.
+        _stress_bilan (dict): The stress bilan.
+        __nbr_combinations (int): The number of combinations.
+
+    Methods:
+        _run(): Runs the experiment for a range of qubits.
+        _core(): Core function of the experiment.
+        _stress(): Stress experiment for the bucket brigade circuit.
+        _results(): Prints the results of the experiment.
+        __print_bilan(): Prints the bilan of the stress experiment.
+        _simulate_circuit(): Simulates the circuit.
+    """
+
+    _simulation_bilan: list = []
     _stress_bilan: 'dict[str, list]' = {}
     __nbr_combinations: int = 1
 
@@ -26,21 +42,32 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         self.__nbr_combinations = nbr_combinations
 
+    #######################################
+    # core functions
+    #######################################
+
     def _run(self) -> None:
         """
         Runs the experiment for a range of qubits.
         """
 
-        if self._decomp_scenario is None:
-            colpr("r", "Decomposition scenario is None")
-            return
+        super()._run()
 
         for i in range(self._start_range_qubits, self._end_range_qubits + 1):
             self._start_range_qubits = i
-            self._simulated = False
-            self._core(i, "stress")
+            self._core(i)
 
-        # self._stress()
+    def _core(self, nr_qubits: int) -> None:
+        """
+        Core function of the experiment.
+        """
+
+        tmp = self._simulate
+        self._simulate = False
+
+        super()._core(nr_qubits=nr_qubits)
+
+        self._simulate = tmp
         self._stress()
 
     def _stress(self) -> None:
@@ -63,7 +90,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             self._bbcircuit_modded.circuit = recursive_cancel_t_gate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, indices)
             self._simulated = False
             self._results()
-            self._stress_bilan[",".join(map(str, indices))] = self._simulation_bilan
+            if self._simulate:
+                self._stress_bilan[",".join(map(str, indices))] = self._simulation_bilan
 
         # For three T gates
         self._bbcircuit_modded.circuit = recursive_cancel_t_gate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, [4])
@@ -89,7 +117,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         end = elapsed_time(start)
 
-        self.__print_bilan()
+        if self._simulate:
+            self.__print_bilan()
 
         print("Time elapsed on stress experiment: ", end, end="\n\n")
 
