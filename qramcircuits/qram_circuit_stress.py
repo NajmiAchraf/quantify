@@ -46,17 +46,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     # core functions
     #######################################
 
-    def _run(self) -> None:
-        """
-        Runs the experiment for a range of qubits.
-        """
-
-        super()._run()
-
-        for i in range(self._start_range_qubits, self._end_range_qubits + 1):
-            self._start_range_qubits = i
-            self._core(i)
-
     def _core(self, nr_qubits: int) -> None:
         """
         Core function of the experiment.

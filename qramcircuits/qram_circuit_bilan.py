@@ -37,22 +37,11 @@ class QRAMCircuitBilan(QRAMCircuitCore):
         Run the bilan for a range of qubits.
         """
 
-        super()._run()
-
         # Reset data for multiple tests on series
         self._data.clear()
         self._data_modded.clear()
 
-        stop_event = threading.Event()
-        loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'bilan',))
-        loading_thread.start()
-
-        try:
-            for i in range(self._start_range_qubits, self._end_range_qubits + 1):
-                self._core(i)
-        finally:
-            stop_event.set()
-            loading_thread.join()
+        super()._run("bilan")
 
         self.__print_bilan()
 

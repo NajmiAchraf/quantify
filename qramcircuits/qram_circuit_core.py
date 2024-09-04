@@ -320,7 +320,7 @@ class QRAMCircuitCore:
     # core functions
     #######################################
 
-    def _run(self) -> None:
+    def _run(self, title: str="bucket brigade") -> None:
         """
         Runs the experiment for a range of qubits.
         """
@@ -328,6 +328,22 @@ class QRAMCircuitCore:
         if self._decomp_scenario is None:
             colpr("r", "Decomposition scenario is None")
             return
+
+        if title == "bilan":
+            stop_event = threading.Event()
+            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, title,))
+            loading_thread.start()
+
+        try:
+            for i in range(self._start_range_qubits, self._end_range_qubits + 1):
+                if title == "bucket brigade":
+                    self._start_range_qubits = i
+                self._simulated = False
+                self._core(i)
+        finally:
+            if title == "bilan":
+                stop_event.set()
+                loading_thread.join()
 
     def _core(self, nr_qubits: int) -> None:
         """
