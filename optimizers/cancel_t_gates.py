@@ -1,36 +1,38 @@
 import cirq
 
 class CancelTGate():
-    """ TEST NOT OFFICIAL METHOD
-    
+    """
+    Cancel T gates in a circuit.
     """
 
     circuit: cirq.Circuit
+    T_operations: 'dict[int, list]' = {}   
 
     def __init__(self, circuit: cirq.Circuit, qubit_order: list):
         self.circuit = circuit
         self.qubit_order = qubit_order
-        self.qubit_order_inv = [self.qubit_order[q] for q in range(len(self.qubit_order) - 1, -1, -1)]
+
+        count = 0
+        for mi, moment in enumerate(self.circuit):
+            # Sort operations in the moment based on their qubits using self.qubit_order
+            # sorted_ops = sorted(moment.operations, key=lambda op: qubit_order.index(op.qubits[0]))
+            for op in moment.operations:
+                if op.gate == cirq.T or op.gate == cirq.T**-1:
+                    count += 1
+                    self.T_operations[count] = [op.qubits, mi]
+
 
     def __str__(self):
-        pass
+        for key, value in self.T_operations.items():
+            print(key, value)
 
     def __del__(self):
         pass
 
-    def core(self, index: int, order: list):
-        count = 0
-        for mi, moment in enumerate(self.circuit):
-            # Sort operations in the moment based on their qubits using self.qubit_order
-            sorted_ops = sorted(moment.operations, key=lambda op: order.index(op.qubits[0]))
-            for op in sorted_ops:
-                if op.gate == cirq.T or op.gate == cirq.T**-1:
-                    count += 1
-                    if count == index:
-                        self.circuit.clear_operations_touching(op.qubits, [mi])
-                        return
-
     def optimize_circuit(self, *indices: int):
         for index in indices:
-            self.core(index, self.qubit_order)
+            self.circuit.clear_operations_touching(
+                self.T_operations[index][0],
+                [self.T_operations[index][1]]
+            )
         return self.circuit

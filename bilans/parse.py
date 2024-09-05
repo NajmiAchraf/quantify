@@ -45,7 +45,7 @@ print(failed_df)
 
 # # Export the DataFrames to CSV
 # failed_df.to_csv('stress_bilan_756_output_vector.csv')
-failed_df.to_csv('stress_bilan_1560_failed.csv')
+# failed_df.to_csv('stress_bilan_1560_failed.csv')
 
 def plot3D(data, title, color):
     fig = plt.figure()
@@ -65,6 +65,6 @@ def plot3D(data, title, color):
     plt.show()
 
 # Example usage
-# plot3D(failed_df, 'Failed', 'red')
+plot3D(failed_df, 'Failed', 'red')
 # plot3D(failed_df, 'Succeed', 'yellow')
 # plot3D(failed_df, 'Measurement', 'blue')

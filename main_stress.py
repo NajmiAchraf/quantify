@@ -34,33 +34,33 @@ def main():
     Main function for the QRAM circuit stress
     """
 
-    QRAMCircuitStress(1).bb_decompose_test(
-        dec=ToffoliDecompType.NO_DECOMP,
-        parallel_toffolis=False,
-
-        dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-        ],
-
-        parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN
-    )
-
     # QRAMCircuitStress(2).bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
     #     parallel_toffolis=False,
 
     #     dec_mod=[
     #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-    #         ToffoliDecompType.ANCILLA_0_TD4_MOD,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
     #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
     #     ],
 
     #     parallel_toffolis_mod=True,
     #     mirror_method=MirrorMethod.OUT_TO_IN
     # )
+
+    QRAMCircuitStress(2).bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
+
+        dec_mod=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+        ],
+
+        parallel_toffolis_mod=True,
+        mirror_method=MirrorMethod.OUT_TO_IN
+    )
 
 if __name__ == "__main__":
     main()

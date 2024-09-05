@@ -20,7 +20,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     QRAM circuit stress experiment.
 
     Attributes:
-        _simulation_bilan (list): The simulation bilan.
         _stress_bilan (dict): The stress bilan.
         __nbr_combinations (int): The number of combinations.
 
@@ -33,7 +32,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _simulate_circuit(): Simulates the circuit.
     """
 
-    _simulation_bilan: list = []
     _stress_bilan: 'dict[str, list]' = {}
     __nbr_combinations: int = 1
 
@@ -64,13 +62,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Stress experiment for the bucket brigade circuit.
         """
 
-        def recursive_cancel_t_gate(circuit: cirq.Circuit, qubit_order: 'list[cirq.Qid]', indices: list) -> cirq.Circuit:
+        def recursive_cancel_t_gate(circuit: cirq.Circuit, qubit_order: 'list[cirq.Qid]', indices: 'tuple[int, ...]') -> cirq.Circuit:
             # Implement the logic to cancel T gates based on the indices
+            cancel = qopt.CancelTGate(circuit, qubit_order)
             for index in indices:
-                circuit = qopt.CancelTGate(circuit, qubit_order).optimize_circuit(index)
+                circuit = cancel.optimize_circuit(index)
             return circuit
 
-        def stress_experiment(indices):
+        def stress_experiment(indices: 'tuple[int, ...]') -> None:
             colpr("y", f"\nStress experiment for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
 
             self._bbcircuit = copy.deepcopy(bbcircuit_save)
@@ -80,29 +79,24 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             self._simulated = False
             self._results()
             if self._simulate:
-                self._stress_bilan[",".join(map(str, indices))] = self._simulation_bilan
+                self._stress_bilan[",".join(map(str, indices))] = self._Simulator.get_simulation_bilan()
 
-        # For three T gates
-        self._bbcircuit_modded.circuit = recursive_cancel_t_gate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, [4])
         bbcircuit_save = copy.deepcopy(self._bbcircuit)
         bbcircuit_modded_save = copy.deepcopy(self._bbcircuit_modded)
 
         t_count = count_t_of_circuit(bbcircuit_modded_save.circuit)
-        # t_count = 2
+        # t_count = 3
 
         start = time.time()
-        for indices in itertools.product(range(1, t_count + 1), repeat=self.__nbr_combinations):
-            adjusted_indices = []
-            for i, index in enumerate(indices):
-                adjusted_index = max(1, index - i)
-                if index - i > 0:
-                    adjusted_indices.append(adjusted_index)
-                else:
-                    adjusted_indices = []
-            if len(adjusted_indices) == 0:
-                continue
-            # print(tuple(adjusted_indices))
-            stress_experiment(tuple(adjusted_indices))
+
+        combinations = itertools.permutations(range(1, t_count + 1), self.__nbr_combinations)
+        unique_combinations = set(tuple(sorted(comb)) for comb in combinations)
+        combinations = tuple(sorted(unique_combinations))
+
+        for indices in combinations:
+            # print(tuple(indices))
+            stress_experiment(tuple(indices))
+        # print(len(combinations))
 
         end = elapsed_time(start)
 
@@ -164,5 +158,3 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self._simulated = True
 
         self._Simulator._simulate_circuit()
-
-        self._simulation_bilan = self._Simulator.get_simulation_bilan()
