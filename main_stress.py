@@ -34,7 +34,7 @@ def main():
     Main function for the QRAM circuit stress
     """
 
-    # QRAMCircuitStress(2).bb_decompose_test(
+    # QRAMCircuitStress(3).bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
     #     parallel_toffolis=False,
 
@@ -48,7 +48,7 @@ def main():
     #     mirror_method=MirrorMethod.OUT_TO_IN
     # )
 
-    QRAMCircuitStress(2).bb_decompose_test(
+    QRAMCircuitStress(3).bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
 

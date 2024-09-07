@@ -27,13 +27,15 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _run(): Runs the experiment for a range of qubits.
         _core(): Core function of the experiment.
         _stress(): Stress experiment for the bucket brigade circuit.
-        _results(): Prints the results of the experiment.
-        __print_bilan(): Prints the bilan of the stress experiment.
+        __print_bilan(): Print the bilan of the stress experiment.
+        __export_bilan(): Export the bilan of the stress experiment.
         _simulate_circuit(): Simulates the circuit.
     """
 
     _stress_bilan: 'dict[str, list]' = {}
+    __length_combinations: int = 0
     __nbr_combinations: int = 1
+    __t_count: int = 5
 
     def __init__(self, nbr_combinations: int = 1) -> None:
         super().__init__()
@@ -62,12 +64,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Stress experiment for the bucket brigade circuit.
         """
 
-        def recursive_cancel_t_gate(circuit: cirq.Circuit, qubit_order: 'list[cirq.Qid]', indices: 'tuple[int, ...]') -> cirq.Circuit:
-            # Implement the logic to cancel T gates based on the indices
-            cancel = qopt.CancelTGate(circuit, qubit_order)
-            for index in indices:
-                circuit = cancel.optimize_circuit(index)
-            return circuit
+        def cancel_t_gates(circuit: cirq.Circuit, qubit_order: 'list[cirq.Qid]', indices: 'tuple[int, ...]') -> cirq.Circuit:
+            # Cancel T gates in modded bucket brigade circuit.
+            return qopt.CancelTGate(circuit, qubit_order).optimize_circuit(indices)
 
         def stress_experiment(indices: 'tuple[int, ...]') -> None:
             colpr("y", f"\nStress experiment for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
@@ -75,7 +74,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             self._bbcircuit = copy.deepcopy(bbcircuit_save)
             self._bbcircuit_modded = copy.deepcopy(bbcircuit_modded_save)
 
-            self._bbcircuit_modded.circuit = recursive_cancel_t_gate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, indices)
+            self._bbcircuit_modded.circuit = cancel_t_gates(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, indices)
             self._simulated = False
             self._results()
             if self._simulate:
@@ -84,30 +83,28 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         bbcircuit_save = copy.deepcopy(self._bbcircuit)
         bbcircuit_modded_save = copy.deepcopy(self._bbcircuit_modded)
 
-        t_count = count_t_of_circuit(bbcircuit_modded_save.circuit)
-        # t_count = 3
+        self.__t_count = count_t_of_circuit(bbcircuit_modded_save.circuit)
 
         start = time.time()
 
-        combinations = itertools.permutations(range(1, t_count + 1), self.__nbr_combinations)
-        unique_combinations = set(tuple(sorted(comb)) for comb in combinations)
-        combinations = tuple(sorted(unique_combinations))
+        combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
 
         for indices in combinations:
-            # print(tuple(indices))
-            stress_experiment(tuple(indices))
-        # print(len(combinations))
+            # print(indices)
+            stress_experiment(indices)
+            self.__length_combinations += 1
 
         end = elapsed_time(start)
 
         if self._simulate:
             self.__print_bilan()
+            self.__export_bilan()
 
-        print("Time elapsed on stress experiment: ", end, end="\n\n")
+        print(f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {end}", end="\n\n")
 
     def __print_bilan(self) -> None:
         """
-        Prints the bilan of the stress experiment.
+        Print the bilan of the stress experiment.
         """
 
         colpr("y", "\n\nBilan of the stress experiment:", end="\n\n")
@@ -125,6 +122,11 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         print(table, end="\n\n")
 
+    def __export_bilan(self) -> None:
+        """
+        Export the bilan of the stress experiment.
+        """
+
         csv = "T Gate Index 0"
         ref: str
         for bil in self._stress_bilan:
@@ -139,9 +141,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             csv += f"{bil},{self._stress_bilan[bil][0]},{self._stress_bilan[bil][1]},{self._stress_bilan[bil][2]},{self._stress_bilan[bil][3]}\n"
 
         # export in file
-        len_bilan = len(self._stress_bilan)
         time_stamp = time.strftime("%Y%m%d-%H%M%S")
-        with open(f"bilans/stress_bilan_{len_bilan}_{time_stamp}.csv", "w") as file:
+        with open(
+            f"bilans/stress_bilan"
+            f"_{self._start_range_qubits}qubits"
+            f"_{self.__t_count}T"
+            f"_{self.__nbr_combinations}comb"
+            f"_{self.__length_combinations}tests"
+            f"_{time_stamp}.csv", "w") as file:
             file.write(csv)
 
     #######################################

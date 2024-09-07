@@ -29,7 +29,7 @@ class CancelTGate():
     def __del__(self):
         pass
 
-    def optimize_circuit(self, *indices: int):
+    def optimize_circuit(self, indices: 'tuple[int, ...]'):
         for index in indices:
             self.circuit.clear_operations_touching(
                 self.T_operations[index][0],
