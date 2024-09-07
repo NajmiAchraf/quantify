@@ -212,8 +212,7 @@ class QRAMCircuitSimulator:
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
             printCircuit(self.__print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
 
-        ls = [0 for _ in range(2**len(qubits))]
-        initial_state = np.array(ls, dtype=np.complex64)
+        initial_state = np.zeros(2**len(qubits), dtype=np.complex64)
     
         return circuit, qubits, initial_state
 
@@ -662,8 +661,7 @@ class QRAMCircuitSimulator:
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
         printCircuit(self.__print_circuit, self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
 
-        ls = [0 for _ in range(2**len(self.__bbcircuit.qubit_order))]
-        initial_state = np.array(ls, dtype=np.complex64)
+        initial_state = np.zeros(2**len(self.__bbcircuit.qubit_order), dtype=np.complex64)
 
         # add measurements to the modded circuit ##############################################
         measurements_modded = []
@@ -680,8 +678,7 @@ class QRAMCircuitSimulator:
 
         printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
-        ls_modded = [0 for _ in range(2**len(self.__bbcircuit_modded.qubit_order))]
-        initial_state_modded = np.array(ls_modded, dtype=np.complex64)
+        initial_state_modded = np.zeros(2**len(self.__bbcircuit_modded.qubit_order), dtype=np.complex64)
 
         # prints ##############################################################################
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")

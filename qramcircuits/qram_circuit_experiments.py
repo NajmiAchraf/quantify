@@ -145,12 +145,12 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
 
         # Collect data for multiple qubit configurations
         data = []
-        
+
         colpr("y", f"Verifying the depth and count of the {name} circuit:", end="\n\n")
-    
+
         num_qubits = len(bbcircuit.circuit.all_qubits())
         circuit_depth = len(bbcircuit.circuit)
-    
+
         if decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP:
             data.append([self._start_range_qubits, num_qubits, circuit_depth, '-', '-', '-'])
         else:
@@ -162,7 +162,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         # Create the Markdown table
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
-        
+
         for row in data:
             table += f"| {row[0]:<16} | {row[1]:<16} | {row[2]:<20} | {row[3]:<16} | {row[4]:<16} | {row[5]:<17} |\n"
 
