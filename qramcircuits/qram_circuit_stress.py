@@ -6,7 +6,6 @@ import time
 
 import optimizers as qopt
 
-from qramcircuits.bucket_brigade import BucketBrigade
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
 
 from utils.counting_utils import *
@@ -38,8 +37,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
     _stress_bilan: 'dict[str, list]' = {}
 
-    __bbcircuit_save: BucketBrigade
-    __bbcircuit_modded_save: BucketBrigade
+    __circuit_save: cirq.Circuit
+    __circuit_modded_save: cirq.Circuit
 
     __length_combinations: int = 0
     __nbr_combinations: int = 1
@@ -75,10 +74,10 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Stress experiment for the bucket brigade circuit.
         """
 
-        self.__bbcircuit_save = copy.deepcopy(self._bbcircuit)
-        self.__bbcircuit_modded_save = copy.deepcopy(self._bbcircuit_modded)
+        self.__circuit_save = copy.deepcopy(self._bbcircuit.circuit)
+        self.__circuit_modded_save = copy.deepcopy(self._bbcircuit_modded.circuit)
 
-        self.__t_count = count_t_of_circuit(self.__bbcircuit_modded_save.circuit)
+        self.__t_count = count_t_of_circuit(self.__circuit_modded_save)
 
         self._start_time = time.time()
 
@@ -122,8 +121,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         colpr("y", f"\nStress experiment for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
 
-        self._bbcircuit = copy.deepcopy(self.__bbcircuit_save)
-        self._bbcircuit_modded = copy.deepcopy(self.__bbcircuit_modded_save)
+        self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
+        self._bbcircuit_modded.circuit = copy.deepcopy(self.__circuit_modded_save)
 
         self._bbcircuit_modded.circuit = self.__cancel_t_gates(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, indices)
 
@@ -147,13 +146,17 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         # Bilan of the stress experiment
         colpr("b", "Stress experiment bilan:", end="\n\n")
 
-        table = "| T Gate Index     | Failed (%)        | Succeed (%)       | Measurements (%)  | Output Vector (%) |\n"
-        table += "|------------------|-------------------|-------------------|-------------------|-------------------|\n"
+        # Calculate the required width for the "T Gate Index" column
+        t_gate_index_width = self.__nbr_combinations * 3 + 13
+
+        # Create the table header with the adjusted width
+        table = f"| {'T Gate Index'.ljust(t_gate_index_width)} | Failed (%)        | Succeed (%)       | Measurements (%)  | Output Vector (%) |\n"
+        table += f"|-{'-' * t_gate_index_width}-|-------------------|-------------------|-------------------|-------------------|\n"
 
         # sort depend in the high success rate
         for bil in self._stress_bilan:
         # for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][0]), reverse=False):
-            table += f"| {bil:<16} | {self._stress_bilan[bil][0]:<17} | {self._stress_bilan[bil][1]:<17} | {self._stress_bilan[bil][2]:<17} | {self._stress_bilan[bil][3]:<17} |\n"
+            table += f"| {bil:<{t_gate_index_width}} | {self._stress_bilan[bil][0]:<17} | {self._stress_bilan[bil][1]:<17} | {self._stress_bilan[bil][2]:<17} | {self._stress_bilan[bil][3]:<17} |\n"
 
         print(table, end="\n\n")
 

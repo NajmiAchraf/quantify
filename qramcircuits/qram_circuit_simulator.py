@@ -707,7 +707,7 @@ class QRAMCircuitSimulator:
                         qubit_order_modded=self.__bbcircuit_modded.qubit_order,
                         initial_state=initial_state,
                         initial_state_modded=initial_state_modded),
-                    range(start, stop, step))            
+                    range(start, stop, step))
         finally:
             if self.__print_sim == "Hide":
                 stop_event.set()
