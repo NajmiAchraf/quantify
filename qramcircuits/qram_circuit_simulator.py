@@ -274,7 +274,7 @@ class QRAMCircuitSimulator:
         # reset the simulation results ########################################################
         self.__simulation_results = multiprocessing.Manager().dict()
 
-        # use thread to load the simulation ################################################
+        # use thread to load the simulation ###################################################
         if self.__print_sim == "Hide":
             stop_event = threading.Event()
             loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
@@ -630,6 +630,31 @@ class QRAMCircuitSimulator:
         print("\nSimulating the circuit ... checking the all qubits.", end="\n\n")
         self.__simulation(start, stop, 1)
 
+    def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> np.ndarray:
+        """
+        Adds measurements to the circuit and returns the initial state.
+
+        Args:
+            bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
+
+        Returns:
+            np.ndarray: The initial state.
+        """
+
+        measurements = []
+        for qubit in bbcircuit.qubit_order:
+            if self.__specific_simulation == "full":
+                measurements.append(cirq.measure(qubit))
+            else:
+                for _name in self.__specific_simulation:
+                    if qubit.name.startswith(_name):
+                        measurements.append(cirq.measure(qubit))
+
+        bbcircuit.circuit.append(measurements)
+        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(bbcircuit.circuit)
+
+        return np.zeros(2**len(bbcircuit.qubit_order), dtype=np.complex64)
+
     def __simulation(self, start:int, stop:int, step:int) -> None:
         """
         Simulates the circuit.
@@ -638,63 +663,41 @@ class QRAMCircuitSimulator:
             start (int): The start index.
             stop (int): The stop index.
             step (int): The step index.
-
-        Returns:
-            None
         """
 
         self.__start_time = time.time()
 
-        # add measurements to the reference circuit ############################################
-        measurements = []
-        for qubit in self.__bbcircuit.qubit_order:
-            if self.__specific_simulation == "full":
-                measurements.append(cirq.measure(qubit))
-            else:
-                for _name in self.__specific_simulation:
-                    if qubit.name.startswith(_name):
-                        measurements.append(cirq.measure(qubit))
+        # add measurements to circuits ########################################################
 
-        self.__bbcircuit.circuit.append(measurements)
-        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(self.__bbcircuit.circuit)
+        initial_state = self.__add_measurements(self.__bbcircuit)
+
+        initial_state_modded = self.__add_measurements(self.__bbcircuit_modded)
+
+        # prints ##############################################################################
 
         name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+
         printCircuit(self.__print_circuit, self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
-
-        initial_state = np.zeros(2**len(self.__bbcircuit.qubit_order), dtype=np.complex64)
-
-        # add measurements to the modded circuit ##############################################
-        measurements_modded = []
-        for qubit in self.__bbcircuit_modded.qubit_order:
-            if self.__specific_simulation == "full":
-                measurements_modded.append(cirq.measure(qubit))
-            else:
-                for _name in self.__specific_simulation:
-                    if qubit.name.startswith(_name):
-                        measurements_modded.append(cirq.measure(qubit))
-
-        self.__bbcircuit_modded.circuit.append(measurements_modded)
-        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(self.__bbcircuit_modded.circuit)
 
         printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
-        initial_state_modded = np.zeros(2**len(self.__bbcircuit_modded.qubit_order), dtype=np.complex64)
-
-        # prints ##############################################################################
         print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
         colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
         # reset the simulation results ########################################################
+
         self.__simulation_results = multiprocessing.Manager().dict()
 
-        # use thread to load the simulation ################################################
+        # use thread to load the simulation ###################################################
+
         if self.__print_sim == "Hide":
             stop_event = threading.Event()
             loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
             loading_thread.start()
 
         # Use multiprocessing to parallelize the simulation ###################################
+
         try:
             with multiprocessing.Pool() as pool:
                 results = pool.map(

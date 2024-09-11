@@ -4,5 +4,5 @@ __pycache__
 experimental
 *.pdf
 .vscode/
-**/bilans
+**/data
 .message*
