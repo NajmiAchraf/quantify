@@ -209,9 +209,6 @@ class BucketBrigade():
             ToffoliDecompType.TD_4_CXD_8_INV,
             ToffoliDecompType.TD_5_CXD_6,
             ToffoliDecompType.TD_5_CXD_6_INV,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
-            ToffoliDecompType.RELATIVE_PHASE_CX_3_TD_4,
         ]:
             BucketBrigade.optimize_clifford_t_cnot_gates(circuit)
 

@@ -39,9 +39,9 @@ def main():
     #     parallel_toffolis=False,
 
     #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
     #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
     #     ],
     #     parallel_toffolis_mod=True,
     #     mirror_method=MirrorMethod.OUT_TO_IN
@@ -52,9 +52,9 @@ def main():
         parallel_toffolis=False,
 
         dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
             ToffoliDecompType.ANCILLA_0_TD4_MOD,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
         ],
 
         parallel_toffolis_mod=True,
