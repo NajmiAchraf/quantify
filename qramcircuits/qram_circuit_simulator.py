@@ -70,7 +70,8 @@ class QRAMCircuitSimulator:
     __print_sim: str
     __simulation_kind: str = "dec"
 
-    __simulation_results: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
+    #! __simulation_results: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
+    __simulation_results: dict = {}
     __simulation_bilan: list = []
 
     __bbcircuit: bb.BucketBrigade
@@ -687,34 +688,47 @@ class QRAMCircuitSimulator:
 
         # reset the simulation results ########################################################
 
-        self.__simulation_results = multiprocessing.Manager().dict()
+        #! self.__simulation_results = multiprocessing.Manager().dict()
+        self.__simulation_results = {}
 
         # use thread to load the simulation ###################################################
 
-        if self.__print_sim == "Hide":
-            stop_event = threading.Event()
-            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
-            loading_thread.start()
+        #! if self.__print_sim == "Hide":
+        #!     stop_event = threading.Event()
+        #!     loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
+        #!     loading_thread.start()
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        try:
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._worker,
-                        step=step,
-                        circuit=self.__bbcircuit.circuit,
-                        circuit_modded=self.__bbcircuit_modded.circuit,
-                        qubit_order=self.__bbcircuit.qubit_order,
-                        qubit_order_modded=self.__bbcircuit_modded.qubit_order,
-                        initial_state=initial_state,
-                        initial_state_modded=initial_state_modded),
-                    range(start, stop, step))
-        finally:
-            if self.__print_sim == "Hide":
-                stop_event.set()
-                loading_thread.join()
+        #! try:
+        #!     with multiprocessing.Pool() as pool:
+        #!         results = pool.map(
+        #!             partial(
+        #!                 self._worker,
+        #!                 step=step,
+        #!                 circuit=self.__bbcircuit.circuit,
+        #!                 circuit_modded=self.__bbcircuit_modded.circuit,
+        #!                 qubit_order=self.__bbcircuit.qubit_order,
+        #!                 qubit_order_modded=self.__bbcircuit_modded.qubit_order,
+        #!                 initial_state=initial_state,
+        #!                 initial_state_modded=initial_state_modded),
+        #!             range(start, stop, step))
+        #! finally:
+        #!     if self.__print_sim == "Hide":
+        #!         stop_event.set()
+        #!         loading_thread.join()
+
+        results: 'list[tuple[int, int, int]]' = []
+        for i in range(start, stop, step):
+            results.append(self._worker(
+                    i=i,
+                    step=step,
+                    circuit=self.__bbcircuit.circuit,
+                    circuit_modded=self.__bbcircuit_modded.circuit,
+                    qubit_order=self.__bbcircuit.qubit_order,
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order,
+                    initial_state=initial_state,
+                    initial_state_modded=initial_state_modded))
 
         self.__print_simulation_results(results, start, stop, step)
 

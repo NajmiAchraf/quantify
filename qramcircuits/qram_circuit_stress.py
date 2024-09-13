@@ -4,6 +4,9 @@ import itertools
 import os
 import time
 
+from functools import partial
+import multiprocessing
+
 import optimizers as qopt
 
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
@@ -35,14 +38,17 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _simulate_circuit(): Simulates the circuit.
     """
 
-    _stress_bilan: 'dict[str, list]' = {}
+    # _stress_bilan: 'dict[str, list]' = {}
+    _stress_bilan: multiprocessing.Manager().dict() = multiprocessing.Manager().dict()
+
+    _combinations: 'list[tuple[int, ...]]' = []
 
     __circuit_save: cirq.Circuit
     __circuit_modded_save: cirq.Circuit
 
     __length_combinations: int = 0
     __nbr_combinations: int = 1
-    __t_count: int = 5
+    __t_count: int = 4
 
     def __init__(self, nbr_combinations: int = 1) -> None:
         super().__init__()
@@ -64,10 +70,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         super()._core(nr_qubits=nr_qubits)
 
         self._simulate = tmp
-        try:
-            self._stress()
-        except Exception as e:
-            print(f"Error: {e}")
+
+        self._stress()
 
     def _stress(self) -> None:
         """
@@ -83,10 +87,18 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
 
-        for indices in combinations:
-            # print(indices)
-            self.__stress_experiment(indices)
-            self.__length_combinations += 1
+        self._combinations = copy.deepcopy(combinations)
+        
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._stress_experiment
+                ),
+                combinations
+            )
+
+        self.__length_combinations = len(results)
+
 
         self._stop_time = elapsed_time(self._start_time)
 
@@ -111,7 +123,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         return qopt.CancelTGate(circuit, qubit_order).optimize_circuit(indices)
 
-    def __stress_experiment(self, indices: 'tuple[int, ...]') -> None:
+    def _stress_experiment(self, indices: 'tuple[int, ...]') -> None:
         """
         Stress experiment for the bucket brigade circuit.
 
@@ -153,9 +165,13 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         table = f"| {'T Gate Index'.ljust(t_gate_index_width)} | Failed (%)        | Succeed (%)       | Measurements (%)  | Output Vector (%) |\n"
         table += f"|-{'-' * t_gate_index_width}-|-------------------|-------------------|-------------------|-------------------|\n"
 
+        copied_combinations = copy.deepcopy(self._combinations)
+
         # sort depend in the high success rate
-        for bil in self._stress_bilan:
-        # for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][0]), reverse=False):
+        # for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][1]), reverse=False):
+
+        for indices in copied_combinations:
+            bil = ",".join(map(str, indices))
             table += f"| {bil:<{t_gate_index_width}} | {self._stress_bilan[bil][0]:<17} | {self._stress_bilan[bil][1]:<17} | {self._stress_bilan[bil][2]:<17} | {self._stress_bilan[bil][3]:<17} |\n"
 
         print(table, end="\n\n")
@@ -170,10 +186,11 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             csv += f",T Gate Index {i + 1}"
 
         csv += ",Failed (%),Succeed (%),Measurements (%),Output Vector (%)\n"
-        for bil in self._stress_bilan:
+        for indices in self._combinations:
+            bil = ",".join(map(str, indices))
             csv += f"{bil},{self._stress_bilan[bil][0]},{self._stress_bilan[bil][1]},{self._stress_bilan[bil][2]},{self._stress_bilan[bil][3]}\n"
 
-        directory = f"bilans/{self._decomp_scenario_modded.dec_mem}"
+        directory = f"data/{self._decomp_scenario_modded.dec_mem}"
         if not os.path.exists(directory):
             os.makedirs(directory)
         time_elapsed = self._stop_time.replace(' ', '')
