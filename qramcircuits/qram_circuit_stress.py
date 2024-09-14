@@ -220,4 +220,4 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             return
         self._simulated = True
 
-        self._Simulator._simulate_circuit()
+        self._Simulator._simulate_circuit(is_stress=True)

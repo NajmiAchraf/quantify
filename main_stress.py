@@ -81,7 +81,7 @@ def main():
     28T: 1 combinations (1s 630 ms)
     """
 
-    QRAMCircuitStress(3).bb_decompose_test(
+    QRAMCircuitStress(1).bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
 

@@ -69,6 +69,7 @@ class QRAMCircuitSimulator:
     __print_circuit: str
     __print_sim: str
     __simulation_kind: str = "dec"
+    __is_stress: bool = False
 
     #! __simulation_results: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
     __simulation_results: dict = {}
@@ -306,12 +307,15 @@ class QRAMCircuitSimulator:
     # simulate circuit methods
     #######################################
 
-    def _simulate_circuit(self) -> None:
+    def _simulate_circuit(self, is_stress: bool = False) -> None:
         """
         Simulates the circuit.
         """
 
         self.__simulation_kind = "bb"
+        self.__is_stress = is_stress
+        if self.__is_stress:
+            self.__print_sim = "Hide"
 
         # Construct the method name
         method_name = f"_simulation_{self.__specific_simulation}_qubits"
@@ -676,59 +680,70 @@ class QRAMCircuitSimulator:
 
         # prints ##############################################################################
 
-        name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+        if not self.__is_stress:
+            name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
 
-        printCircuit(self.__print_circuit, self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
+            printCircuit(self.__print_circuit, self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
 
-        printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
+            printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
-        print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
+            print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
 
-        colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
+            colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
-        # reset the simulation results ########################################################
 
-        #! self.__simulation_results = multiprocessing.Manager().dict()
-        self.__simulation_results = {}
+        if not self.__is_stress:
 
-        # use thread to load the simulation ###################################################
+            # reset the simulation results ########################################################
 
-        #! if self.__print_sim == "Hide":
-        #!     stop_event = threading.Event()
-        #!     loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
-        #!     loading_thread.start()
+            self.__simulation_results = multiprocessing.Manager().dict()
 
-        # Use multiprocessing to parallelize the simulation ###################################
+            # use thread to load the simulation ###################################################
 
-        #! try:
-        #!     with multiprocessing.Pool() as pool:
-        #!         results = pool.map(
-        #!             partial(
-        #!                 self._worker,
-        #!                 step=step,
-        #!                 circuit=self.__bbcircuit.circuit,
-        #!                 circuit_modded=self.__bbcircuit_modded.circuit,
-        #!                 qubit_order=self.__bbcircuit.qubit_order,
-        #!                 qubit_order_modded=self.__bbcircuit_modded.qubit_order,
-        #!                 initial_state=initial_state,
-        #!                 initial_state_modded=initial_state_modded),
-        #!             range(start, stop, step))
-        #! finally:
-        #!     if self.__print_sim == "Hide":
-        #!         stop_event.set()
-        #!         loading_thread.join()
+            if self.__print_sim == "Hide":
+                stop_event = threading.Event()
+                loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
+                loading_thread.start()
 
-        results: 'list[tuple[int, int, int]]' = []
-        for i in range(start, stop, step):
-            results.append(self._worker(
-                    i=i,
-                    step=step,
-                    circuit=self.__bbcircuit.circuit,
-                    circuit_modded=self.__bbcircuit_modded.circuit,
-                    qubit_order=self.__bbcircuit.qubit_order,
-                    qubit_order_modded=self.__bbcircuit_modded.qubit_order,
-                    initial_state=initial_state,
-                    initial_state_modded=initial_state_modded))
+            # Use multiprocessing to parallelize the simulation ###################################
+
+            try:
+                with multiprocessing.Pool() as pool:
+                    results = pool.map(
+                        partial(
+                            self._worker,
+                            step=step,
+                            circuit=self.__bbcircuit.circuit,
+                            circuit_modded=self.__bbcircuit_modded.circuit,
+                            qubit_order=self.__bbcircuit.qubit_order,
+                            qubit_order_modded=self.__bbcircuit_modded.qubit_order,
+                            initial_state=initial_state,
+                            initial_state_modded=initial_state_modded),
+                        range(start, stop, step))
+            finally:
+                if self.__print_sim == "Hide":
+                    stop_event.set()
+                    loading_thread.join()
+
+        elif self.__is_stress:
+
+            # reset the simulation results ########################################################
+
+            self.__simulation_results = {}
+
+            # Use multiprocessing to parallelize the simulation ###################################
+
+            results: 'list[tuple[int, int, int]]' = []
+            for i in range(start, stop, step):
+                results.append(self._worker(
+                        i=i,
+                        step=step,
+                        circuit=self.__bbcircuit.circuit,
+                        circuit_modded=self.__bbcircuit_modded.circuit,
+                        qubit_order=self.__bbcircuit.qubit_order,
+                        qubit_order_modded=self.__bbcircuit_modded.qubit_order,
+                        initial_state=initial_state,
+                        initial_state_modded=initial_state_modded))
 
         self.__print_simulation_results(results, start, stop, step)
 
@@ -906,14 +921,15 @@ class QRAMCircuitSimulator:
         sv = format(((success_vector * 100)/total_tests), ',.2f')
         ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
 
-        print("\n\nResults of the simulation:\n")
-        colpr("r", "\t• Failed: ", str(f), "%")
-        if success_measurements == 0:
-            colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
-        else:
-            colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
-            colpr("b", "Measurements: ", str(sm), "%", end=" • ")
-            colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
+        if not self.__is_stress:
+            print("\n\nResults of the simulation:\n")
+            colpr("r", "\t• Failed: ", str(f), "%")
+            if success_measurements == 0:
+                colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
+            else:
+                colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
+                colpr("b", "Measurements: ", str(sm), "%", end=" • ")
+                colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
 
         self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
 
