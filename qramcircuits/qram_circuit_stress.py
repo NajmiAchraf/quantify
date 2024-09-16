@@ -6,7 +6,6 @@ import time
 
 from functools import partial
 import multiprocessing
-import threading
 
 import optimizers as qopt
 
@@ -94,27 +93,15 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self._combinations = copy.deepcopy(combinations)
 
         if self._simulate:
-            # use thread to load the stress testing ###########################################
-
-            if self._print_sim == "Hide":
-                stop_event = threading.Event()
-                loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'stress testing',))
-                loading_thread.start()
-
             # Use multiprocessing to parallelize the stress testing ###########################
 
-            try:
-                with multiprocessing.Pool() as pool:
-                    results = pool.map(
-                        partial(
-                            self._stress_experiment
-                        ),
-                        combinations
-                    )
-            finally:
-                if self._print_sim == "Hide":
-                    stop_event.set()
-                    loading_thread.join()
+            with multiprocessing.Pool() as pool:
+                results = pool.map(
+                    partial(
+                        self._stress_experiment
+                    ),
+                    combinations
+                )
 
             self.__length_combinations = len(results)
 
@@ -167,6 +154,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         if self._simulate:
             self._stress_bilan[",".join(map(str, indices))] = self._Simulator.get_simulation_bilan()
+
+        colpr("g", f"\nStress done for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
 
     #######################################
     # print and export bilan methods
