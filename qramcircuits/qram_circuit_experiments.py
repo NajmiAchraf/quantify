@@ -46,8 +46,6 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         Prints the results of the experiment.
         """
 
-        print(f"{'='*150}\n\n")
-
         self._Simulator = QRAMCircuitSimulator(
             self._bbcircuit,
             self._bbcircuit_modded,
@@ -61,8 +59,6 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             self.__essential_checks()
         elif self._simulate:
             self._simulate_circuit()
-
-        print(f"\n\n{'='*150}")
 
     #######################################
     # essential checks methods

@@ -6,6 +6,7 @@ import time
 
 from functools import partial
 import multiprocessing
+import threading
 
 import optimizers as qopt
 
@@ -41,7 +42,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     # _stress_bilan: 'dict[str, list]' = {}
     _stress_bilan: multiprocessing.Manager().dict() = multiprocessing.Manager().dict()
 
-    _combinations: 'list[tuple[int, ...]]' = []
+    _combinations: 'itertools.combinations[tuple[int, ...]]'
 
     __circuit_save: cirq.Circuit
     __circuit_modded_save: cirq.Circuit
@@ -54,6 +55,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         super().__init__()
 
         self.__nbr_combinations = nbr_combinations
+    
+    def __del__(self) -> None:
+        pass
 
     #######################################
     # core functions
@@ -88,17 +92,30 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
 
         self._combinations = copy.deepcopy(combinations)
-        
-        with multiprocessing.Pool() as pool:
-            results = pool.map(
-                partial(
-                    self._stress_experiment
-                ),
-                combinations
-            )
+
+        # use thread to load the stress experiments ###########################################
+
+        if self._print_sim == "Hide":
+            stop_event = threading.Event()
+            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'stress experiments',))
+            loading_thread.start()
+
+        # Use multiprocessing to parallelize the stress experiments ###########################
+
+        try:
+            with multiprocessing.Pool() as pool:
+                results = pool.map(
+                    partial(
+                        self._stress_experiment
+                    ),
+                    combinations
+                )
+        finally:
+            if self._print_sim == "Hide":
+                stop_event.set()
+                loading_thread.join()
 
         self.__length_combinations = len(results)
-
 
         self._stop_time = elapsed_time(self._start_time)
 

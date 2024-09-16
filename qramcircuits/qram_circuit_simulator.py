@@ -359,8 +359,8 @@ class QRAMCircuitSimulator:
         # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
         step = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step * ( 2 ** self.__qubits_number )
-        colpr("y", "\nSimulating the circuit ... checking the addressing of the a qubits.", end="\n\n")
-        self.__simulation(start, stop, step)
+        message = "Simulating the circuit ... checking the addressing of the a qubits."
+        self.__simulation(start, stop, step, message)
 
     def _simulation_b_qubits(self) -> None:
         """
@@ -391,8 +391,8 @@ class QRAMCircuitSimulator:
         start = 0
         step = 2 ** ( 2 ** self.__qubits_number + 1 )
         stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
-        colpr("y", "\nSimulating the circuit ... checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state.", end="\n\n")
-        self.__simulation(start, stop, step)
+        message = "Simulating the circuit ... checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state."
+        self.__simulation(start, stop, step, message)
 
     def _simulation_m_qubits(self) -> None:
         """
@@ -426,8 +426,8 @@ class QRAMCircuitSimulator:
         start = 0
         step = 2
         stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
-        colpr("y", "\nSimulating the circuit ... checking the computation of MEM ... were the m qubits are getting the result of the computation.", end="\n\n")
-        self.__simulation(start, stop, step)
+        message = "Simulating the circuit ... checking the computation of MEM ... were the m qubits are getting the result of the computation."
+        self.__simulation(start, stop, step, message)
 
     def _simulation_ab_qubits(self) -> None:
         """
@@ -465,8 +465,8 @@ class QRAMCircuitSimulator:
 
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the a and b qubits.", end="\n\n")
-        self.__simulation(start, stop, step_b)
+        message = "Simulating the circuit ... checking the addressing and uncomputation of the a and b qubits."
+        self.__simulation(start, stop, step_b, message)
 
     def _simulation_bm_qubits(self) -> None:
         """
@@ -508,8 +508,8 @@ class QRAMCircuitSimulator:
 
         step_b = 2 ** ( 2 ** self.__qubits_number + 1 )
         stop = step_b * ( 2 ** ( 2 ** self.__qubits_number ) )
-        colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the b and m qubits.", end="\n\n")
-        self.__simulation(start, stop, step_m)
+        message = "Simulating the circuit ... checking the addressing and uncomputation of the b and m qubits."
+        self.__simulation(start, stop, step_m, message)
 
     def _simulation_abm_qubits(self) -> None:
         """
@@ -557,8 +557,8 @@ class QRAMCircuitSimulator:
         step_m = 2
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        colpr("y", "\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits.", end="\n\n")
-        self.__simulation(start, stop, step_m)
+        message = "Simulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits."
+        self.__simulation(start, stop, step_m, message)
 
     def _simulation_t_qubits(self) -> None:
         """
@@ -606,8 +606,8 @@ class QRAMCircuitSimulator:
         step_m = 2
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        print("\nSimulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit.", end="\n\n")
-        self.__simulation(start, stop, step_m)
+        message = "Simulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit."
+        self.__simulation(start, stop, step_m, message)
 
     def _simulation_full_qubits(self) -> None:
         """
@@ -632,8 +632,8 @@ class QRAMCircuitSimulator:
         start = 0
         # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
         stop = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + self.__qubits_number + 1 )
-        print("\nSimulating the circuit ... checking the all qubits.", end="\n\n")
-        self.__simulation(start, stop, 1)
+        message = "Simulating the circuit ... checking the all qubits."
+        self.__simulation(start, stop, 1, message)
 
     def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> np.ndarray:
         """
@@ -660,7 +660,7 @@ class QRAMCircuitSimulator:
 
         return np.zeros(2**len(bbcircuit.qubit_order), dtype=np.complex64)
 
-    def __simulation(self, start:int, stop:int, step:int) -> None:
+    def __simulation(self, start:int, stop:int, step:int, message:str) -> None:
         """
         Simulates the circuit.
 
@@ -682,6 +682,8 @@ class QRAMCircuitSimulator:
 
         if not self.__is_stress:
             name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+
+            colpr("y", '\n', message, end="\n\n")
 
             printCircuit(self.__print_circuit, self.__bbcircuit.circuit, self.__bbcircuit.qubit_order, name)
 
@@ -921,6 +923,8 @@ class QRAMCircuitSimulator:
         sv = format(((success_vector * 100)/total_tests), ',.2f')
         ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
 
+        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
+
         if not self.__is_stress:
             print("\n\nResults of the simulation:\n")
             colpr("r", "\t• Failed: ", str(f), "%")
@@ -931,9 +935,7 @@ class QRAMCircuitSimulator:
                 colpr("b", "Measurements: ", str(sm), "%", end=" • ")
                 colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
 
-        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
-
-        colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
+            colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
 
         if self.__print_sim == "Hide" or self.__print_sim == "Dot":
             return
