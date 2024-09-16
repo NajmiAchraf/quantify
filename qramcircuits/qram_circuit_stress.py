@@ -93,29 +93,36 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         self._combinations = copy.deepcopy(combinations)
 
-        # use thread to load the stress experiments ###########################################
+        if self._simulate:
+            # use thread to load the stress testing ###########################################
 
-        if self._print_sim == "Hide":
-            stop_event = threading.Event()
-            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'stress experiments',))
-            loading_thread.start()
-
-        # Use multiprocessing to parallelize the stress experiments ###########################
-
-        try:
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._stress_experiment
-                    ),
-                    combinations
-                )
-        finally:
             if self._print_sim == "Hide":
-                stop_event.set()
-                loading_thread.join()
+                stop_event = threading.Event()
+                loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'stress testing',))
+                loading_thread.start()
 
-        self.__length_combinations = len(results)
+            # Use multiprocessing to parallelize the stress testing ###########################
+
+            try:
+                with multiprocessing.Pool() as pool:
+                    results = pool.map(
+                        partial(
+                            self._stress_experiment
+                        ),
+                        combinations
+                    )
+            finally:
+                if self._print_sim == "Hide":
+                    stop_event.set()
+                    loading_thread.join()
+
+            self.__length_combinations = len(results)
+
+        elif not self._simulate:
+            for indices in combinations:
+                time.sleep(0.5)
+                self._stress_experiment(indices)
+                self.__length_combinations += 1
 
         self._stop_time = elapsed_time(self._start_time)
 
