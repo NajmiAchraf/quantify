@@ -203,7 +203,7 @@ class BucketBrigade():
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.AN0_TD3_TC4_CX6,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
             ToffoliDecompType.TD_4_CXD_8,
             ToffoliDecompType.TD_4_CXD_8_INV,

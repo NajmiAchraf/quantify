@@ -101,7 +101,7 @@ class TransformeNghGates(TransferFlagOptimizer):
                 if sog == cirq.T:
                     circuit.insert(i, cirq.S(op.qubits[0]))
                 if sog == cirq.T**-1:
-                    circuit.insert(i, cirq.S**-1(op.qubits[0]))
+                    circuit.insert(i, cirq.S(op.qubits[0])**-1)
                 if sog == cirq.S or sog == cirq.S**-1:
                     circuit.insert(i, cirq.Z(op.qubits[0]))
 

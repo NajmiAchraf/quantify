@@ -59,7 +59,7 @@ class ToffoliDecompType(Enum):
     ONE_ANCILLA_TDEPTH_4 = auto()
 
     ZERO_ANCILLA_TDEPTH_4 = auto()
-    ANCILLA_0_TD4_MOD = auto()
+    AN0_TD3_TC4_CX6 = auto()
 
     ZERO_ANCILLA_TDEPTH_4_INV = auto()
 
@@ -767,7 +767,7 @@ class ToffoliDecomposition():
 
             return moments
 
-        elif self.decomp_type == ToffoliDecompType.ANCILLA_0_TD4_MOD:
+        elif self.decomp_type == ToffoliDecompType.AN0_TD3_TC4_CX6:
             # This is a CCZ, and the Hadamard can be placed anywhere,
             # but by Cirq definition, the last qubit is the target
 
@@ -883,7 +883,7 @@ class ToffoliDecomposition():
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.AN0_TD3_TC4_CX6,
             ToffoliDecompType.TD_5_CXD_6,
             ToffoliDecompType.TD_4_CXD_8,
         ]:

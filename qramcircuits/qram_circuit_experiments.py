@@ -39,7 +39,11 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
 
         super()._core(nr_qubits=nr_qubits)
 
+        print(f"{'='*150}\n\n")
+
         self._results()
+
+        print(f"{'='*150}\n\n")
 
     def _results(self) -> None:
         """

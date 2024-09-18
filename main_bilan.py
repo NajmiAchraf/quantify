@@ -44,7 +44,7 @@ def main():
 
         dec_mod=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-            ToffoliDecompType.ANCILLA_0_TD4_MOD,
+            ToffoliDecompType.AN0_TD3_TC4_CX6,
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
         ],
 
