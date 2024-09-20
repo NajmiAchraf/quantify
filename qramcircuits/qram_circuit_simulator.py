@@ -3,9 +3,11 @@ import cirq.optimizers
 import math
 import numpy as np
 import time
+from typing import Union
 
 from functools import partial
 import multiprocessing
+from multiprocessing.managers import DictProxy
 import threading
 
 import qramcircuits.bucket_brigade as bb
@@ -29,12 +31,16 @@ class QRAMCircuitSimulator:
         __start_range_qubits (int): The start range of the qubits.
         __print_circuit (str): The print circuit flag.
         __print_sim (str): Flag indicating whether to print the full simulation result.
+        __simulation_kind (str): The simulation kind.
+        __is_stress (bool): The stress flag.
 
-        __simulation_results (multiprocessing.managers.DictProxy): The simulation results.
+        __simulation_results (Union[DictProxy, dict]): The simulation results.
+        __simulation_bilan (list): The simulation bilan.
 
         __bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
         __bbcircuit_modded (bb.BucketBrigade): The modded circuit.
         __decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario.
+        __decomp_scenario_modded (bb.BucketBrigadeDecompType): The modded decomposition scenario.
         __simulator (cirq.Simulator): The Cirq simulator.
 
     Methods:
@@ -71,8 +77,7 @@ class QRAMCircuitSimulator:
     __simulation_kind: str = "dec"
     __is_stress: bool = False
 
-    #! __simulation_results: multiprocessing.managers.DictProxy = multiprocessing.Manager().dict()
-    __simulation_results: dict = {}
+    __simulation_results: Union[DictProxy, dict]
     __simulation_bilan: list = []
 
     __bbcircuit: bb.BucketBrigade

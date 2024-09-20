@@ -6,6 +6,7 @@ import time
 
 from functools import partial
 import multiprocessing
+from multiprocessing.managers import DictProxy
 
 import optimizers as qopt
 
@@ -24,8 +25,16 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     QRAM circuit stress experiment.
 
     Attributes:
-        _stress_bilan (dict): The stress bilan.
+        _stress_bilan (DictProxy): The stress bilan.
+
+        _combinations (itertools.combinations[tuple[int, ...]]): The combinations.
+
+        __circuit_save (cirq.Circuit): The circuit save.
+        __circuit_modded_save (cirq.Circuit): The modded circuit save.
+
+        __length_combinations (int): The length of the combinations.
         __nbr_combinations (int): The number of combinations.
+        __t_count (int): The T count.
 
     Methods:
         _run(): Runs the experiment for a range of qubits.
@@ -38,8 +47,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _simulate_circuit(): Simulates the circuit.
     """
 
-    # _stress_bilan: 'dict[str, list]' = {}
-    _stress_bilan: multiprocessing.Manager().dict() = multiprocessing.Manager().dict()
+    _stress_bilan: DictProxy = multiprocessing.Manager().dict()
 
     _combinations: 'itertools.combinations[tuple[int, ...]]'
 

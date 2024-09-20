@@ -21,7 +21,6 @@ class CancelTGate():
                     count += 1
                     self.T_operations[count] = [op.qubits, mi]
 
-
     def __str__(self):
         for key, value in self.T_operations.items():
             print(key, value)
