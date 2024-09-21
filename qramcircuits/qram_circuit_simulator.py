@@ -45,8 +45,10 @@ class QRAMCircuitSimulator:
 
     Methods:
         get_simulation_bilan(): Returns the simulation bilan.
-        __init__(self, bbcircuit, bbcircuit_modded, specific_simulation, start_range_qubits, print_circuit, print_sim):
+        __init__(bbcircuit, bbcircuit_modded, specific_simulation, start_range_qubits, print_circuit, print_sim):
             Constructor of the CircuitSimulator class.
+
+        _run_simulation(is_stress): Runs the simulation.
 
         __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
         __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
@@ -114,10 +116,8 @@ class QRAMCircuitSimulator:
         Args:
             bbcircuit (BBCircuit): The bucket brigade circuit.
             bbcircuit_modded (BBCircuit): The modded circuit.
-            decomp_scenario (DecompScenario): The decomposition scenario.
             specific_simulation (str): The specific simulation.
             qubits_number (int): The number of qubits.
-            simulate (bool): The simulation flag.
             print_circuit (str): The print circuit flag.
             print_sim (str): The print simulation flag.
 
@@ -133,15 +133,20 @@ class QRAMCircuitSimulator:
         self.__qubits_number = qubits_number
         self.__print_circuit = print_circuit
         self.__print_sim = print_sim
-    
-    def _run_simulation(self) -> None:
+
+    def _run_simulation(self, is_stress: bool = False) -> None:
         """
         Runs the simulation.
         """
 
-        self.__simulate_decompositions()
+        self.__is_stress = is_stress
 
-        self._simulate_circuit()
+        if is_stress:
+            self.__print_sim = "Hide"
+        else:
+            self.__simulate_decompositions()
+
+        self.__simulate_circuit()
 
     #######################################
     # simulate decompositions methods
@@ -312,15 +317,12 @@ class QRAMCircuitSimulator:
     # simulate circuit methods
     #######################################
 
-    def _simulate_circuit(self, is_stress: bool = False) -> None:
+    def __simulate_circuit(self) -> None:
         """
         Simulates the circuit.
         """
 
         self.__simulation_kind = "bb"
-        self.__is_stress = is_stress
-        if self.__is_stress:
-            self.__print_sim = "Hide"
 
         # Construct the method name
         method_name = f"_simulation_{self.__specific_simulation}_qubits"

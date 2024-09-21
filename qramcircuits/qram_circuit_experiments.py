@@ -172,7 +172,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
     # simulate circuit method
     #######################################
 
-    def _simulate_circuit(self) -> None:
+    def _simulate_circuit(self, is_stress: bool=False) -> None:
         """
         Simulates the circuit.
         """
@@ -181,4 +181,4 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             return
         self._simulated = True
 
-        self._Simulator._run_simulation()
+        self._Simulator._run_simulation(is_stress=is_stress)

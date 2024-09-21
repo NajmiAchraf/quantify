@@ -134,7 +134,7 @@ def printCircuit(
         )
 
         stop = elapsed_time(start)
-        colpr("w", "Time of printing the circuit: ", stop, end="\n\n")
+        colpr("w", "Time elapsed on printing the circuit: ", stop, end="\n\n")
 
     elif print_circuit == "Display":
         # Display the circuit
@@ -145,7 +145,7 @@ def printCircuit(
         display(SVGCircuit(circuit))
 
         stop = elapsed_time(start)
-        colpr("w", "Time of displaying the circuit: ", stop, end="\n\n")
+        colpr("w", "Time elapsed on displaying the circuit: ", stop, end="\n\n")
 
     # # Save the circuit as an SVG file
     # with open(f"images/{self.__start_range_qubits}_{name}_circuit.svg", "w") as f:

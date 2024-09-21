@@ -237,8 +237,4 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Simulates the circuit.
         """
 
-        if self._simulated:
-            return
-        self._simulated = True
-
-        self._Simulator._simulate_circuit(is_stress=True)
+        super()._simulate_circuit(is_stress=True)
