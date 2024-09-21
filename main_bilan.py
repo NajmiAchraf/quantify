@@ -1,4 +1,4 @@
-from qramcircuits.bucket_brigade import MirrorMethod
+from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_bilan import QRAMCircuitBilan
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
@@ -49,7 +49,7 @@ def main():
         ],
 
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN
+        reverse_moments=ReverseMoments.OUT_TO_IN
     )
 
 

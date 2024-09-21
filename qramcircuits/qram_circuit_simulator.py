@@ -838,9 +838,9 @@ class QRAMCircuitSimulator:
             int: The number of full tests success.
         """
 
-        fail:int = 0
-        success_measurements:int = 0
-        success_vector:int = 0
+        fail: int = 0
+        success_measurements: int = 0
+        success_vector: int = 0
 
         result = self.__simulator.simulate(
             circuit,
@@ -864,36 +864,36 @@ class QRAMCircuitSimulator:
                 np.array(np.around(result.final_state[j])),
                 np.array(np.around(result_modded.final_state[i]))
             )
-        except Exception:
+        except AssertionError:
             try:
                 # Compare specific measurements for the specific qubits
                 for o_qubit in self.__bbcircuit.qubit_order:
-                    for qubit in measurements.keys():
-                        if str(o_qubit) == str(qubit):
-                            assert np.array_equal(
-                                measurements.get(qubit, np.array([])),
-                                measurements_modded.get(qubit, np.array([]))
-                            )
-            except Exception:
+                    qubit_str = str(o_qubit)
+                    if qubit_str in measurements:
+                        assert np.array_equal(
+                            measurements[qubit_str],
+                            measurements_modded.get(qubit_str, np.array([]))
+                        )
+            except AssertionError:
                 fail += 1
-                if self.__print_sim == "Full" or self.__print_sim == "Dot":
+                if self.__print_sim in ["Full", "Dot"]:
                     colpr("r", "•", end="")
                 if self.__print_sim == "Full":
                     self.__simulation_results[i] = ['r', result, result_modded]
             else:
                 success_measurements += 1
-                if self.__print_sim == "Full" or self.__print_sim == "Dot":
+                if self.__print_sim in ["Full", "Dot"]:
                     colpr("b", "•", end="")
                 if self.__print_sim == "Full":
                     self.__simulation_results[i] = ['b', result, result_modded]
         else:
             success_vector += 1
-            if self.__print_sim == "Full" or self.__print_sim == "Dot":
+            if self.__print_sim in ["Full", "Dot"]:
                 colpr("g", "•", end="")
             if self.__print_sim == "Full":
                 self.__simulation_results[i] = ['g', result, result_modded]
 
-        return (fail, success_measurements, success_vector)
+        return fail, success_measurements, success_vector
 
     def __print_simulation_results(self, results: 'list[tuple[int, int, int]]', start:int, stop:int, step:int) -> None:
         """
@@ -909,10 +909,10 @@ class QRAMCircuitSimulator:
             None
         """
 
-        fail:int = 0
-        success_measurements:int = 0
-        success_vector:int = 0
-        total_tests:int = 0
+        fail: int = 0
+        success_measurements: int = 0
+        success_vector: int = 0
+        total_tests: int = 0
 
         # Aggregate results
         for f, sm, sv in results:
@@ -932,17 +932,17 @@ class QRAMCircuitSimulator:
 
         if not self.__is_stress:
             print("\n\nResults of the simulation:\n")
-            colpr("r", "\t• Failed: ", str(f), "%")
+            colpr("r", "\t• Failed: ", f, "%")
             if success_measurements == 0:
-                colpr("g", "\t• Succeed: ", str(ts), "%", end="\n\n")
+                colpr("g", "\t• Succeed: ", ts, "%", end="\n\n")
             else:
-                colpr("y", "\t• Succeed: ", str(ts), "%", end="\t( ")
-                colpr("b", "Measurements: ", str(sm), "%", end=" • ")
-                colpr("g", "Output vector: ", str(sv), "%", end=" )\n\n")
+                colpr("y", "\t• Succeed: ", ts, "%", end="\t( ")
+                colpr("b", "Measurements: ", sm, "%", end=" • ")
+                colpr("g", "Output vector: ", sv, "%", end=" )\n\n")
 
             colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
 
-        if self.__print_sim == "Hide" or self.__print_sim == "Dot":
+        if self.__print_sim in ["Hide", "Dot"]:
             return
 
         if self.__simulation_kind == 'dec':
@@ -958,7 +958,7 @@ class QRAMCircuitSimulator:
             j = i
             if self.__simulation_kind == 'dec':
                 j = math.floor(i/step)
-            (color, result, result_modded) = self.__simulation_results[i]
+            color, result, result_modded = self.__simulation_results[i]
             colpr("c", f"Index of array {j} {i}", end="\n")
             colpr("w", f"{name} circuit result: ")
             colpr("w", str(result))

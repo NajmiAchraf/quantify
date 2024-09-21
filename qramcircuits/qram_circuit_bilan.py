@@ -1,8 +1,6 @@
 import os
 import psutil
 
-import threading
-
 from qramcircuits.qram_circuit_core import QRAMCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 

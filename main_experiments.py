@@ -1,4 +1,4 @@
-from qramcircuits.bucket_brigade import MirrorMethod
+from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
@@ -44,7 +44,7 @@ def main():
     #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
     #     ],
     #     parallel_toffolis_mod=True,
-    #     mirror_method=MirrorMethod.OUT_TO_IN
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
     # )
 
     QRAMCircuitExperiments().bb_decompose_test(
@@ -58,7 +58,7 @@ def main():
         ],
 
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN
+        reverse_moments=ReverseMoments.OUT_TO_IN
     )
 
 if __name__ == "__main__":

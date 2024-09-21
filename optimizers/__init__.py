@@ -8,7 +8,7 @@ from .invariant_check_optimizer import InvariantCheckOptimizer
 
 from .commute_t_to_start import CommuteTGatesToStart
 from .search_cnot_pattern import SearchCNOTPattern
-from .parallelise_cnots import ParallelizeCNOTSToLeft
+from .parallelize_cnots import ParallelizeCNOTSToLeft
 
 from .lookahead_analysis import LookAheadAnalysis
 from .markov_analysis import MarkovAnalysis

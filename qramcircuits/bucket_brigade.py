@@ -13,9 +13,9 @@ from utils.counting_utils import *
 from utils.print_utils import *
 
 
-class MirrorMethod(Enum):
+class ReverseMoments(Enum):
 
-    NO_MIRROR = auto()
+    NO_REVERSE = auto()
 
     IN_TO_OUT = auto()
 
@@ -23,20 +23,20 @@ class MirrorMethod(Enum):
 
 
 class BucketBrigadeDecompType:
-    def __init__(self, toffoli_decomp_types, parallel_toffolis, mirror_method=MirrorMethod.NO_MIRROR):
+    def __init__(self, toffoli_decomp_types, parallel_toffolis, reverse_moments=ReverseMoments.NO_REVERSE):
         self.dec_fan_in = toffoli_decomp_types[0]
         self.dec_mem = toffoli_decomp_types[1]
         self.dec_fan_out = toffoli_decomp_types[2]
 
-        # Should the Toffoli decompositions be parallelised?
+        # Should the Toffoli decompositions be parallelized?
         # In this case it is assumed that the ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4
         # is used (not checked, for the moment)...
         # We are not sure how to design this. Keep it.
         self.parallel_toffolis = parallel_toffolis
 
         # If the FANIN is better in terms of depth than the FANOUT
-        # we can mirror the FANIN to FANOUT or vice versa
-        self.mirror_method = mirror_method
+        # we can reverse the FANIN to FANOUT or vice versa
+        self.reverse_moments = reverse_moments
 
     # def get_dec_fan_in(self):
     #     return self.dec_fan_in
@@ -187,7 +187,7 @@ class BucketBrigade():
 
         return memory_operations
 
-    def optimize_toffolis_parallelization(self, circuit, decomp_scenario, permutation):
+    def toffoli_gate_decomposer(self, circuit, decomp_scenario, permutation):
         if not self.decomp_scenario.parallel_toffolis:
             permutation = [0, 1, 2]
 
@@ -213,24 +213,24 @@ class BucketBrigade():
             BucketBrigade.optimize_clifford_t_cnot_gates(circuit)
 
         if self.decomp_scenario.parallel_toffolis:
-            circuit = BucketBrigade.parallelise_toffolis(
+            circuit = BucketBrigade.parallelize_toffolis(
                 cirq.Circuit(circuit.all_operations())
             )
             BucketBrigade.optimize_clifford_t_cnot_gates(circuit)
 
         return circuit
 
-    def linking_and_mirroring(self, comp_fan_in, memory_decomposed, comp_fan_out) -> cirq.Circuit:
+    def reverse_and_link(self, comp_fan_in, memory_decomposed, comp_fan_out) -> cirq.Circuit:
         circuit = cirq.Circuit()
 
-        if self.decomp_scenario.mirror_method == MirrorMethod.NO_MIRROR:
+        if self.decomp_scenario.reverse_moments == ReverseMoments.NO_REVERSE:
             circuit.append(comp_fan_in)
             circuit.append(memory_decomposed)
             circuit.append(comp_fan_out)
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
 
-        elif self.decomp_scenario.mirror_method == MirrorMethod.IN_TO_OUT:
+        elif self.decomp_scenario.reverse_moments == ReverseMoments.IN_TO_OUT:
             circuit.append(comp_fan_in)
             circuit.append(memory_decomposed)
             if self.decomp_scenario.parallel_toffolis:
@@ -238,14 +238,14 @@ class BucketBrigade():
             comp_fan_out = ctu.reverse_moments(comp_fan_in)
             circuit.append(comp_fan_out)
 
-        elif self.decomp_scenario.mirror_method == MirrorMethod.OUT_TO_IN:
+        elif self.decomp_scenario.reverse_moments == ReverseMoments.OUT_TO_IN:
             compute_fanin_moments = ctu.reverse_moments(comp_fan_out)
             if self.decomp_scenario.parallel_toffolis:
                 comp_fan_in = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
 
-            self.decomp_scenario.mirror_method = MirrorMethod.IN_TO_OUT
-            circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
-            self.decomp_scenario.mirror_method = MirrorMethod.OUT_TO_IN
+            self.decomp_scenario.reverse_moments = ReverseMoments.IN_TO_OUT
+            circuit = self.reverse_and_link(comp_fan_in, memory_decomposed, comp_fan_out)
+            self.decomp_scenario.reverse_moments = ReverseMoments.OUT_TO_IN
 
         return circuit
 
@@ -275,18 +275,18 @@ class BucketBrigade():
         # Construct the fanout structure
         compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
 
-        # Parallelize the Toffolis with multiprocessing
+        # Parallelize the decomposition of Toffoli gates with multiprocessing
         with multiprocessing.Pool(processes=3) as pool:
             fanin_args = (compute_fanin_moments, self.decomp_scenario.dec_fan_in, [0, 1, 2])
             mem_args = (compute_memory_moments, self.decomp_scenario.dec_mem, [0, 2, 1])
             fanout_args = (compute_fanout_moments, self.decomp_scenario.dec_fan_out, [1, 0, 2])
 
-            circuits = pool.starmap(self.optimize_toffolis_parallelization, [fanin_args, mem_args, fanout_args])
+            circuits = pool.starmap(self.toffoli_gate_decomposer, [fanin_args, mem_args, fanout_args])
 
         comp_fan_in, memory_decomposed, comp_fan_out = circuits
 
-        # Link the circuits and apply the mirroring
-        circuit = self.linking_and_mirroring(comp_fan_in, memory_decomposed, comp_fan_out)
+        # Link the circuits and apply the reverse moments
+        circuit = self.reverse_and_link(comp_fan_in, memory_decomposed, comp_fan_out)
 
         # Construct the qubit order
         self.construct_qubit_order(circuit, qubits, all_ancillas, memory, target)
@@ -294,7 +294,7 @@ class BucketBrigade():
         return circuit
 
     @staticmethod
-    def parallelise_toffolis(circuit_1):
+    def parallelize_toffolis(circuit_1):
 
         # Assume that the first and the last moment are only with Hadamards
         # Remove the moments for the optimisation to work

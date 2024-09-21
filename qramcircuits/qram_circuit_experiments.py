@@ -111,9 +111,9 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             colpr("y", f"Optimization methods of {decirc[2]} circuit:", end="\n\n")
             print(
                 "\t• parallel_toffolis:\t{}\n"
-                "\t• mirror_method:    \t{}\n\n".format(
+                "\t• reverse_moments:  \t{}\n\n".format(
                     "YES !!" if decirc[0].parallel_toffolis else "NO !!",
-                    decirc[0].mirror_method
+                    decirc[0].reverse_moments
                 ))
 
             for decomposition_type in self._Simulator._fan_in_mem_out(decirc[0]):

@@ -8,8 +8,8 @@ from typing import Union
 
 import qramcircuits.bucket_brigade as bb
 
-from qramcircuits.bucket_brigade import MirrorMethod
 from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
+from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.counting_utils import *
@@ -240,7 +240,7 @@ class QRAMCircuitCore:
             self,
             toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
             parallel_toffolis: bool,
-            mirror_method: MirrorMethod = MirrorMethod.NO_MIRROR
+            reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE
     ) -> bb.BucketBrigadeDecompType:
         """
         Decomposes the Toffoli gates in the bucket brigade circuit.
@@ -248,7 +248,7 @@ class QRAMCircuitCore:
         Args:
             toffoli_decomp_type (Union['list[ToffoliDecompType]', ToffoliDecompType]): The type of Toffoli decomposition.
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis.
-            mirror_method (bool): Flag indicating whether to mirror the input to the output.
+            reverse_moments (bool): Flag indicating whether to reverse the input to the output.
 
         Returns:
             bb.BucketBrigadeDecompType: The decomposition scenario for the bucket brigade.
@@ -262,7 +262,7 @@ class QRAMCircuitCore:
                     toffoli_decomp_type[2]     # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                mirror_method=mirror_method
+                reverse_moments=reverse_moments
             )
         else:
             return bb.BucketBrigadeDecompType(
@@ -272,7 +272,7 @@ class QRAMCircuitCore:
                     toffoli_decomp_type     # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                mirror_method=mirror_method
+                reverse_moments=reverse_moments
             )
 
     def bb_decompose_test(
@@ -282,7 +282,7 @@ class QRAMCircuitCore:
 
             dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
             parallel_toffolis_mod: bool,
-            mirror_method: MirrorMethod = MirrorMethod.NO_MIRROR
+            reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE
     ) -> None:
         """
         Tests the bucket brigade circuit with different decomposition scenarios.
@@ -292,7 +292,7 @@ class QRAMCircuitCore:
             parallel_toffolis (bool): Flag indicating whether to use parallel toffolis for the bucket brigade.
             dec_mod (Union['list[ToffoliDecompType]', ToffoliDecompType]): The modified decomposition scenario for the bucket brigade.
             parallel_toffolis_mod (bool): Flag indicating whether to use parallel toffolis for the modified bucket brigade.
-            mirror_method (bool): Flag indicating whether to mirror the input to the output.
+            reverse_moments (bool): Flag indicating whether to reverse the input to the output.
 
         Returns:
             None
@@ -303,7 +303,7 @@ class QRAMCircuitCore:
         self._decomp_scenario = self.__bb_decompose(
             dec, 
             parallel_toffolis, 
-            mirror_method
+            reverse_moments
         )
 
         # ================MODDED================
@@ -311,7 +311,7 @@ class QRAMCircuitCore:
         self._decomp_scenario_modded = self.__bb_decompose(
             dec_mod, 
             parallel_toffolis_mod,
-            mirror_method
+            reverse_moments
         )
 
         self._run()

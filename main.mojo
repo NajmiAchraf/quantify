@@ -14,8 +14,8 @@ def main():
     for arg in argv():
         sis.argv.append(arg)
 
-    MirrorMethodModule = Python.import_module("qramcircuits.bucket_brigade")
-    MirrorMethod = MirrorMethodModule.MirrorMethod
+    ReverseMomentsModule = Python.import_module("qramcircuits.bucket_brigade")
+    ReverseMoments = ReverseMomentsModule.ReverseMoments
 
     QRAMModule = Python.import_module("qramcircuits.qram_circuit_experiments")
     QRAM = QRAMModule.QRAMCircuitExperiments
@@ -44,5 +44,5 @@ def main():
         parallel_toffolis=True,
         dec_mod=bbm,
         parallel_toffolis_mod=True,
-        mirror_method=MirrorMethod.OUT_TO_IN
+        reverse_moments=ReverseMoments.OUT_TO_IN
     )
