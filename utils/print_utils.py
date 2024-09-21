@@ -56,12 +56,18 @@ def elapsed_time(start: float) -> str:
 
     elapsed_time = time.time() - start
     delta = timedelta(seconds=elapsed_time)
-    
+
+    weeks = delta.days // 7
+    days = delta.days % 7
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     milliseconds = delta.microseconds // 1000
 
-    if hours > 0:
+    if weeks > 0:
+        return f"{weeks}w {days}d {hours}h {minutes}min {seconds}s {milliseconds}ms"
+    elif days > 0:
+        return f"{days}d {hours}h {minutes}min {seconds}s {milliseconds}ms"
+    elif hours > 0:
         return f"{hours}h {minutes}min {seconds}s {milliseconds}ms"
     elif minutes > 0:
         return f"{minutes}min {seconds}s {milliseconds}ms"

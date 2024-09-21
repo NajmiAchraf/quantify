@@ -28,15 +28,15 @@ def main():
 
     bbr = Python.list()
 
-    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3)
     bbr.append(ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4)
-    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbr.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3)
 
     bbm = Python.list()
 
-    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3)
     bbm.append(ToffoliDecompType.AN0_TD3_TC4_CX6)
-    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CX_3)
+    bbm.append(ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3)
 
     # Call the function from the imported module
     QRAM().bb_decompose_test(
