@@ -58,6 +58,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     __nbr_combinations: int = 1
     __t_count: int = 4
 
+    __lock = multiprocessing.Lock()
+
     def __init__(self, nbr_combinations: int = 1) -> None:
         super().__init__()
 
@@ -150,7 +152,11 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             indices (tuple[int, ...]): The indices.
         """
 
-        colpr("y", f"\nStress experiment for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
+        start = time.time()
+        with self.__lock:
+            colpr("w", "\nLoading stress experiment with T gate indices:", end=" ")
+            colpr("r", ' '.join(map(str, indices)), end="\n\n")
+        
 
         self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
         self._bbcircuit_modded.circuit = copy.deepcopy(self.__circuit_modded_save)
@@ -163,7 +169,12 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         if self._simulate:
             self._stress_bilan[",".join(map(str, indices))] = self._Simulator.get_simulation_bilan()
 
-        colpr("g", f"\nStress done for T gate indices: {' '.join(map(str, indices))}", end="\n\n")
+        elapsed = elapsed_time(start)
+        with self.__lock:
+            colpr("g", f"\nCompleted stress experiment with T gate indices:", end=" ")
+            colpr("r", ' '.join(map(str, indices)), end="\n")
+            colpr("w", "Time elapsed:", end=" ")
+            colpr("r", elapsed, end="\n\n")
 
     #######################################
     # print and export bilan methods
