@@ -47,7 +47,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _simulate_circuit(): Simulates the circuit.
     """
 
-    _stress_bilan: DictProxy = multiprocessing.Manager().dict()
+    _stress_bilan: 'DictProxy[str, list[str]]' = multiprocessing.Manager().dict()
 
     _combinations: 'itertools.combinations[tuple[int, ...]]'
 

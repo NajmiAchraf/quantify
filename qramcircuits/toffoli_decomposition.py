@@ -59,6 +59,8 @@ class ToffoliDecompType(Enum):
     ONE_ANCILLA_TDEPTH_4 = auto()
 
     ZERO_ANCILLA_TDEPTH_4 = auto()
+    AN0_TD4_TC6_CX6 = auto()
+    AN0_TD4_TC5_CX6 = auto()
     AN0_TD3_TC4_CX6 = auto()
 
     ZERO_ANCILLA_TDEPTH_4_INV = auto()
@@ -767,7 +769,7 @@ class ToffoliDecomposition():
 
             return moments
 
-        elif self.decomp_type == ToffoliDecompType.AN0_TD3_TC4_CX6:
+        elif self.decomp_type == ToffoliDecompType.AN0_TD4_TC6_CX6:
             # This is a CCZ, and the Hadamard can be placed anywhere,
             # but by Cirq definition, the last qubit is the target
 
@@ -775,13 +777,77 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
 
                 cirq.Moment([
-                    # cirq.T.on(self.qubits[0]), #! removed
+                    cirq.T.on(self.qubits[0]),
                     cirq.T.on(self.qubits[1]),
-                    # cirq.T.on(self.qubits[2]) #! removed
                     ]),
 
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
-                # cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]), #! removed
+                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+                cirq.Moment([
+                    cirq.T.on(self.qubits[0]),
+                    cirq.T.on(self.qubits[2]) ** -1
+                ]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
+                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
+
+                cirq.Moment([cirq.H.on(self.target_qubit)])
+            ]
+
+            return moments
+
+
+        elif self.decomp_type == ToffoliDecompType.AN0_TD4_TC5_CX6:
+            # This is a CCZ, and the Hadamard can be placed anywhere,
+            # but by Cirq definition, the last qubit is the target
+
+            moments = [
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
+
+                cirq.Moment([
+                    cirq.T.on(self.qubits[1]),
+                    ]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
+                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+                cirq.Moment([
+                    cirq.T.on(self.qubits[0]),
+                    cirq.T.on(self.qubits[2]) ** -1
+                ]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
+                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
+
+                cirq.Moment([cirq.H.on(self.target_qubit)])
+            ]
+
+            return moments
+
+
+        elif self.decomp_type == ToffoliDecompType.AN0_TD3_TC4_CX6:
+            # This is a CCZ, and the Hadamard can be placed anywhere,
+            # but by Cirq definition, the last qubit is the target
+
+            moments = [
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
+
+                cirq.Moment([cirq.T.on(self.qubits[1])]),
+
+                cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
 
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
@@ -883,6 +949,9 @@ class ToffoliDecomposition():
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+            ToffoliDecompType.AN0_TD4_TC6_CX6,
+            ToffoliDecompType.AN0_TD4_TC5_CX6,
             ToffoliDecompType.AN0_TD3_TC4_CX6,
             ToffoliDecompType.TD_5_CXD_6,
             ToffoliDecompType.TD_4_CXD_8,

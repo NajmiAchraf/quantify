@@ -146,10 +146,13 @@ class QRAMCircuitBilan(QRAMCircuitCore):
         if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
 
             def calculate(i: int, j: int) -> 'tuple[str, str]':
-                modded_percent = format(((self._data_modded[i][j] / self._data[i][j]) * 100), ',.2f')
-                modded = str(self._data_modded[i][j]) + f"  ( {modded_percent} )"
-                cancelled_percent = format((100 - eval(modded_percent)), ',.2f')
-                cancelled = str(self._data[i][j] - self._data_modded[i][j]) + f"  ( {cancelled_percent} )"
+                modded_percent = (self._data_modded[i][j] / self._data[i][j]) * 100
+                modded_percent_str = format(modded_percent, ',.2f')
+                modded = str(self._data_modded[i][j]) + f"  ( {modded_percent_str} )"
+
+                cancelled_percent = 100.0 - modded_percent
+                cancelled_percent_str = format(cancelled_percent, ',.2f')
+                cancelled = str(self._data[i][j] - self._data_modded[i][j]) + f"  ( {cancelled_percent_str} )"
 
                 return modded, cancelled
 

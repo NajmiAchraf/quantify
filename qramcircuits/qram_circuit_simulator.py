@@ -80,7 +80,7 @@ class QRAMCircuitSimulator:
     __is_stress: bool = False
 
     __simulation_results: Union[DictProxy, dict]
-    __simulation_bilan: list = []
+    __simulation_bilan: 'list[str]' = []
 
     __bbcircuit: bb.BucketBrigade
     __bbcircuit_modded: bb.BucketBrigade
@@ -88,7 +88,7 @@ class QRAMCircuitSimulator:
     __decomp_scenario_modded: bb.BucketBrigadeDecompType
     __simulator: cirq.Simulator = cirq.Simulator()
 
-    def get_simulation_bilan(self) -> list:
+    def get_simulation_bilan(self) -> 'list[str]':
         """
         Returns the simulation bilan.
 
@@ -96,7 +96,7 @@ class QRAMCircuitSimulator:
             None
 
         Returns:
-            list: The simulation bilan.
+            'list[str]': The simulation bilan.
         """
 
         return self.__simulation_bilan
