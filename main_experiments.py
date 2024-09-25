@@ -34,6 +34,7 @@ def main():
     Main function for the QRAM circuit experiments.
     """
 
+    """ DEFAULT EXPERIMENT """
     # QRAMCircuitExperiments().bb_decompose_test(
     #     dec=ToffoliDecompType.NO_DECOMP,
     #     parallel_toffolis=False,
@@ -47,6 +48,37 @@ def main():
     #     reverse_moments=ReverseMoments.OUT_TO_IN
     # )
 
+    """ FIRST EXPERIMENT """
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.AN0_TD4_TC6_CX6,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
+    # )
+
+    """ SECOND EXPERIMENT """
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.AN0_TD4_TC5_CX6,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
+    # )
+
+    """ THIRD EXPERIMENT """
     QRAMCircuitExperiments().bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,

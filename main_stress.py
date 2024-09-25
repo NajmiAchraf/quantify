@@ -34,6 +34,32 @@ def main():
     Main function for the QRAM circuit stress
     """
 
+    """ 20 cores - 40T : 2s 800 ms * nbr combinations
+    1T : 40 combinations (2min 40s)
+    2T : 780 combinations (33min 20s)
+    3T : 9880 combinations (6h 53min 20s)
+    4T : 91390 combinations (2d 1h 43min 20s)
+    5T : 655200 combinations (7d 14h 40min)
+    6T : 3769920 combinations (43d 14h 40min)
+    7T : 17710040 combinations (4mo 1d 14h 40min)
+    8T : 70840320 combinations (1yr 1mo 1d 14h 40min)
+    9T : 248125560 combinations (3yr 10mo 1d 14h 40min)
+    10T: 775587120 combinations (12yr 3mo 1d 14h 40min)
+    11T: 2147418000 combinations (33yr 1mo 1d 14h 40min)
+    12T: 5368545000 combinations (82yr 1mo 1d 14h 40min)
+    13T: 12175663500 combinations (186yr 1mo 1d 14h 40min)
+    14T: 25140840600 combinations (384yr 1mo 1d 14h 40min)
+    15T: 47890098560 combinations (730yr 1mo 1d 14h 40min)
+    16T: 84884442625 combinations (1290yr 1mo 1d 14h 40min)
+    17T: 139197564450 combinations (2119yr 1mo 1d 14h 40min)
+    18T: 213458046575 combinations (3240yr 1mo 1d 14h 40min)
+    19T: 308585716355 combinations (4690yr 1mo 1d 14h 40min)
+    
+    20T: 424442148451 combinations (6450yr 1mo 1d 14h 40min)
+
+    
+    """
+
     QRAMCircuitStress(39).bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
@@ -48,7 +74,7 @@ def main():
         reverse_moments=ReverseMoments.OUT_TO_IN
     )
 
-    """ 20 cores : 2s 800 ms * nbr combinations
+    """ 20 cores - 28T : 2s 800 ms * nbr combinations
     1T : 28 combinations (1min 45s)
     2T : 378 combinations (17min 15s)
     3T : 3276 combinations (2h 32min 52s)

@@ -34,6 +34,45 @@ def main():
     Main function for the QRAM circuit bilan.
     """
 
+    """ FIRST BILAN """
+    # QRAMCircuitBilan().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+    #     parallel_toffolis=True,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.AN0_TD4_TC6_CX6,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
+    # )
+
+    """ SECOND BILAN """
+    # QRAMCircuitBilan().bb_decompose_test(
+    #     dec=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+    #     parallel_toffolis=True,
+
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.AN0_TD4_TC5_CX6,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
+
+    #     parallel_toffolis_mod=True,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
+    # )
+
+    """ THIRD BILAN """
     QRAMCircuitBilan().bb_decompose_test(
         dec=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
