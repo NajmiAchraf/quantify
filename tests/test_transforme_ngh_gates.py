@@ -13,8 +13,8 @@ def test_optimise_T_gate():
 
     # print("1", circ)
 
-    cncl = cnc.TransformeNghGates()
-    cncl.optimize_circuit(circ)
+    trans = cnc.TransformeNghGates()
+    trans.optimize_circuit(circ)
 
     # print("2", circ)
 
@@ -38,8 +38,8 @@ def test_optimise_1_T_gate():
 
     # print("1", circ)
 
-    cncl = cnc.TransformeNghGates()
-    cncl.optimize_circuit(circ)
+    trans = cnc.TransformeNghGates()
+    trans.optimize_circuit(circ)
 
     # print("2", circ)
 
@@ -63,8 +63,8 @@ def test_optimise_S_gate():
 
     # print("1", circ)
 
-    cncl = cnc.TransformeNghGates()
-    cncl.optimize_circuit(circ)
+    trans = cnc.TransformeNghGates()
+    trans.optimize_circuit(circ)
 
     # print("2", circ)
 
@@ -87,8 +87,8 @@ def test_optimise_1_S_gate():
 
     # print("1", circ)
 
-    cncl = cnc.TransformeNghGates()
-    cncl.optimize_circuit(circ)
+    trans = cnc.TransformeNghGates()
+    trans.optimize_circuit(circ)
 
     # print("2", circ)
 
