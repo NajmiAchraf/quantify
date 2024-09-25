@@ -57,7 +57,10 @@ def main():
     
     20T: 424442148451 combinations (6450yr 1mo 1d 14h 40min)
 
-    
+    ...
+
+    39T: 40 combinations (2min 40s)
+    40T: 1 combinations (2s 800 ms)
     """
 
     QRAMCircuitStress(39).bb_decompose_test(
