@@ -99,4 +99,4 @@ def test_optimise_1_S_gate():
 
     for moment in circ:
         for op in moment:
-            assert (op.gate == cirq.Z**-1)
+            assert (op.gate == cirq.Z)

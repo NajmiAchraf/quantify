@@ -64,9 +64,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         super().__init__()
 
         self.__nbr_combinations = nbr_combinations
-    
-    def __del__(self) -> None:
-        pass
 
     #######################################
     # core functions
@@ -83,6 +80,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         super()._core(nr_qubits=nr_qubits)
 
         self._simulate = tmp
+
+        if nr_qubits > 4:
+            self._simulate = False
 
         self._stress()
 
@@ -103,17 +103,22 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self._combinations = copy.deepcopy(combinations)
 
         if self._simulate:
-            # Use multiprocessing to parallelize the stress testing ###########################
+            if self._start_range_qubits == 2:
+                # Use multiprocessing to parallelize the stress testing #######################
+                with multiprocessing.Pool() as pool:
+                    results = pool.map(
+                        partial(
+                            self._stress_experiment
+                        ),
+                        combinations
+                    )
+                self.__length_combinations = len(results)
 
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._stress_experiment
-                    ),
-                    combinations
-                )
-
-            self.__length_combinations = len(results)
+            elif self._start_range_qubits == 3:
+                # Use concurrent futures to parallelize the stress testing #######################
+                for indices in combinations:
+                    self._stress_experiment(indices)
+                    self.__length_combinations += 1
 
         elif not self._simulate:
             for indices in combinations:
@@ -226,7 +231,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         if not os.path.exists(directory):
             os.makedirs(directory)
         time_elapsed = self._stop_time.replace(' ', '')
-        time_stamp = time.strftime("%Y%m%d-%H%M%S")
+        time_stamp_start = time.strftime("%Y%m%d-%H%M%S", time.localtime(self._start_time))
+        time_stamp_end = time.strftime("%Y%m%d-%H%M%S")
         # export in file
         with open(
             f"{directory}/stress"
@@ -236,7 +242,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             f"_{self.__length_combinations}tests"
             f"-{self._specific_simulation}"
             f"_{time_elapsed}"
-            f"_{time_stamp}.csv", "w") as file:
+            f"_{time_stamp_start}"
+            f"_{time_stamp_end}.csv", "w") as file:
             file.write(csv)
 
     #######################################

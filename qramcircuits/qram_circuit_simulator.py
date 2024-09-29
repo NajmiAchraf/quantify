@@ -701,7 +701,7 @@ class QRAMCircuitSimulator:
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
 
-        if not self.__is_stress:
+        if self.__qubits_number == 3 or not self.__is_stress:
 
             # reset the simulation results ########################################################
 

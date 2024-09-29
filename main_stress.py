@@ -63,19 +63,19 @@ def main():
     40T: 1 combinations (2s 800 ms)
     """
 
-    QRAMCircuitStress(39).bb_decompose_test(
-        dec=ToffoliDecompType.NO_DECOMP,
-        parallel_toffolis=False,
+    # QRAMCircuitStress(1).bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
 
-        dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-        ],
+    #     dec_mod=[
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+    #     ],
 
-        parallel_toffolis_mod=True,
-        reverse_moments=ReverseMoments.OUT_TO_IN
-    )
+    #     parallel_toffolis_mod=True,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN
+    # )
 
     """ 20 cores - 28T : 2s 800 ms * nbr combinations
     1T : 28 combinations (1min 45s)
@@ -110,19 +110,19 @@ def main():
     28T: 1 combinations (1s 630 ms)
     """
 
-    # QRAMCircuitStress(1).bb_decompose_test(
-    #     dec=ToffoliDecompType.NO_DECOMP,
-    #     parallel_toffolis=False,
+    QRAMCircuitStress(1).bb_decompose_test(
+        dec=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis=False,
 
-    #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #         ToffoliDecompType.AN0_TD3_TC4_CX6,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #     ],
+        dec_mod=[
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+            ToffoliDecompType.AN0_TD3_TC4_CX6,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+        ],
 
-    #     parallel_toffolis_mod=True,
-    #     reverse_moments=ReverseMoments.OUT_TO_IN
-    # )
+        parallel_toffolis_mod=True,
+        reverse_moments=ReverseMoments.OUT_TO_IN
+    )
 
 if __name__ == "__main__":
     main()

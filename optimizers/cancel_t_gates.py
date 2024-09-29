@@ -25,9 +25,6 @@ class CancelTGate():
         for key, value in self.T_operations.items():
             print(key, value)
 
-    def __del__(self):
-        pass
-
     def optimize_circuit(self, indices: 'tuple[int, ...]'):
         for index in indices:
             self.circuit.clear_operations_touching(
