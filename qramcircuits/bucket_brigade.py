@@ -1,6 +1,6 @@
 import cirq
-import concurrent.futures
 from enum import Enum, auto
+import multiprocessing
 import numpy as np
 
 import optimizers as qopt
@@ -277,19 +277,15 @@ class BucketBrigade():
         # Construct the fanout structure
         compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
 
-        # Parallelize the decomposition of Toffoli gates with ProcessPoolExecutor
-        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+        # Parallelize the decomposition of Toffoli gates with multiprocessing
+        with multiprocessing.Pool(processes=3) as pool:
             fanin_args = (compute_fanin_moments, self.decomp_scenario.dec_fan_in, [0, 1, 2])
             mem_args = (compute_memory_moments, self.decomp_scenario.dec_mem, [0, 2, 1])
             fanout_args = (compute_fanout_moments, self.decomp_scenario.dec_fan_out, [1, 0, 2])
 
-            futures = [
-                executor.submit(self.toffoli_gate_decomposer, *fanin_args),
-                executor.submit(self.toffoli_gate_decomposer, *mem_args),
-                executor.submit(self.toffoli_gate_decomposer, *fanout_args)
-            ]
+            circuits = pool.starmap(self.toffoli_gate_decomposer, [fanin_args, mem_args, fanout_args])
 
-        comp_fan_in, memory_decomposed, comp_fan_out = [future.result() for future in futures]
+        comp_fan_in, memory_decomposed, comp_fan_out = circuits
 
         # Link the circuits and apply the reverse moments
         circuit = self.reverse_and_link(comp_fan_in, memory_decomposed, comp_fan_out)
