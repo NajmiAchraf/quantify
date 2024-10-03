@@ -141,9 +141,9 @@ class QRAMCircuitSimulator:
 
         self.__is_stress = is_stress
 
-        if is_stress:
+        if is_stress and self.__qubits_number != 3:
             self.__print_sim = "Hide"
-        else:
+        elif not is_stress:
             self.__simulate_decompositions()
 
         self.__simulate_circuit()
@@ -709,7 +709,7 @@ class QRAMCircuitSimulator:
 
             # use thread to load the simulation ###################################################
 
-            if self.__print_sim == "Hide":
+            if self.__print_sim == "Hide" and not self.__is_stress:
                 stop_event = threading.Event()
                 loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
                 loading_thread.start()
@@ -730,7 +730,7 @@ class QRAMCircuitSimulator:
                             initial_state_modded=initial_state_modded),
                         range(start, stop, step))
             finally:
-                if self.__print_sim == "Hide":
+                if self.__print_sim == "Hide" and not self.__is_stress:
                     stop_event.set()
                     loading_thread.join()
 

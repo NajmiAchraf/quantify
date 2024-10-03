@@ -29,50 +29,11 @@ Arguments:
 # QRAM Circuit Bilan
 #######################################
 
-def main():
+def Bilan(QueryConfiguration: ToffoliDecompType) -> None:
     """
-    Main function for the QRAM circuit bilan.
+    Bilan function for the QRAM circuit bilan.
     """
 
-    """ FIRST BILAN """
-    # QRAMCircuitBilan().bb_decompose_test(
-    #     dec=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #     ],
-    #     parallel_toffolis=True,
-
-    #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #         ToffoliDecompType.AN0_TD4_TC6_CX6,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #     ],
-
-    #     parallel_toffolis_mod=True,
-    #     reverse_moments=ReverseMoments.OUT_TO_IN
-    # )
-
-    """ SECOND BILAN """
-    # QRAMCircuitBilan().bb_decompose_test(
-    #     dec=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #         ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #     ],
-    #     parallel_toffolis=True,
-
-    #     dec_mod=[
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #         ToffoliDecompType.AN0_TD4_TC5_CX6,
-    #         ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-    #     ],
-
-    #     parallel_toffolis_mod=True,
-    #     reverse_moments=ReverseMoments.OUT_TO_IN
-    # )
-
-    """ THIRD BILAN """
     QRAMCircuitBilan().bb_decompose_test(
         dec=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
@@ -83,7 +44,7 @@ def main():
 
         dec_mod=[
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-            ToffoliDecompType.AN0_TD3_TC4_CX6,
+            QueryConfiguration,
             ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
         ],
 
@@ -92,5 +53,22 @@ def main():
     )
 
 
+def main(T_Count: int) -> None:
+    """
+    Main function for the QRAM circuit bilan.
+    """
+
+    # FIRST BILAN : AN0_TD4_TC6_CX6
+    if T_Count == 6:
+        Bilan(ToffoliDecompType.AN0_TD4_TC6_CX6)
+
+    # SECOND BILAN : AN0_TD4_TC5_CX6
+    elif T_Count == 5:
+        Bilan(ToffoliDecompType.AN0_TD4_TC5_CX6)
+
+    # THIRD BILAN : AN0_TD3_TC4_CX6
+    elif T_Count == 4:
+        Bilan(ToffoliDecompType.AN0_TD3_TC4_CX6)
+
 if __name__ == "__main__":
-    main()
+    main(6)
