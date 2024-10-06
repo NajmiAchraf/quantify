@@ -1,12 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=3Q6TR1T
-#SBATCH --nodes=1
+#SBATCH --job-name=3Q7T1C
+#SBATCH --nodes=10
 #SBATCH --ntasks=1
-#SBATCH --mem=50G
+#SBATCH --mem=70G
+
+cd /home/achraf.najmi/quantify-lab/
 
 # Load Python environment
 module load Python/3.8.6-GCCcore-10.2.0
-source /home/achraf.najmi/quantify-lab/.venv/bin/activate
+source .venv/bin/activate
 
 # Run the Python script using srun across nodes
-srun python3 /home/achraf.najmi/quantify-lab/main_stress.py y h h 3 3
+srun python3 main_stress.py --simulate --start=3 --t_count=7 --t_cancel=1 --print_simulation=h

@@ -1,11 +1,10 @@
 import cirq
-import sys
 import time
 
 import concurrent.futures
 import threading
 
-from typing import Union
+from typing import Union, Literal
 
 import qramcircuits.bucket_brigade as bb
 
@@ -13,11 +12,12 @@ from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
+from utils.arg_parser import *
 from utils.counting_utils import *
 from utils.print_utils import *
 
 
-MSG0 = "Start range of qubits must be greater than 1"
+MSG0 = "Start range of qubits must be at least 2"
 MSG1 = "End range of qubits must be greater than start range of qubits or equal to it"
 MSG2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is full circuit"
 HELP: str = """
@@ -29,16 +29,15 @@ Run the following command in the terminal:
 
 or by adding arguments:
 
-    python3 main_*.py y p d 2 2
+    python3 main_*.py --simulate --print-circuit=p --print-simulation=f --start=2 --end=2 --specific=a
 
-Arguments:
-- arg 1: Simulate Toffoli decompositions and circuit (y/n).
-- arg 2: (P) print or (D) display or (H) hide circuits.
-- arg 3: (F) full simulation or (D) just dots or (H) hide the simulation.
-- arg 4: Start range of qubits, starting from 2.
-- arg 5: End range of qubits, should be equal to or greater than the start range.
-- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, t).
-    leave it empty to simulate the full circuit.
+Arguments (optional):
+    --simulate: Simulate Toffoli decompositions and circuit (flag, no value needed).
+    --print-circuit: (p) print or (d) display or (h) hide circuits.
+    --print-simulation: (f) full simulation or (d) just dots or (l) loading or (h) hide the simulation.
+    --start: Start range of qubits, starting from 2.
+    --end: End range of qubits, should be equal to or greater than the start range.
+    --specific: Specific simulation (a, b, m, ab, bm, abm, t). by default simulate the full circuit
 """
 
 
@@ -82,12 +81,16 @@ class QRAMCircuitCore:
         __core(): Core function of the experiment.
     """
 
+    type_print_circuit = Literal["Print", "Display", "Hide"]
+    type_print_sim = Literal["Dot", "Full", "Loading", "Hide"]
+    type_specific_simulation = Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]
+
     _simulate: bool = False
-    _print_circuit: str = "Hide"
-    _print_sim: str = "Hide"
+    _print_circuit: type_print_circuit = "Hide"
+    _print_sim: type_print_sim = "Hide"
     _start_range_qubits: int
-    _end_range_qubits: int
-    _specific_simulation: str = "full"
+    _end_range_qubits: int = 0
+    _specific_simulation: type_specific_simulation = "full"
 
     _start_time: float = 0
     _stop_time: str = ""
@@ -111,7 +114,6 @@ class QRAMCircuitCore:
         except Exception as e:
             colpr("r", "\n", str(e), end="\n")
             colpr("y", HELP, end="\n\n")
-            self.__get_input__()
     
         self.__print_input__()
 
@@ -137,106 +139,39 @@ class QRAMCircuitCore:
             colpr("c", sim_msg)
         print("\n")
 
+    
     def __arg_input__(self) -> None:
         """
-        Gets the input arguments for the experiment.
+        Gets the input arguments for the experiment using argparse.
         """
 
-        LEN_ARGV = 6
+        args = parser_args("core").parse_known_args()[0]
 
-        # check if the number of arguments is valid
-        if len(sys.argv) not in {LEN_ARGV, LEN_ARGV + 1}:
-            raise ValueError("Invalid number of arguments")
-
-        # Simulate Toffoli decompositions and circuit (y/n)
-        self._simulate = sys.argv[1].lower() in ["y", "yes"]
+        # Simulate Toffoli decompositions and circuit
+        self._simulate = args.simulate
 
         # (P) print or (D) display or (H) hide circuits
-        circuit_options = {"p": "Print", "d": "Display"}
-        self._print_circuit = circuit_options.get(sys.argv[2].lower(), "Hide")
-
+        circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
+        self._print_circuit = circuit_options[args.print_circuit]
+    
         # (F) full simulation or (D) just dots or (H) hide the simulation
-        sim_options = {"d": "Dot", "f": "Full"}
-        self._print_sim = sim_options.get(sys.argv[3].lower(), "Hide")
+        sim_options = {"d": "Dot", "f": "Full", 'l': "Loading", "h": "Hide"}
+        self._print_sim = sim_options[args.print_simulation]
 
         # Start range of qubits, starting from 2
-        self._start_range_qubits = int(sys.argv[4])
-        if self._start_range_qubits < 2:
+        self._start_range_qubits = args.start
+        if self._start_range_qubits < 2 or 16 < self._start_range_qubits :
             raise ValueError(MSG0)
 
         # End range of qubits, should be equal to or greater than the start range
-        self._end_range_qubits = int(sys.argv[5])
-        if self._end_range_qubits < self._start_range_qubits:
+        self._end_range_qubits = args.end
+        if self._end_range_qubits == 0:
             self._end_range_qubits = self._start_range_qubits
+        elif self._end_range_qubits < self._start_range_qubits:
+            raise ValueError(MSG1)
 
         # Specific simulation (a, b, m, ab, bm, abm, t) by default it is full circuit
-        if len(sys.argv) == LEN_ARGV + 1 and self._simulate:
-            if sys.argv[6] not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
-                raise ValueError(MSG2)
-            self._specific_simulation = sys.argv[6]
-        else:
-            self._specific_simulation = "full"
-
-    def __get_input__(self) -> None:
-        """
-        Gets user input for the experiment.
-        """
-
-        # Simulate Toffoli decompositions and circuit (y/n)
-        while True:
-            user_input = input("Simulate Toffoli decompositions and circuit? (y/n): ").lower()
-            if user_input in ["y", "yes"]:
-                self._simulate = True
-                break
-            elif user_input in ["n", "no"]:
-                self._simulate = False
-                break
-            else:
-                print("Invalid input. Please enter 'y' or 'n'.")
-
-        # (P) print or (D) display or (H) hide circuits
-        while True:
-            var = input("(p) print or (d) display or (h) hide circuits: ").lower()
-            if var in ["p", "d", "h"]:
-                self._print_circuit = {"p": "Print", "d": "Display", "h": "Hide"}[var]
-                break
-            else:
-                print("Invalid input. Please enter 'p', 'd', or 'h'.")
-
-        # (F) full simulation or (D) just dots or (H) hide the simulation
-        if self._simulate:
-            while True:
-                user_input = input("Print the full simulation result (f) or just the dot (d) or hide (h)? ").lower()
-                if user_input in ["f", "d", "h"]:
-                    self._print_sim = {"f": "Full", "d": "Dot", "h": "Hide"}[user_input]
-                    break
-                else:
-                    print("Invalid input. Please enter 'f', 'd', or 'h'.")
-
-        # Start range of qubits, starting from 2
-        self._start_range_qubits = int(input("Start range of qubits: "))
-        while self._start_range_qubits < 2:
-            colpr("r", MSG0, end="\n\n")
-            self._start_range_qubits = int(input("Start range of qubits: "))
-
-        # End range of qubits, should be equal to or greater than the start range
-        self._end_range_qubits = int(input("End range of qubits: "))
-        while self._end_range_qubits < self._start_range_qubits:
-            colpr("r", MSG1, end="\n\n")
-            self._end_range_qubits = int(input("End range of qubits: "))
-
-        # Specific simulation (a, b, m, ab, bm, abm, t) by default it is full circuit
-        if self._simulate:
-            while True:
-                user_input = input("Simulate specific measurement for specific qubits wires? (y/n): ").lower()
-                if user_input in ["y", "yes"]:
-                    while self._specific_simulation not in ['a', 'b', 'm', "ab", "bm", "abm", "t"]:
-                        self._specific_simulation = input("Choose specific qubits wires (a, b, m, ab, bm, abm, t): ").lower()
-                    break
-                elif user_input in ["n", "no"]:
-                    break
-                else:
-                    print("Invalid input. Please enter 'y' or 'n'.")
+        self._specific_simulation = args.specific
 
     #######################################
     # decomposition methods

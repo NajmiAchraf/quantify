@@ -79,6 +79,8 @@ class QRAMCircuitSimulator:
     __simulation_kind: str = "dec"
     __is_stress: bool = False
 
+    __lock = multiprocessing.Lock()
+
     __simulation_results: Union[DictProxy, dict]
     __simulation_bilan: 'list[str]' = []
 
@@ -141,7 +143,7 @@ class QRAMCircuitSimulator:
 
         self.__is_stress = is_stress
 
-        if is_stress and self.__qubits_number != 3:
+        if is_stress:
             self.__print_sim = "Hide"
         elif not is_stress:
             self.__simulate_decompositions()
@@ -287,7 +289,7 @@ class QRAMCircuitSimulator:
         self.__simulation_results = multiprocessing.Manager().dict()
 
         # use thread to load the simulation ###################################################
-        if self.__print_sim == "Hide":
+        if self.__print_sim == "Loading":
             stop_event = threading.Event()
             loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
             loading_thread.start()
@@ -307,7 +309,7 @@ class QRAMCircuitSimulator:
                         initial_state_modded=initial_state_modded),
                     range(start, stop, step))
         finally:
-            if self.__print_sim == "Hide":
+            if self.__print_sim == "Loading":
                 stop_event.set()
                 loading_thread.join()
 
@@ -709,7 +711,7 @@ class QRAMCircuitSimulator:
 
             # use thread to load the simulation ###################################################
 
-            if self.__print_sim == "Hide" and not self.__is_stress:
+            if self.__print_sim == "Loading":
                 stop_event = threading.Event()
                 loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
                 loading_thread.start()
@@ -730,7 +732,7 @@ class QRAMCircuitSimulator:
                             initial_state_modded=initial_state_modded),
                         range(start, stop, step))
             finally:
-                if self.__print_sim == "Hide" and not self.__is_stress:
+                if self.__print_sim == "Loading":
                     stop_event.set()
                     loading_thread.join()
 
@@ -740,7 +742,7 @@ class QRAMCircuitSimulator:
 
             self.__simulation_results = {}
 
-            # Use multiprocessing to parallelize the simulation ###################################
+            # simulation is not parallelized ######################################################
 
             results: 'list[tuple[int, int, int]]' = []
             for i in range(start, stop, step):
@@ -878,22 +880,25 @@ class QRAMCircuitSimulator:
                         )
             except AssertionError:
                 fail += 1
-                if self.__print_sim in ["Full", "Dot"]:
-                    colpr("r", "•", end="")
-                if self.__print_sim == "Full":
-                    self.__simulation_results[i] = ['r', result, result_modded]
+                with self.__lock:
+                    if self.__print_sim in ["Full", "Dot"]:
+                        colpr("r", "•", end="")
+                    if self.__print_sim == "Full":
+                        self.__simulation_results[i] = ['r', result, result_modded]
             else:
                 success_measurements += 1
-                if self.__print_sim in ["Full", "Dot"]:
-                    colpr("b", "•", end="")
-                if self.__print_sim == "Full":
-                    self.__simulation_results[i] = ['b', result, result_modded]
+                with self.__lock:
+                    if self.__print_sim in ["Full", "Dot"]:
+                        colpr("b", "•", end="")
+                    if self.__print_sim == "Full":
+                        self.__simulation_results[i] = ['b', result, result_modded]
         else:
             success_vector += 1
-            if self.__print_sim in ["Full", "Dot"]:
-                colpr("g", "•", end="")
-            if self.__print_sim == "Full":
-                self.__simulation_results[i] = ['g', result, result_modded]
+            with self.__lock:
+                if self.__print_sim in ["Full", "Dot"]:
+                    colpr("g", "•", end="")
+                if self.__print_sim == "Full":
+                    self.__simulation_results[i] = ['g', result, result_modded]
 
         return fail, success_measurements, success_vector
 
@@ -944,7 +949,7 @@ class QRAMCircuitSimulator:
 
             colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
 
-        if self.__print_sim in ["Hide", "Dot"]:
+        if self.__print_sim != "Full":
             return
 
         if self.__simulation_kind == 'dec':

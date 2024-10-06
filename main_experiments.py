@@ -1,6 +1,11 @@
+from typing import Tuple
+
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
+
+from utils.arg_parser import *
+from utils.print_utils import *
 
 
 """
@@ -12,22 +17,25 @@ Run the following command in the terminal:
 
 or by adding arguments:
 
-    python3 main_experiments.py y p d 2 2
+    python3 main__main_experiments.py --t_count=7 --simulate --print-circuit=p --print-simulation=f --start=2 --end=2 --specific=a
 
 Arguments:
-- arg 1: Simulate Toffoli decompositions and circuit (y/n).
-- arg 2: (P) print or (D) display or (H) hide circuits.
-- arg 3: (F) full simulation or (D) just dots or (H) hide the simulation.
-- arg 4: Start range of qubits, starting from 2.
-- arg 5: End range of qubits, should be equal to or greater than the start range.
-- additional arg 6: Specific simulation (a, b, m, ab, bm, abm, t).
-    leave it empty to simulate the full circuit.
+    --t_count: The T count for the QueryConfiguration.
+
+Arguments (optional):
+    --simulate: Simulate Toffoli decompositions and circuit (flag, no value needed).
+    --print-circuit: (p) print or (d) display or (h) hide circuits.
+    --print-simulation: (f) full simulation or (d) just dots or (l) loading or (h) hide the simulation.
+    --start: Start range of qubits, starting from 2.
+    --end: End range of qubits, should be equal to or greater than the start range.
+    --specific: Specific simulation (a, b, m, ab, bm, abm, t). by default simulate the full circuit
 """
 
 
 #######################################
 # QRAM Circuit Experiments
 #######################################
+
 
 def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
     """
@@ -48,10 +56,32 @@ def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
     )
 
 
-def main(T_Count: int) -> None:
+def parse_args() -> Tuple[int, int]:
+    """
+    Parse the arguments for the experiments.
+    """
+
+    args = parser_args("experiment").parse_args()
+    print(args)
+
+    # T count for the stress test between 4 and 7
+    T_Count = args.t_count
+    if not (4 <= T_Count <= 7):
+        raise ValueError("The T count should be between 4 and 7.")
+
+    return T_Count
+
+
+def main() -> int:
     """
     Main function for the QRAM circuit experiments.
     """
+
+    try:
+        T_Count = parse_args()
+    except ValueError as e:
+        colpr("r", f"Error: {e}")
+        return 1
 
     # DEFAULT EXPERIMENT : AN0_TD4_TC7_CX6
     if T_Count == 7:
@@ -69,5 +99,6 @@ def main(T_Count: int) -> None:
     elif T_Count == 4:
         Experiment(ToffoliDecompType.AN0_TD3_TC4_CX6)
 
+
 if __name__ == "__main__":
-    main(7)
+    main()
