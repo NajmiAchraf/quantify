@@ -3,7 +3,7 @@ import cirq.optimizers
 import math
 import numpy as np
 import time
-from typing import Union
+from typing import Union, Literal
 
 from functools import partial
 import multiprocessing
@@ -72,11 +72,16 @@ class QRAMCircuitSimulator:
         __print_simulation_results(): Prints the simulation results.
     """
 
-    __specific_simulation: str
+    type_print_circuit = Literal["Print", "Display", "Hide"]
+    type_print_sim = Literal["Dot", "Full", "Loading", "Hide"]
+    type_specific_simulation = Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]
+    type_simulation_kind = Literal["bb", "dec"]
+
+    __specific_simulation: type_specific_simulation
     __qubits_number: int
-    __print_circuit: str
-    __print_sim: str
-    __simulation_kind: str = "dec"
+    __print_circuit: type_print_circuit
+    __print_sim: type_print_sim
+    __simulation_kind: type_simulation_kind = "dec"
     __is_stress: bool = False
 
     __lock = multiprocessing.Lock()
