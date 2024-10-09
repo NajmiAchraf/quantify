@@ -56,7 +56,8 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             self._specific_simulation,
             self._start_range_qubits,
             self._print_circuit,
-            self._print_sim
+            self._print_sim,
+            self._hpc
         )
 
         if not self._simulate:

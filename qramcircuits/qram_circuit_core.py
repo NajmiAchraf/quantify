@@ -85,6 +85,7 @@ class QRAMCircuitCore:
     type_print_sim = Literal["Dot", "Full", "Loading", "Hide"]
     type_specific_simulation = Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]
 
+    _hpc: bool = False
     _simulate: bool = False
     _print_circuit: type_print_circuit = "Hide"
     _print_sim: type_print_sim = "Hide"
@@ -139,13 +140,15 @@ class QRAMCircuitCore:
             colpr("c", sim_msg)
         print("\n")
 
-    
     def __arg_input__(self) -> None:
         """
         Gets the input arguments for the experiment using argparse.
         """
 
         args = parser_args("core").parse_known_args()[0]
+
+        # High Performance Computing (HPC) mode
+        self._hpc = args.hpc
 
         # Simulate Toffoli decompositions and circuit
         self._simulate = args.simulate

@@ -7,3 +7,4 @@ experimental
 .vscode/
 **/data
 .message*
+*.txt

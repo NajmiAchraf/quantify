@@ -3,10 +3,12 @@ import copy
 import itertools
 import os
 import time
+import numpy as np
 
 from functools import partial
 import multiprocessing
 from multiprocessing.managers import DictProxy
+from concurrent.futures import ThreadPoolExecutor
 
 import optimizers as qopt
 
@@ -56,7 +58,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
     __length_combinations: int = 0
     __nbr_combinations: int = 1
-    __t_count: int = 4
+    __t_count: int = 2
 
     __lock = multiprocessing.Lock()
 
@@ -102,7 +104,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         self._combinations = copy.deepcopy(combinations)
 
-        if self._simulate:
+        if self._simulate and not self._hpc:
             if self._start_range_qubits == 2:
                 # Use multiprocessing to parallelize the stress testing #######################
                 with multiprocessing.Pool() as pool:
@@ -120,11 +122,64 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
                     self._stress_experiment(indices)
                     self.__length_combinations += 1
 
+            self.__extract_results()
+
+        elif self._simulate and self._hpc:
+
+            from mpi4py import MPI
+            # Initialize MPI
+            comm = MPI.COMM_WORLD
+            rank = comm.Get_rank()
+            size = comm.Get_size()
+            
+            # Determine the range of work for this MPI process
+            # print("rank, size : ", rank, size)
+            total_work = list(copy.deepcopy(combinations))
+            
+            # Split the total work into chunks based on the number of ranks
+            work_chunks = np.array_split(total_work, size)
+            local_work = work_chunks[rank] if rank < len(work_chunks) else []
+            
+            # print("rank, local_work : ", rank, local_work)
+
+            result = []
+            for indices in combinations:
+                self.__length_combinations += 1
+                if indices in local_work:
+                    result.append(self._stress_experiment(indices))
+
+            # for item in result:
+            #     for map_name, value in item.items():
+            #         print(f"rank, map_name, value : {rank}, {map_name}, {value}")
+
+            # Ensure results are serializable
+            serializable_result = {map_name: value for item in result for map_name, value in item.items()}
+            # print(f"rank, serializable_result : {rank}, {serializable_result}")
+
+            # Gather results from all MPI processes
+            results = comm.gather(serializable_result, root=0)
+
+            if rank == 0:
+                for item in results:
+                    for map_name, value in item.items():
+                        # print(f"map_name, value : {map_name}, {value}")
+                        if len(value) != 0:
+                            self._stress_bilan[map_name] = value
+
+                self.__extract_results()
+
         elif not self._simulate:
             for indices in combinations:
                 time.sleep(0.5)
                 self._stress_experiment(indices)
                 self.__length_combinations += 1
+
+            self.__extract_results()
+
+    def __extract_results(self) -> None:
+        """
+        Extract the results.
+        """
 
         self._stop_time = elapsed_time(self._start_time)
 
@@ -149,7 +204,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         return qopt.CancelTGate(circuit, qubit_order).optimize_circuit(indices)
 
-    def _stress_experiment(self, indices: 'tuple[int, ...]') -> None:
+    def _stress_experiment(self, indices: 'tuple[int, ...]') -> 'DictProxy[str, list[str]]':
         """
         Stress experiment for the bucket brigade circuit.
 
@@ -161,7 +216,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         with self.__lock:
             colpr("w", "\nLoading stress experiment with T gate indices:", end=" ")
             colpr("r", ' '.join(map(str, indices)), end="\n\n")
-        
 
         self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
         self._bbcircuit_modded.circuit = copy.deepcopy(self.__circuit_modded_save)
@@ -180,6 +234,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             colpr("r", ' '.join(map(str, indices)), end="\n")
             colpr("w", "Time elapsed:", end=" ")
             colpr("r", elapsed, end="\n\n")
+
+        return self._stress_bilan
 
     #######################################
     # print and export bilan methods

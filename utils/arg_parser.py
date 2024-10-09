@@ -23,6 +23,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
     if qram_type != "core":
         parser.add_argument("--t_count", type=int, required=True, help="The T count for the QueryConfiguration.")
 
+    parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC")
     parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit")
     parser.add_argument('--print_circuit', type=str, choices=['p', 'd', 'h'], nargs='?', default="h",
                         help="(p) print or (d) display or (h) hide circuits")

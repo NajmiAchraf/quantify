@@ -83,6 +83,7 @@ class QRAMCircuitSimulator:
     __print_sim: type_print_sim
     __simulation_kind: type_simulation_kind = "dec"
     __is_stress: bool = False
+    __hpc: bool
 
     __lock = multiprocessing.Lock()
 
@@ -115,7 +116,8 @@ class QRAMCircuitSimulator:
             specific_simulation: str,
             qubits_number: int,
             print_circuit: str,
-            print_sim: str
+            print_sim: str,
+            hpc: bool
         ) -> None:
         """
         Constructor of the CircuitSimulator class.
@@ -140,6 +142,7 @@ class QRAMCircuitSimulator:
         self.__qubits_number = qubits_number
         self.__print_circuit = print_circuit
         self.__print_sim = print_sim
+        self.__hpc = hpc
 
     def _run_simulation(self, is_stress: bool = False) -> None:
         """
@@ -695,6 +698,7 @@ class QRAMCircuitSimulator:
         # prints ##############################################################################
 
         if not self.__is_stress:
+
             name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
 
             colpr("y", '\n', message, end="\n\n")
@@ -707,12 +711,13 @@ class QRAMCircuitSimulator:
 
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
-
-        if self.__qubits_number == 3 or not self.__is_stress:
+        if self.__hpc or self.__qubits_number == 3 or not self.__is_stress:
 
             # reset the simulation results ########################################################
 
             self.__simulation_results = multiprocessing.Manager().dict()
+            if self.__hpc:
+                self.__simulation_results = {}
 
             # use thread to load the simulation ###################################################
 

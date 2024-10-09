@@ -8,30 +8,6 @@ from utils.arg_parser import *
 from utils.print_utils import *
 
 
-"""
-How to run the main_bilan.py file:
-
-Run the following command in the terminal:
-
-    python3 main_bilan.py
-
-or by adding arguments:
-
-    python3 main__main_bilan.py --t_count=7 --simulate --print-circuit=p --print-simulation=f --start=2 --end=2 --specific=a
-
-Arguments:
-    --t_count: The T count for the QueryConfiguration.
-
-Arguments (optional):
-    --simulate: Simulate Toffoli decompositions and circuit (flag, no value needed).
-    --print-circuit: (p) print or (d) display or (h) hide circuits.
-    --print-simulation: (f) full simulation or (d) just dots or (l) loading or (h) hide the simulation.
-    --start: Start range of qubits, starting from 2.
-    --end: End range of qubits, should be equal to or greater than the start range.
-    --specific: Specific simulation (a, b, m, ab, bm, abm, t). by default simulate the full circuit
-"""
-
-
 #######################################
 # QRAM Circuit Bilan
 #######################################
