@@ -8,7 +8,6 @@ import numpy as np
 from functools import partial
 import multiprocessing
 from multiprocessing.managers import DictProxy
-from concurrent.futures import ThreadPoolExecutor
 
 import optimizers as qopt
 
@@ -93,100 +92,117 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Stress experiment for the bucket brigade circuit.
         """
 
-        self.__circuit_save = copy.deepcopy(self._bbcircuit.circuit)
-        self.__circuit_modded_save = copy.deepcopy(self._bbcircuit_modded.circuit)
-
-        self.__t_count = count_t_of_circuit(self.__circuit_modded_save)
-
+        self.__initialize_circuits()
         self._start_time = time.time()
-
-        combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
-
-        self._combinations = copy.deepcopy(combinations)
+        combinations = self.__generate_combinations()
 
         if self._simulate and not self._hpc:
-            if self._start_range_qubits == 2:
-                # Use multiprocessing to parallelize the stress testing #######################
-                with multiprocessing.Pool() as pool:
-                    results = pool.map(
-                        partial(
-                            self._stress_experiment
-                        ),
-                        combinations
-                    )
-                self.__length_combinations = len(results)
-
-            elif self._start_range_qubits == 3:
-                # Use concurrent futures to parallelize the stress testing #######################
-                for indices in combinations:
-                    self._stress_experiment(indices)
-                    self.__length_combinations += 1
-
-            self.__extract_results()
-
+            self.__simulate_local(combinations)
         elif self._simulate and self._hpc:
+            self.__simulate_hpc(combinations)
+        elif not self._simulate and not self._hpc:
+            self.__run_non_simulation(combinations)
 
-            from mpi4py import MPI
-            # Initialize MPI
-            comm = MPI.COMM_WORLD
-            rank = comm.Get_rank()
-            size = comm.Get_size()
-            
-            # Determine the range of work for this MPI process
-            # print("rank, size : ", rank, size)
-            total_work = list(copy.deepcopy(combinations))
-            
-            # Split the total work into chunks based on the number of ranks
-            work_chunks = np.array_split(total_work, size)
-            local_work = work_chunks[rank] if rank < len(work_chunks) else []
-            
-            # print("rank, local_work : ", rank, local_work)
+    def __initialize_circuits(self):
+        self.__circuit_save = copy.deepcopy(self._bbcircuit.circuit)
+        self.__circuit_modded_save = copy.deepcopy(self._bbcircuit_modded.circuit)
+        self.__t_count = count_t_of_circuit(self.__circuit_modded_save)
 
-            result = []
-            for indices in combinations:
+    def __generate_combinations(self):
+        combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
+        self._combinations = copy.deepcopy(combinations)
+        return combinations
+
+    def __simulate_local(self, combinations):
+        if self._start_range_qubits == 2:
+            self.__simulate_with_multiprocessing(combinations)
+        elif self._start_range_qubits == 3:
+            self.__simulate_sequentially(combinations)
+        self.__extract_results()
+
+    def __simulate_with_multiprocessing(self, combinations):
+        """
+        Use multiprocessing to parallelize the stress testing
+        """
+
+        with multiprocessing.Pool() as pool:
+            results = pool.map(partial(self._stress_experiment), combinations)
+        self.__length_combinations = len(results)
+
+    def __simulate_sequentially(self, combinations):
+        """
+        On each combination, we use multiprocessing to parallelize the stress testing
+        """
+
+        for indices in combinations:
+            self._stress_experiment(indices)
+            self.__length_combinations += 1
+
+    def __simulate_hpc(self, combinations):
+        """
+        Use MPI to parallelize the stress testing
+        """
+
+        from mpi4py import MPI
+
+        # Initialize MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+
+        # Determine the range of work for this MPI process
+        # print("rank, size : ", rank, size)
+        total_work = list(copy.deepcopy(combinations))
+
+        # Split the total work into chunks based on the number of ranks
+        work_chunks = np.array_split(total_work, size)
+        local_work = work_chunks[rank] if rank < len(work_chunks) else []
+
+        # print("rank, local_work : ", rank, local_work)
+
+        result = []
+        for indices in local_work:
+            result.append(self._stress_experiment(indices))
+
+        # for item in result:
+        #     for map_name, value in item.items():
+        #         print(f"rank, map_name, value : {rank}, {map_name}, {value}")
+
+        # Ensure results are serializable
+        serializable_result = {map_name: value for item in result for map_name, value in item.items()}
+        # print(f"rank, serializable_result : {rank}, {serializable_result}")
+
+        # Gather results from all MPI processes
+        results = comm.gather(serializable_result, root=0)
+
+        if rank == 0:
+            for _ in combinations:
                 self.__length_combinations += 1
-                if indices in local_work:
-                    result.append(self._stress_experiment(indices))
 
-            # for item in result:
-            #     for map_name, value in item.items():
-            #         print(f"rank, map_name, value : {rank}, {map_name}, {value}")
-
-            # Ensure results are serializable
-            serializable_result = {map_name: value for item in result for map_name, value in item.items()}
-            # print(f"rank, serializable_result : {rank}, {serializable_result}")
-
-            # Gather results from all MPI processes
-            results = comm.gather(serializable_result, root=0)
-
-            if rank == 0:
-                for item in results:
-                    for map_name, value in item.items():
-                        # print(f"map_name, value : {map_name}, {value}")
-                        if len(value) != 0:
-                            self._stress_bilan[map_name] = value
-
-                self.__extract_results()
-
-        elif not self._simulate:
-            for indices in combinations:
-                time.sleep(0.5)
-                self._stress_experiment(indices)
-                self.__length_combinations += 1
+            for item in results:
+                for map_name, value in item.items():
+                    # print(f"map_name, value : {map_name}, {value}")
+                    if len(value) != 0:
+                        self._stress_bilan[map_name] = value
 
             self.__extract_results()
 
-    def __extract_results(self) -> None:
+    def __run_non_simulation(self, combinations):
+        for indices in combinations:
+            time.sleep(0.5)
+            self._stress_experiment(indices)
+            self.__length_combinations += 1
+        self.__extract_results()
+
+    def __extract_results(self):
         """
         Extract the results.
         """
 
         self._stop_time = elapsed_time(self._start_time)
-
         if self._simulate:
             self.__print_bilan()
             self.__export_bilan()
-
         print(f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {self._stop_time}", end="\n\n")
 
     def __cancel_t_gates(self, circuit: cirq.Circuit, qubit_order: 'list[cirq.Qid]', indices: 'tuple[int, ...]') -> cirq.Circuit:

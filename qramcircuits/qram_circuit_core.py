@@ -20,25 +20,6 @@ from utils.print_utils import *
 MSG0 = "Start range of qubits must be at least 2"
 MSG1 = "End range of qubits must be greater than start range of qubits or equal to it"
 MSG2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is full circuit"
-HELP: str = """
-How to run the main_*.py file:
-
-Run the following command in the terminal:
-
-    python3 main_*.py
-
-or by adding arguments:
-
-    python3 main_*.py --simulate --print-circuit=p --print-simulation=f --start=2 --end=2 --specific=a
-
-Arguments (optional):
-    --simulate: Simulate Toffoli decompositions and circuit (flag, no value needed).
-    --print-circuit: (p) print or (d) display or (h) hide circuits.
-    --print-simulation: (f) full simulation or (d) just dots or (l) loading or (h) hide the simulation.
-    --start: Start range of qubits, starting from 2.
-    --end: End range of qubits, should be equal to or greater than the start range.
-    --specific: Specific simulation (a, b, m, ab, bm, abm, t). by default simulate the full circuit
-"""
 
 
 #######################################
@@ -114,7 +95,7 @@ class QRAMCircuitCore:
             self.__arg_input__()
         except Exception as e:
             colpr("r", "\n", str(e), end="\n")
-            colpr("y", HELP, end="\n\n")
+            exit(1)
     
         self.__print_input__()
 
@@ -149,6 +130,11 @@ class QRAMCircuitCore:
 
         # High Performance Computing (HPC) mode
         self._hpc = args.hpc
+        if self._hpc:
+            try:
+                import mpi4py
+            except ImportError:
+                raise ImportError("mpi4py is not installed. Please install it to run the experiment in HPC mode.")
 
         # Simulate Toffoli decompositions and circuit
         self._simulate = args.simulate
@@ -156,7 +142,7 @@ class QRAMCircuitCore:
         # (P) print or (D) display or (H) hide circuits
         circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
         self._print_circuit = circuit_options[args.print_circuit]
-    
+
         # (F) full simulation or (D) just dots or (H) hide the simulation
         sim_options = {"d": "Dot", "f": "Full", 'l': "Loading", "h": "Hide"}
         self._print_sim = sim_options[args.print_simulation]
