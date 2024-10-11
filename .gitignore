@@ -8,3 +8,4 @@ experimental
 **/data
 .message*
 *.txt
+*.sh
