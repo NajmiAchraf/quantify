@@ -32,32 +32,12 @@ def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
     )
 
 
-def parse_args() -> Tuple[int, int]:
-    """
-    Parse the arguments for the experiments.
-    """
-
-    args = parser_args("experiment").parse_args()
-    print(args)
-
-    # T count for the stress test between 4 and 7
-    T_Count = args.t_count
-    if not (4 <= T_Count <= 7):
-        raise ValueError("The T count should be between 4 and 7.")
-
-    return T_Count
-
-
 def main() -> int:
     """
     Main function for the QRAM circuit experiments.
     """
 
-    try:
-        T_Count = parse_args()
-    except ValueError as e:
-        colpr("r", f"Error: {e}")
-        return 1
+    T_Count = parser_args("experiment").parse_args().t_count
 
     # DEFAULT EXPERIMENT : AN0_TD4_TC7_CX6
     if T_Count == 7:

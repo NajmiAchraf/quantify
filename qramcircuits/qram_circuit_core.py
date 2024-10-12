@@ -17,11 +17,6 @@ from utils.counting_utils import *
 from utils.print_utils import *
 
 
-MSG0 = "Start range of qubits must be at least 2"
-MSG1 = "End range of qubits must be greater than start range of qubits or equal to it"
-MSG2 = "Specific simulation must be (a, b, m, ab, bm, abm, t), by default it is full circuit"
-
-
 #######################################
 # QRAM Circuit Core
 #######################################
@@ -134,30 +129,19 @@ class QRAMCircuitCore:
             try:
                 import mpi4py
             except ImportError:
-                raise ImportError("mpi4py is not installed. Please install it to run the experiment in HPC mode.")
+                raise RuntimeError("mpi4py is not installed. Please install it to run the experiment in HPC mode.")
 
         # Simulate Toffoli decompositions and circuit
         self._simulate = args.simulate
 
         # (P) print or (D) display or (H) hide circuits
-        circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
-        self._print_circuit = circuit_options[args.print_circuit]
+        self._print_circuit = args.print_circuit
 
         # (F) full simulation or (D) just dots or (H) hide the simulation
-        sim_options = {"d": "Dot", "f": "Full", 'l': "Loading", "h": "Hide"}
-        self._print_sim = sim_options[args.print_simulation]
+        self._print_sim = args.print_simulation
 
-        # Start range of qubits, starting from 2
-        self._start_range_qubits = args.start
-        if self._start_range_qubits < 2 or 16 < self._start_range_qubits :
-            raise ValueError(MSG0)
-
-        # End range of qubits, should be equal to or greater than the start range
-        self._end_range_qubits = args.end
-        if self._end_range_qubits == 0:
-            self._end_range_qubits = self._start_range_qubits
-        elif self._end_range_qubits < self._start_range_qubits:
-            raise ValueError(MSG1)
+        # Start and end range of qubits
+        self._start_range_qubits, self._end_range_qubits = args.qubit_range
 
         # Specific simulation (a, b, m, ab, bm, abm, t) by default it is full circuit
         self._specific_simulation = args.specific
