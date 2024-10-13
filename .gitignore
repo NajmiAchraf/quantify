@@ -1,11 +1,12 @@
 .idea/
 .venv/
+.vscode/
 __pycache__
+data/
+output/
 experimental
+.message*
 **/*.out
 *.pdf
-.vscode/
-**/data
-.message*
 *.txt
 *.sh
