@@ -9,39 +9,45 @@ MSG2 = "Specific simulation must be one of (a, b, m, ab, bm, abm, t), by default
 # Define the custom type for QRAM types
 type_qram = Literal["core", "bilan", "experiment", "stress"]
 
-def parse_t_count(t_count: str) -> int:
+def parse_t_count(value: str) -> int:
     """
     Parse the T count for the QueryConfiguration.
     Ensures the T count is between 4 and 7.
     """
-    t_count = int(t_count)
+    t_count: int = int(value)
     if not (4 <= t_count <= 7):
         raise argparse.ArgumentTypeError("The T count should be between 4 and 7.")
     return t_count
 
-def parse_t_cancel(t_cancel: str) -> int:
+def parse_t_cancel(value: str) -> int:
     """
     Parse the T cancel for the combinations.
     Ensures the T cancel is greater than 1.
     """
-    t_cancel = int(t_cancel)
+    t_cancel: int = int(value)
     if t_cancel < 1:
         raise argparse.ArgumentTypeError("The T cancel should be greater than 1.")
     return t_cancel
 
-def parse_print_circuit(print_circuit: str) -> str:
+def parse_print_circuit(value: str) -> str:
     """
     Parse the print circuit option.
     """
-    circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
-    return circuit_options[print_circuit]
+    if value not in ['p', 'd', 'h']:
+        raise argparse.ArgumentTypeError("The print circuit option should be one of (p, d, h).")
 
-def parse_print_simulation(print_simulation: str) -> str:
+    circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
+    return circuit_options[value]
+
+def parse_print_simulation(value: str) -> str:
     """
     Parse the print simulation option.
     """
+    if value not in ['f', 'd', 'l', 'h']:
+        raise argparse.ArgumentTypeError("The print simulation option should be one of (f, d, l, h).")
+
     simulation_options = {"d": "Dot", "f": "Full", 'l': "Loading", "h": "Hide"}
-    return simulation_options[print_simulation]
+    return simulation_options[value]
 
 def parse_qubit_range(value: str) -> Tuple[int, int]:
     """
@@ -86,12 +92,9 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
 
     parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC")
     parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit")
-    parser.add_argument('--print_circuit', type=parse_print_circuit, choices=['p', 'd', 'h'], nargs='?', default="h",
-                        help="(p) print or (d) display or (h) hide circuits")
-    parser.add_argument('--print_simulation', type=parse_print_simulation, choices=['f', 'd', 'l', 'h'], nargs='?', default="h",
-                        help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation")
+    parser.add_argument('--print_circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits")
+    parser.add_argument('--print_simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation")
     parser.add_argument('--qubit_range', type=parse_qubit_range, nargs='?', default=(2, 2), help=f"{MSG0} or {MSG1}")
-    parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't'], nargs='?', default="full",
-                        help=MSG2)
+    parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't'], nargs='?', default="full", help=MSG2)
 
     return parser

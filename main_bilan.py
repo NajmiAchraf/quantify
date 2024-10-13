@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_bilan import QRAMCircuitBilan
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
@@ -42,7 +40,7 @@ def main() -> int:
     Main function for the QRAM circuit bilan.
     """
 
-    T_Count = parser_args("experiment").parse_args().t_count
+    T_Count = parser_args("bilan").parse_args().t_count
 
     # FIRST BILAN : AN0_TD4_TC6_CX6
     if T_Count == 6:

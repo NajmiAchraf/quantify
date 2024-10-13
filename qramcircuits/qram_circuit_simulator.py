@@ -945,7 +945,7 @@ class QRAMCircuitSimulator:
         sv = format(((success_vector * 100)/total_tests), ',.2f')
         ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
 
-        self.__simulation_bilan = [f, ts, sm, sv, success_measurements]
+        self.__simulation_bilan = [f, ts, sm, sv]
 
         if not self.__is_stress:
             print("\n\nResults of the simulation:\n")

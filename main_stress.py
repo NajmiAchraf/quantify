@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_stress import QRAMCircuitStress
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
@@ -38,7 +36,7 @@ def main() -> int:
     Main function for the QRAM circuit stress
     """
 
-    args = parser_args("experiment").parse_args()
+    args = parser_args("stress").parse_args()
 
     T_Count = args.t_count
     T_Cancel = args.t_cancel

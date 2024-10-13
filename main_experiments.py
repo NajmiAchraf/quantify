@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType

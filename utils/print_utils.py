@@ -81,10 +81,11 @@ def loading_animation(stop_event: threading.Event, title: str) -> None:
     animation = "|/-\\"
     idx = 0
     while not stop_event.is_set():
-        print(f"\rLoading {title} {animation[idx % len(animation)]}", end="")
+        colpr("b", f"\rLoading {title} {animation[idx % len(animation)]}", end="")
         idx += 1
         time.sleep(0.1)
     print("\r" + " " * (10 + len(title)) + "\r", end="")
+    colpr("y", f"Loading {title} done")
 
 
 def format_bytes(num_bytes):
