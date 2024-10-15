@@ -35,7 +35,7 @@ def main() -> int:
     Main function for the QRAM circuit experiments.
     """
 
-    T_Count = parser_args("experiment").parse_args().t_count
+    T_Count = parser_args("experiments").parse_args().t_count
 
     # DEFAULT EXPERIMENT : AN0_TD4_TC7_CX6
     if T_Count == 7:

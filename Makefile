@@ -4,18 +4,13 @@ LOCAL=local
 NAME=slurm_$(SLURM).sh
 
 # Vars of QRAM Experiments
-# Qubits must be at least 2.
 QUBITS=0
-# T count is between 4 and 7.
 T_COUNT=0
-# T cancel is greater than 1.
 T_CANCEL=0
 
 # Var of mpi4py and SLURM
 NP=1
-
-# Vars of SLURM
-TIME=1-13:00:00
+TIME=1-12:00:00
 
 ifeq ($(SLURM), experiments)
 	NP=1
@@ -38,7 +33,7 @@ SBATCH_FLAGS=--job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per
 # Default target
 all:
 	@echo "To execute the program on hpc, please use the following command:"
-	@echo "	Please specify a variables:"
+	@echo "	Please specify variables:"
 	@echo "		SLURM: stress or experiments"
 	@echo "		QUBITS: Must be at least 2"
 	@echo "		T_COUNT: Should be between 4 and 7"
@@ -56,11 +51,11 @@ all:
 	@echo "		make SLURM=stress QUBITS=2 T_COUNT=4 T_CANCEL=2 error"
 	@echo ""
 	@echo "To run the program locally, please use the following command:"
-	@echo "	Please specify a variable:"
+	@echo "	Please specify variables:"
 	@echo "		LOCAL: bilan, experiments or stress"
 	@echo "		QUBITS: Must be at least 2"
-	@echo "		T_COUNT: Should be between 4 and 7"
-	@echo "		T_CANCEL: Must be greater than 1"
+	@echo "		T_COUNT: Should be between 4 and 7 and for bilan, it should be between 4 and 6"
+	@echo "		T_CANCEL: Must be greater than 0"
 	@echo ""
 	@echo "	Also, specify a target:"
 	@echo "		run: To run the program"
