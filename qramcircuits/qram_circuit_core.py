@@ -91,7 +91,7 @@ class QRAMCircuitCore:
         except Exception as e:
             colpr("r", "\n", str(e), end="\n")
             exit(1)
-    
+
         self.__print_input__()
 
     #######################################
@@ -103,18 +103,32 @@ class QRAMCircuitCore:
         Prints the input arguments for the experiment.
         """
 
-        colpr("y", "Hello QRAM circuit!", end="\n\n")
+        colpr("y", "========== QRAM Circuit Configuration ==========", end="\n\n")
 
-        colpr("c", f"Simulate Toffoli decompositions and circuit: {'yes' if self._simulate else 'no'}")
-        colpr("c", f"{self._print_circuit} circuits")
-        colpr("c", f"{self._print_sim} simulation results")
-        colpr("c", f"Start Range of Qubits: {self._start_range_qubits}")
-        colpr("c", f"End Range of Qubits: {self._end_range_qubits}")
+        colpr("w", "Simulate circuit on HPC:", end=" ")
+        colpr("r", f"{'Yes' if self._hpc else 'No'}")
+
+        colpr("w", "Simulate Toffoli decompositions and circuit:", end=" ")
+        colpr("r", f"{'Yes' if self._simulate else 'No'}")
+
+        colpr("w", "Circuit display option:", end=" ")
+        colpr("r", f"{self._print_circuit}")
+
+        colpr("w", "Start range of qubits:", end=" ")
+        colpr("r", f"{self._start_range_qubits}")
+
+        colpr("w", "End range of qubits:", end=" ")
+        colpr("r", f"{self._end_range_qubits}")
 
         if self._simulate:
-            sim_msg = "Simulate full circuit" if self._specific_simulation == "full" else f"Simulate Specific Measurement: {self._specific_simulation}"
-            colpr("c", sim_msg)
-        print("\n")
+            sim_msg = "Simulate full circuit" if self._specific_simulation == "full" else f"Simulate specific measurement: {self._specific_simulation} qubits"
+            colpr("w", "Simulation type:", end=" ")
+            colpr("r", sim_msg)
+
+            colpr("w", "Simulation display option:", end=" ")
+            colpr("r", f"{self._print_sim}")
+
+        colpr("y", "\n================================================\n")
 
     def __arg_input__(self) -> None:
         """

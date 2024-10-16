@@ -135,7 +135,8 @@ def printCircuit(
         )
 
         stop = elapsed_time(start)
-        colpr("w", "Time elapsed on printing the circuit: ", stop, end="\n\n")
+        colpr("w", "Time elapsed on printing the circuit: ", end=" ")
+        colpr("r", stop, end="\n\n")
 
     elif print_circuit == "Display":
         # Display the circuit
@@ -146,8 +147,34 @@ def printCircuit(
         display(SVGCircuit(circuit))
 
         stop = elapsed_time(start)
-        colpr("w", "Time elapsed on displaying the circuit: ", stop, end="\n\n")
+        colpr("w", "Time elapsed on displaying the circuit: ", end=" ")
+        colpr("r", stop, end="\n\n")
 
     # # Save the circuit as an SVG file
     # with open(f"images/{self.__start_range_qubits}_{name}_circuit.svg", "w") as f:
     #     f.write(sv.circuit_to_svg(circuit))
+
+def printRange(start: int, stop: int, step: int) -> None:
+    """
+    Print the range of simulation in a visually appealing way with colors.
+    """
+    colpr("y", "Simulation Range:", end="\n\n")
+
+    colpr("w", "+------------------+------------------+------------------+", end="\n")
+    colpr("w", "|", end="")
+    colpr("w", "      Start       ", end="")
+    colpr("w", "|", end="")
+    colpr("w", "      Stop        ", end="")
+    colpr("w", "|", end="")
+    colpr("w", "      Step        ", end="")
+    colpr("w", "|", end="\n")
+    colpr("w", "+------------------+------------------+------------------+", end="\n")
+
+    colpr("w", "|", end="")
+    colpr("r", f"{start:^17} ", end="")
+    colpr("w", "|", end="")
+    colpr("r", f"{stop:^17} ", end="")
+    colpr("w", "|", end="")
+    colpr("r", f"{step:^17} ", end="")
+    colpr("w", "|", end="\n")
+    colpr("w", "+------------------+------------------+------------------+", end="\n\n")

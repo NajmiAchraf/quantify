@@ -289,7 +289,7 @@ class QRAMCircuitSimulator:
         stop = 8 * step
 
         # prints ##############################################################################
-        print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
+        printRange(start, stop, step)
 
         colpr("c", "Simulating the decomposition ... ", str(decomposition_type),  end="\n\n")
 
@@ -707,7 +707,7 @@ class QRAMCircuitSimulator:
 
             printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
-            print("start =", start,"\tstop =", stop,"\tstep =", step, end="\n\n")
+            printRange(start, stop, step)
 
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
@@ -957,7 +957,8 @@ class QRAMCircuitSimulator:
                 colpr("b", "Measurements: ", sm, "%", end=" • ")
                 colpr("g", "Output vector: ", sv, "%", end=" )\n\n")
 
-            colpr("w", "Time elapsed on simulation and comparison: ", self.__stop_time, end="\n\n")
+            colpr("w", "Time elapsed on simulation and comparison:", end=" ")
+            colpr("r", self.__stop_time, end="\n\n")
 
         if self.__print_sim != "Full":
             return

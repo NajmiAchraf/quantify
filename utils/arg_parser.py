@@ -100,12 +100,12 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(description=f"QRAM {qram_type.capitalize()} Arguments")
 
-    parser.add_argument('--qubit_range', type=parse_qubit_range, nargs='?', default=(2, 2), help=f"{MSG0}, by default it is 2.")
+    parser.add_argument('--qubit-range', type=parse_qubit_range, nargs='?', default=(2, 2), help=f"{MSG0}, by default it is 2.")
 
     if qram_type == "experiments" or qram_type == "stress":
-        parser.add_argument("--t_count", type=parse_t_count, nargs='?', default=7, required=True, help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.")
+        parser.add_argument("--t-count", type=parse_t_count, nargs='?', default=7, required=True, help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.")
     elif qram_type == "bilan":
-        parser.add_argument("--t_count", type=parse_t_count_bilan, nargs='?', default=6, required=True, help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.")
+        parser.add_argument("--t-count", type=parse_t_count_bilan, nargs='?', default=6, required=True, help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.")
 
     if qram_type == "stress":
         parser.add_argument("--t_cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
@@ -113,8 +113,8 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
     if qram_type != "bilan":
         parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC.")
         parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit.")
-        parser.add_argument('--print_circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
-        parser.add_argument('--print_simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.")
+        parser.add_argument('--print-circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
+        parser.add_argument('--print-simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.")
         parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't'], nargs='?', default="full", help=MSG1)
 
     return parser

@@ -15,12 +15,12 @@ TIME=1-12:00:00
 ifeq ($(SLURM), experiments)
 	NP=1
 	JOB_NAME="${QUBITS}Q_QD${T_COUNT}T"
-	QRAM_CMD="python3 main_experiments.py --simulate --qubit_range=$(QUBITS) --t_count=$(T_COUNT) --print_circuit=p --print_simulation=d"
+	QRAM_CMD="python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d"
 	HPC_CMD="srun $(QRAM_CMD)"
 else ifeq ($(SLURM), stress)
 	NP=64
 	JOB_NAME=$(QUBITS)Q_C$(T_CANCEL)T_QD$(T_COUNT)T
-	QRAM_CMD="python3 main_stress.py --hpc --simulate --qubit_range=$(QUBITS) --t_count=$(T_COUNT) --t_cancel=$(T_CANCEL) --print_simulation=h"
+	QRAM_CMD="python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h"
 	HPC_CMD="mpirun -np $(NP) $(QRAM_CMD)"
 endif
 
@@ -99,11 +99,11 @@ error:
 # Target to run the QRAM locally
 run:
 ifeq ($(LOCAL), bilan)
-	@python3 main_bilan.py --qubit_range=$(QUBITS) --t_count=$(T_COUNT)
+	@python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
 else ifeq ($(LOCAL), experiments)
-	@python3 main_experiments.py --simulate --qubit_range=$(QUBITS) --t_count=$(T_COUNT) --print_circuit=p --print_simulation=d
+	@python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d
 else ifeq ($(LOCAL), stress)
-	@python3 main_stress.py --simulate --qubit_range=$(QUBITS) --t_count=$(T_COUNT) --t_cancel=$(T_CANCEL) --print_simulation=h
+	@python3 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h
 else
 	@$(MAKE) --no-print-directory all
 endif
