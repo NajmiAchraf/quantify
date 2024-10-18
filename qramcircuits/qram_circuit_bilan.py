@@ -16,10 +16,14 @@ class QRAMCircuitBilan(QRAMCircuitCore):
     """
     A class used to represent the QRAM circuit bilan.
 
+    Attributes:
+        _data (dict): Stores the bilan data for the reference circuit.
+        _data_modded (dict): Stores the bilan data for the modded circuit.
+
     Methods:
-        __run(): Runs the experiment for a range of qubits.
-        __core(): Core function of the experiment.
-        __bilan(): Collect the bilan of the experiment.
+        _run(): Runs the bilan for a range of qubits.
+        _core(nr_qubits: int): Core function of the experiment.
+        __bilan(nr_qubits: int): Collects the bilan of the experiment.
         __print_bilan(): Prints the bilan of the experiment.
     """
 

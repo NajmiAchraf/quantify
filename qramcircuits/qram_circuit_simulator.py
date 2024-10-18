@@ -3,7 +3,7 @@ import cirq.optimizers
 import math
 import numpy as np
 import time
-from typing import Union, Literal
+from typing import Union
 
 from functools import partial
 import multiprocessing
@@ -16,6 +16,7 @@ from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecompo
 
 from utils.counting_utils import *
 from utils.print_utils import *
+from utils.types import *
 
 
 #######################################
@@ -28,14 +29,17 @@ class QRAMCircuitSimulator:
 
     Attributes:
         __specific_simulation (str): The specific simulation.
-        __start_range_qubits (int): The start range of the qubits.
-        __print_circuit (str): The print circuit flag.
-        __print_sim (str): Flag indicating whether to print the full simulation result.
-        __simulation_kind (str): The simulation kind.
+        __qubits_number (int): The number of qubits.
+        __print_circuit (Literal["Print", "Display", "Hide"]): The print circuit flag.
+        __print_sim (Literal["Dot", "Full", "Loading", "Hide"]): Flag indicating whether to print the full simulation result.
+        __simulation_kind (Literal["bb", "dec"]): The simulation kind.
         __is_stress (bool): The stress flag.
+        __hpc (bool): Flag indicating if high-performance computing is used.
+
+        __lock (multiprocessing.Lock): The multiprocessing lock.
 
         __simulation_results (Union[DictProxy, dict]): The simulation results.
-        __simulation_bilan (list): The simulation bilan.
+        __simulation_bilan (list[str]): The simulation bilan.
 
         __bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
         __bbcircuit_modded (bb.BucketBrigade): The modded circuit.
@@ -45,16 +49,15 @@ class QRAMCircuitSimulator:
 
     Methods:
         get_simulation_bilan(): Returns the simulation bilan.
-        __init__(bbcircuit, bbcircuit_modded, specific_simulation, start_range_qubits, print_circuit, print_sim):
+        __init__(bbcircuit, bbcircuit_modded, specific_simulation, qubits_number, print_circuit, print_sim, hpc):
             Constructor of the CircuitSimulator class.
-
         _run_simulation(is_stress): Runs the simulation.
 
-        __fan_in_mem_out(): Returns the fan-in, memory, and fan-out decomposition types.
-        __create_decomposition_circuit(): Creates a Toffoli decomposition circuit.
-        __decomposed_circuit(): Creates a Toffoli decomposition with measurements circuit.
+        _fan_in_mem_out(decomp_scenario): Returns the fan-in, memory, and fan-out decomposition types.
+        _create_decomposition_circuit(decomposition_type): Creates a Toffoli decomposition circuit.
+        __decomposed_circuit(decomposition_type): Creates a Toffoli decomposition with measurements circuit.
         __simulate_decompositions(): Simulates the Toffoli decompositions.
-        __simulate_decomposition(): Simulates a Toffoli decomposition.
+        __simulate_decomposition(decomposition_type): Simulates a Toffoli decomposition.
 
         __simulate_circuit(): Simulates the circuit.
         _simulation_a_qubits(): Simulates the circuit and measure addressing of the a qubits.
@@ -64,18 +67,16 @@ class QRAMCircuitSimulator:
         _simulation_bm_qubits(): Simulates the circuit and measure computation and uncomputation of the b and m qubits.
         _simulation_abm_qubits(): Simulates the circuit and measure addressing and uncomputation and computation of the a, b, and m qubits.
         _simulation_t_qubits(): Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
-        _simulation_full_qubits(): Simulates the circuit and measure all full circuit.
-        __simulation(): Simulates the circuit.
+        _simulation_full_qubits(): Simulates the circuit and measure all qubits.
+        __add_measurements(bbcircuit): Adds measurements to the circuit and returns the initial state.
+        __simulation(start, stop, step, message): Simulates the circuit.
 
-        _worker(): Worker function for multiprocessing.
-        __simulate_and_compare(): Simulate and compares the results of the simulation and measurement.
-        __print_simulation_results(): Prints the simulation results.
+        _worker(i, step, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
+            Worker function for multiprocessing.
+        __simulate_and_compare(i, j, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
+            Simulate and compares the results of the simulation.
+        __print_simulation_results(results, start, stop, step): Prints the simulation results.
     """
-
-    type_print_circuit = Literal["Print", "Display", "Hide"]
-    type_print_sim = Literal["Dot", "Full", "Loading", "Hide"]
-    type_specific_simulation = Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]
-    type_simulation_kind = Literal["bb", "dec"]
 
     __specific_simulation: type_specific_simulation
     __qubits_number: int
@@ -243,7 +244,8 @@ class QRAMCircuitSimulator:
         Simulates the Toffoli decompositions.
         """
 
-        colpr("y", "\nSimulating the decompositions ... comparing the results of the decompositions to the Toffoli gate.", end="\n\n")
+        message =  "<" + "="*20 + " Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate " + "="*20 + ">\n"
+        colpr("y", f"\n{message}", end="\n\n")
 
         for decomp_scenario in [self.__decomp_scenario, self.__decomp_scenario_modded]:
             for decomposition_type in self._fan_in_mem_out(decomp_scenario):
@@ -376,7 +378,7 @@ class QRAMCircuitSimulator:
         # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
         step = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step * ( 2 ** self.__qubits_number )
-        message = "Simulating the circuit ... checking the addressing of the a qubits."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing of the a qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, step, message)
 
     def _simulation_b_qubits(self) -> None:
@@ -408,7 +410,7 @@ class QRAMCircuitSimulator:
         start = 0
         step = 2 ** ( 2 ** self.__qubits_number + 1 )
         stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
-        message = "Simulating the circuit ... checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state " + "="*20 + ">\n"
         self.__simulation(start, stop, step, message)
 
     def _simulation_m_qubits(self) -> None:
@@ -443,7 +445,7 @@ class QRAMCircuitSimulator:
         start = 0
         step = 2
         stop = step * ( 2 ** ( 2 ** self.__qubits_number ) )
-        message = "Simulating the circuit ... checking the computation of MEM ... were the m qubits are getting the result of the computation."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation " + "="*20 + ">\n"
         self.__simulation(start, stop, step, message)
 
     def _simulation_ab_qubits(self) -> None:
@@ -482,7 +484,7 @@ class QRAMCircuitSimulator:
 
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        message = "Simulating the circuit ... checking the addressing and uncomputation of the a and b qubits."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, step_b, message)
 
     def _simulation_bm_qubits(self) -> None:
@@ -525,7 +527,7 @@ class QRAMCircuitSimulator:
 
         step_b = 2 ** ( 2 ** self.__qubits_number + 1 )
         stop = step_b * ( 2 ** ( 2 ** self.__qubits_number ) )
-        message = "Simulating the circuit ... checking the addressing and uncomputation of the b and m qubits."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, step_m, message)
 
     def _simulation_abm_qubits(self) -> None:
@@ -574,7 +576,7 @@ class QRAMCircuitSimulator:
         step_m = 2
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        message = "Simulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, step_m, message)
 
     def _simulation_t_qubits(self) -> None:
@@ -623,7 +625,7 @@ class QRAMCircuitSimulator:
         step_m = 2
         step_a = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
         stop = step_a * ( 2 ** self.__qubits_number )
-        message = "Simulating the circuit ... checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit " + "="*20 + ">\n"
         self.__simulation(start, stop, step_m, message)
 
     def _simulation_full_qubits(self) -> None:
@@ -649,7 +651,7 @@ class QRAMCircuitSimulator:
         start = 0
         # stop = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits)) * (2**self.start_range_qubits)
         stop = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + self.__qubits_number + 1 )
-        message = "Simulating the circuit ... checking the all qubits."
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the all qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, 1, message)
 
     def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> np.ndarray:

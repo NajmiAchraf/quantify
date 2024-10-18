@@ -1,13 +1,11 @@
 import argparse
-from typing import Literal, Tuple
+from typing import Tuple
+from utils.types import type_qram
 
 
 # Help messages
 MSG0 = "Qubit range must start at least from 2 and the end range must be greater than or equal to the start range, for example 2-5 (start-end) or 2 (single start)"
 MSG1 = "Specific simulation must be one of (a, b, m, ab, bm, abm, t), by default it is full circuit."
-
-# Define the custom type for QRAM types
-type_qram = Literal["core", "bilan", "experiments", "stress"]
 
 
 def parse_t_count(value: str) -> int:
@@ -108,7 +106,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         parser.add_argument("--t-count", type=parse_t_count_bilan, nargs='?', default=6, required=True, help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.")
 
     if qram_type == "stress":
-        parser.add_argument("--t_cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
+        parser.add_argument("--t-cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
 
     if qram_type != "bilan":
         parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC.")

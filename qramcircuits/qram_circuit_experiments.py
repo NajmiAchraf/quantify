@@ -20,12 +20,11 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
     A class used to represent the QRAM circuit experiments.
 
     Methods:
-        __run(): Runs the experiment for a range of qubits.
-        __core(): Core function of the experiment.
-        __results(): Prints the results of the experiment.
+        _core(nr_qubits: int): Core function of the experiment.
+        _results(): Prints the results of the experiment.
         __essential_checks(): Performs essential checks on the experiment.
-        __verify_circuit_depth_count(): Verifies the depth and count of the circuit.
-        __simulate_circuit(): Simulates the circuit.
+        __verify_circuit_depth_count(decomp_scenario: bb.BucketBrigadeDecompType, bbcircuit: bb.BucketBrigade, name: str): Verifies the depth and count of the circuit.
+        _simulate_circuit(is_stress: bool=False): Simulates the circuit.
     """
 
     #######################################

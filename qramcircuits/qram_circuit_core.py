@@ -4,7 +4,7 @@ import time
 import concurrent.futures
 import threading
 
-from typing import Union, Literal
+from typing import Union
 
 import qramcircuits.bucket_brigade as bb
 
@@ -15,6 +15,7 @@ from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.arg_parser import *
 from utils.counting_utils import *
 from utils.print_utils import *
+from utils.types import *
 
 
 #######################################
@@ -24,42 +25,39 @@ from utils.print_utils import *
 class QRAMCircuitCore:
     """
     A class used to represent the QRAM circuit core.
-
+    
     Attributes:
-        __simulate (bool): Flag indicating whether to simulate Toffoli decompositions and circuit.
-        __print_circuit (bool): Flag indicating whether to print the circuits.
-        __print_sim (str): Flag indicating whether to print the full simulation result.
-        __start_range_qubits (int): Start range of qubits.
-        __end_range_qubits (int): End range of qubits.
-        __specific_simulation (str): Specific simulation for specific qubit wire.
+        _hpc (bool): Flag indicating whether to use High Performance Computing (HPC) mode.
+        _simulate (bool): Flag indicating whether to simulate Toffoli decompositions and circuit.
+        _print_circuit (Literal["Print", "Display", "Hide"]): Flag indicating whether to print the circuits.
+        _print_sim (Literal["Dot", "Full", "Loading", "Hide"]): Flag indicating whether to print the full simulation result.
+        _start_range_qubits (int): Start range of qubits.
+        _end_range_qubits (int): End range of qubits.
+        _specific_simulation (Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]): Specific simulation for specific qubit wire.
 
-        __start_time (float): Start time of the experiment.
-        __stop_time (str): Stop time of the experiment.
+        _start_time (float): Start time of the experiment.
+        _stop_time (str): Stop time of the experiment.
 
-        __decomp_scenario (bb.BucketBrigadeDecompType): Decomposition scenario for the bucket brigade.
-        __decomp_scenario_modded (bb.BucketBrigadeDecompType): Modified decomposition scenario for the bucket brigade.
-        __bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
-        __bbcircuit_modded (bb.BucketBrigade): Modified bucket brigade circuit.
+        _decomp_scenario (bb.BucketBrigadeDecompType): Decomposition scenario for the bucket brigade.
+        _decomp_scenario_modded (bb.BucketBrigadeDecompType): Modified decomposition scenario for the bucket brigade.
+        _bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
+        _bbcircuit_modded (bb.BucketBrigade): Modified bucket brigade circuit.
 
-        __simulated (bool): Flag indicating whether the circuit has been simulated.
-        __Simulator (QRAMCircuitSimulator): The QRAM circuit simulator.
+        _simulated (bool): Flag indicating whether the circuit has been simulated.
+        _Simulator (QRAMCircuitSimulator): The QRAM circuit simulator.
 
     Methods:
         __init__(): Initializes the QRAMCircuitCore class.
+
         __print_input__(): Prints the input arguments for the experiment.
         __arg_input__(): Gets the input arguments for the experiment.
-        __get_input__(): Gets user input for the experiment.
 
-        __bb_decompose(): Decomposes the Toffoli gates in the bucket brigade circuit.
-        bb_decompose_test(): Tests the bucket brigade circuit with different decomposition scenarios.
+        __bb_decompose(toffoli_decomp_type, parallel_toffolis, reverse_moments): Decomposes the Toffoli gates in the bucket brigade circuit.
+        bb_decompose_test(dec, parallel_toffolis, dec_mod, parallel_toffolis_mod, reverse_moments): Tests the bucket brigade circuit with different decomposition scenarios.
 
-        __run(): Runs the experiment for a range of qubits.
-        __core(): Core function of the experiment.
+        _run(title): Runs the experiment for a range of qubits.
+        _core(nr_qubits): Core function of the experiment.
     """
-
-    type_print_circuit = Literal["Print", "Display", "Hide"]
-    type_print_sim = Literal["Dot", "Full", "Loading", "Hide"]
-    type_specific_simulation = Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]
 
     _hpc: bool = False
     _simulate: bool = False
