@@ -12,7 +12,16 @@ T_CANCEL = 0
 
 # MPI and SLURM Variables
 NP = 1
-TIME = 1-12:00:00
+QOS = default-cpu
+
+# SLURM Time Configuration
+ifeq ($(QOS), default-cpu)
+	TIME = 1-12:00:00
+	NP = 64
+else ifeq ($(QOS), long-cpu)
+	TIME = 7-00:00:00
+	NP = 32
+endif
 
 # SLURM Job Configuration
 ifeq ($(SLURM), bilan)
@@ -23,10 +32,9 @@ ifeq ($(SLURM), bilan)
 else ifeq ($(SLURM), experiments)
 	NP = 1
 	JOB_NAME = "${QUBITS}Q_QD${T_COUNT}T"
-	QRAM_CMD = "python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d"
+	QRAM_CMD = "python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=d"
 	HPC_CMD = "srun $(QRAM_CMD)"
 else ifeq ($(SLURM), stress)
-	NP = 64
 	JOB_NAME = $(QUBITS)Q_C$(T_CANCEL)T_QD$(T_COUNT)T
 	QRAM_CMD = "python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h"
 	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
@@ -37,7 +45,7 @@ OUTPUT_FILE = output/$(SLURM)-output-$(JOB_NAME).txt
 ERROR_FILE = output/$(SLURM)-error-$(JOB_NAME).txt
 
 # SBATCH Flags
-SBATCH_FLAGS = --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=70G --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
+SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=70G --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
 
 # Default Target
 all:
@@ -92,6 +100,7 @@ ifeq ($(SLURM), bilan)
 else ifeq ($(SLURM), experiments)
 	@sbatch $(SBATCH_FLAGS) $(NAME)
 else ifeq ($(SLURM), stress)
+#	@echo sbatch $(SBATCH_FLAGS) $(NAME)
 	@sbatch $(SBATCH_FLAGS) $(NAME)
 else
 	@$(MAKE) --no-print-directory all
