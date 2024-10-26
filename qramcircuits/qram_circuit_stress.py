@@ -4,6 +4,7 @@ import itertools
 import os
 import time
 import numpy as np
+import fasteners
 
 from functools import partial
 import multiprocessing
@@ -33,7 +34,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         __length_combinations (int): The length of the combinations.
         __nbr_combinations (int): The number of combinations.
         __t_count (int): The T count.
-        __lock (multiprocessing.Lock): The multiprocessing lock.
         __rank (int): The rank of the MPI process.
         __chunk (int): The chunk size for the MPI process.
 
@@ -68,8 +68,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     __nbr_combinations: int = 1
     __t_count: int = 2
 
-    __lock = multiprocessing.Lock()
-
     __rank: int
     __chunk: int
 
@@ -87,15 +85,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Core function of the experiment.
         """
 
-        tmp = self._simulate
-        self._simulate = False
-
-        super()._core(nr_qubits=nr_qubits)
-
-        self._simulate = tmp
-
-        if nr_qubits > 4:
-            self._simulate = False
+        super(QRAMCircuitExperiments, self)._core(nr_qubits=nr_qubits)
 
         self._stress()
 
@@ -228,18 +218,24 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             indices (tuple[int, ...]): The indices.
         """
 
+        # Ensure the lock file exists
+        lock_file = 'file.lock'
+        if not os.path.exists(lock_file):
+            open(lock_file, 'w').close()
+
         start = time.time()
-        with self.__lock:
+
+        with fasteners.InterProcessLock(lock_file):
             if self._hpc:
                 colpr("w", "\nRank", end=": ")
                 colpr("r", f"{self.__rank}")
-                colpr("g", "Loading stress experiment", end=" ")
+                colpr("y", "Loading stress experiment", end=" ")
                 colpr("r", f"#{self.__length_combinations}", end=" ")
-                colpr("r", "of", end=" ")
+                colpr("y", "of", end=" ")
                 colpr("r", f"{self.__chunk}", end=" ")
-                colpr("g", "with T gate indices:", end=" ")
+                colpr("y", "with T gate indices:", end=" ")
             else:
-                colpr("w", "\nLoading stress experiment with T gate indices:", end=" ")
+                colpr("y", "\nLoading stress experiment with T gate indices:", end=" ")
             colpr("r", ' '.join(map(str, indices)), end="\n\n")
 
         self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
@@ -254,13 +250,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             self._stress_bilan[",".join(map(str, indices))] = self._Simulator.get_simulation_bilan()
 
         elapsed = elapsed_time(start)
-        with self.__lock:
+
+        with fasteners.InterProcessLock(lock_file):
             if self._hpc:
                 colpr("w", "\nRank", end=": ")
                 colpr("r", f"{self.__rank}")
                 colpr("g", "Completed stress experiment", end=" ")
                 colpr("r", f"#{self.__length_combinations}", end=" ")
-                colpr("r", "of", end=" ")
+                colpr("g", "of", end=" ")
                 colpr("r", f"{self.__chunk}", end=" ")
                 colpr("g", "with T gate indices:", end=" ")
             else:

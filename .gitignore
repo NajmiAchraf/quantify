@@ -10,3 +10,4 @@ experimental
 *.pdf
 *.txt
 *.sh
+file.lock

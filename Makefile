@@ -55,6 +55,7 @@ all:
 	@echo "		QUBITS: Must be at least 2"
 	@echo "		T_COUNT: Should be between 4 and 7"
 	@echo "		T_CANCEL: Must be greater than 1"
+	@echo "		For long-cpu, please specify QOS=long-cpu"
 	@echo ""
 	@echo "	Also, specify a target:"
 	@echo "		submit: To submit the job"
