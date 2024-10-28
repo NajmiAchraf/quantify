@@ -3,9 +3,11 @@ import cirq.optimizers
 import time
 from datetime import timedelta
 
+import base64
+
 import threading
 
-from IPython.display import display
+from IPython.display import  SVG, display, HTML
 from cirq.contrib.svg import SVGCircuit, circuit_to_svg
 from utils.counting_utils import *
 
@@ -103,6 +105,25 @@ def format_bytes(num_bytes):
             return f"{num_bytes:.2f} {unit}"
         num_bytes /= 1024
 
+_html_template = '<img width="{}" style="background-color:white;" src="data:image/svg+xml;base64,{}" >'
+
+def display_rescaled_svg(circuit: cirq.Circuit) -> None:
+    """
+    Display the circuit as a rescaled SVG.
+
+    Args:
+        circuit (cirq.Circuit): The circuit to be displayed.
+
+    Returns:
+        None
+    """
+    # Convert the circuit to SVG
+    svg_data = circuit_to_svg(circuit)
+    # Encode the SVG data to base64
+    svg_base64 = base64.b64encode(svg_data.encode('utf-8')).decode('utf-8')
+    # Display the SVG with a fixed width to avoid horizontal scrolling
+    html = _html_template.format("100%", svg_base64)
+    display(HTML(html))
 
 def printCircuit(
         print_circuit: str,
@@ -144,7 +165,10 @@ def printCircuit(
 
         colpr("c", f"Display {name} circuit:" , end="\n\n")
 
-        display(SVGCircuit(circuit))
+        if "ToffoliDecompType" in name:
+            display(SVGCircuit(circuit))
+        else:
+            display_rescaled_svg(circuit)
 
         stop = elapsed_time(start)
         colpr("w", "Time elapsed on displaying the circuit: ", end=" ")
