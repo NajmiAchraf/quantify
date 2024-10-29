@@ -90,7 +90,8 @@ class QRAMCircuitCore:
             colpr("r", "\n", str(e), end="\n")
             exit(1)
 
-        self.__print_input__()
+        if not self.__hpc:
+            self.__print_input__()
 
     #######################################
     # input methods
