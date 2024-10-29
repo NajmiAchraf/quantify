@@ -141,7 +141,7 @@ class QRAMCircuitCore:
             try:
                 import mpi4py
             except ImportError:
-                raise RuntimeError("mpi4py is not installed. Please install it to run the experiment in HPC mode.")
+                raise RuntimeError("`mpi4py` is not installed. Please install it to run the experiment in HPC mode, and it requires OpenMPI to be installed in the system.")
 
         # Simulate Toffoli decompositions and circuit
         self._simulate = args.simulate

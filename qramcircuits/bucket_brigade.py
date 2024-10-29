@@ -245,6 +245,10 @@ class BucketBrigade():
             if self.decomp_scenario.parallel_toffolis:
                 comp_fan_in = BucketBrigade.stratify(cirq.Circuit(compute_fanin_moments))
 
+                comp_fan_in = BucketBrigade.parallelize_toffolis(
+                    cirq.Circuit(comp_fan_in.all_operations())
+                )
+
             self.decomp_scenario.reverse_moments = ReverseMoments.IN_TO_OUT
             circuit = self.reverse_and_link(comp_fan_in, memory_decomposed, comp_fan_out)
             self.decomp_scenario.reverse_moments = ReverseMoments.OUT_TO_IN

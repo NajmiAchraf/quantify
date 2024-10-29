@@ -7,7 +7,7 @@ import base64
 
 import threading
 
-from IPython.display import  SVG, display, HTML
+from IPython.display import  display, HTML
 from cirq.contrib.svg import SVGCircuit, circuit_to_svg
 from utils.counting_utils import *
 
@@ -107,20 +107,21 @@ def format_bytes(num_bytes):
 
 _html_template = '<img width="{}" style="background-color:white;" src="data:image/svg+xml;base64,{}" >'
 
-def display_rescaled_svg(circuit: cirq.Circuit) -> None:
+def display_rescaled_svg(tdd: 'cirq.TextDiagramDrawer') -> None:
     """
     Display the circuit as a rescaled SVG.
 
     Args:
-        circuit (cirq.Circuit): The circuit to be displayed.
-
-    Returns:
-        None
+        tdd ('cirq.TextDiagramDrawer'): The text diagram drawer of the circuit.
     """
-    # Convert the circuit to SVG
-    svg_data = circuit_to_svg(circuit)
+
+    try:
+        from cirq.contrib.svg import tdd_to_svg
+    except ImportError:
+        raise ImportError("Please modify manually the cirq/contrib/svg/__init__.py by add the import tdd_to_svg")
+    svg = tdd_to_svg(tdd)
     # Encode the SVG data to base64
-    svg_base64 = base64.b64encode(svg_data.encode('utf-8')).decode('utf-8')
+    svg_base64 = base64.b64encode(svg.encode('utf-8')).decode('utf-8')
     # Display the SVG with a fixed width to avoid horizontal scrolling
     html = _html_template.format("100%", svg_base64)
     display(HTML(html))
@@ -138,10 +139,8 @@ def printCircuit(
         circuit (cirq.Circuit): The circuit to be printed.
         qubits ('list[cirq.NamedQubit]'): The qubits of the circuit.
         name (str): The name of the circuit.
-
-    Returns:
-        None
     """
+
     if print_circuit == "Print":
         # Print the circuit
         start = time.time()
@@ -168,7 +167,11 @@ def printCircuit(
         if "ToffoliDecompType" in name:
             display(SVGCircuit(circuit))
         else:
-            display_rescaled_svg(circuit)
+            tdd = circuit.to_text_diagram_drawer(
+                transpose=False,
+                qubit_order=qubits
+            )
+            display_rescaled_svg(tdd)
 
         stop = elapsed_time(start)
         colpr("w", "Time elapsed on displaying the circuit: ", end=" ")
