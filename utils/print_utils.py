@@ -185,23 +185,23 @@ def printRange(start: int, stop: int, step: int) -> None:
     """
     Print the range of simulation in a visually appealing way with colors.
     """
-    colpr("y", "Simulation Range:", end="\n\n")
+    colpr("y", "\nSimulation Range:", end="\n\n")
 
     colpr("w", "+------------------+------------------+------------------+", end="\n")
     colpr("w", "|", end="")
     colpr("w", "      Start       ", end="")
     colpr("w", "|", end="")
-    colpr("w", "      Stop        ", end="")
+    colpr("w", "       Stop       ", end="")
     colpr("w", "|", end="")
-    colpr("w", "      Step        ", end="")
+    colpr("w", "       Step       ", end="")
     colpr("w", "|", end="\n")
     colpr("w", "+------------------+------------------+------------------+", end="\n")
 
     colpr("w", "|", end="")
-    colpr("r", f"{start:^17} ", end="")
+    colpr("r", f"{start:^18}", end="")
     colpr("w", "|", end="")
-    colpr("r", f"{stop:^17} ", end="")
+    colpr("r", f"{stop:^18}", end="")
     colpr("w", "|", end="")
-    colpr("r", f"{step:^17} ", end="")
+    colpr("r", f"{step:^18}", end="")
     colpr("w", "|", end="\n")
     colpr("w", "+------------------+------------------+------------------+", end="\n\n")

@@ -1,5 +1,6 @@
 import cirq
 import cirq.optimizers
+import itertools
 import math
 import numpy as np
 import time
@@ -154,7 +155,7 @@ class QRAMCircuitSimulator:
 
         if is_stress:
             self.__print_sim = "Hide"
-        elif not is_stress:
+        elif not is_stress and not self.__hpc:
             self.__simulate_decompositions()
 
         self.__simulate_circuit()
@@ -235,9 +236,7 @@ class QRAMCircuitSimulator:
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
             printCircuit(self.__print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
 
-        initial_state = np.zeros(2**len(qubits), dtype=np.complex64)
-    
-        return circuit, qubits, initial_state
+        return circuit, qubits
 
     def __simulate_decompositions(self) -> None:
         """
@@ -266,8 +265,8 @@ class QRAMCircuitSimulator:
 
         self.__start_time = time.time()
 
-        circuit, qubits, initial_state = self.__decomposed_circuit(ToffoliDecompType.NO_DECOMP)
-        circuit_modded, qubits_modded, initial_state_modded = self.__decomposed_circuit(decomposition_type)
+        circuit, qubits= self.__decomposed_circuit(ToffoliDecompType.NO_DECOMP)
+        circuit_modded, qubits_modded = self.__decomposed_circuit(decomposition_type)
 
         nbr_anc = ToffoliDecomposition.numbers_of_ancilla(decomposition_type)
 
@@ -314,9 +313,7 @@ class QRAMCircuitSimulator:
                         circuit=circuit,
                         circuit_modded=circuit_modded,
                         qubit_order=qubits,
-                        qubit_order_modded=qubits_modded,
-                        initial_state=initial_state,
-                        initial_state_modded=initial_state_modded),
+                        qubit_order_modded=qubits_modded),
                     range(start, stop, step))
         finally:
             if self.__print_sim == "Loading":
@@ -654,15 +651,12 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the all qubits " + "="*20 + ">\n"
         self.__simulation(start, stop, 1, message)
 
-    def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> np.ndarray:
+    def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> None:
         """
         Adds measurements to the circuit and returns the initial state.
 
         Args:
             bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
-
-        Returns:
-            np.ndarray: The initial state.
         """
 
         measurements = []
@@ -676,8 +670,6 @@ class QRAMCircuitSimulator:
 
         bbcircuit.circuit.append(measurements)
         cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(bbcircuit.circuit)
-
-        return np.zeros(2**len(bbcircuit.qubit_order), dtype=np.complex64)
 
     def __simulation(self, start:int, stop:int, step:int, message:str) -> None:
         """
@@ -693,13 +685,13 @@ class QRAMCircuitSimulator:
 
         # add measurements to circuits ########################################################
 
-        initial_state = self.__add_measurements(self.__bbcircuit)
+        self.__add_measurements(self.__bbcircuit)
 
-        initial_state_modded = self.__add_measurements(self.__bbcircuit_modded)
+        self.__add_measurements(self.__bbcircuit_modded)
 
         # prints ##############################################################################
 
-        if not self.__is_stress:
+        if not self.__is_stress and not self.__hpc:
 
             name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
 
@@ -713,60 +705,166 @@ class QRAMCircuitSimulator:
 
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
-        if self.__hpc or self.__qubits_number == 3 or not self.__is_stress:
+        if self.__hpc and not self.__is_stress:
 
-            # reset the simulation results ########################################################
+            self.__hpc_multiprocessing_simulation(start, stop, step)
 
-            self.__simulation_results = multiprocessing.Manager().dict()
-            if self.__hpc:
-                self.__simulation_results = {}
+        elif self.__qubits_number == 2 and not self.__hpc and self.__is_stress:
 
-            # use thread to load the simulation ###################################################
+            self.__non_multiprocessing_simulation(start, stop, step)
 
-            if self.__print_sim == "Loading":
-                stop_event = threading.Event()
-                loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
-                loading_thread.start()
+        else:
 
-            # Use multiprocessing to parallelize the simulation ###################################
+            self.__multiprocessing_simulation(start, stop, step)
 
-            try:
-                with multiprocessing.Pool() as pool:
-                    results = pool.map(
-                        partial(
-                            self._worker,
-                            step=step,
-                            circuit=self.__bbcircuit.circuit,
-                            circuit_modded=self.__bbcircuit_modded.circuit,
-                            qubit_order=self.__bbcircuit.qubit_order,
-                            qubit_order_modded=self.__bbcircuit_modded.qubit_order,
-                            initial_state=initial_state,
-                            initial_state_modded=initial_state_modded),
-                        range(start, stop, step))
-            finally:
-                if self.__print_sim == "Loading":
-                    stop_event.set()
-                    loading_thread.join()
+    def __hpc_multiprocessing_simulation(self, start:int, stop:int, step:int) -> None:
+        """
+        Simulates the circuit using multiprocessing and MPI.
 
-        elif self.__is_stress:
+        Args:
+            start (int): The start index.
+            stop (int): The stop index.
+            step (int): The step index.
+        """
 
-            # reset the simulation results ########################################################
+        from mpi4py import MPI
 
+        # Initialize MPI ######################################################################
+
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+
+        # Prints ##############################################################################
+
+        if rank == 0:
+            print(f"{'='*150}\n\n")
+    
+            name = "bucket brigade" if self.__decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+
+            printRange(start, stop, step)
+
+            colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
+
+        # Determine the range of work for this MPI process ####################################
+
+        total_work = range(start, stop, step)
+
+        # Split the total work into chunks based on the number of ranks #######################
+
+        work_chunks = np.array_split(list(total_work), size)
+        local_work = work_chunks[rank] if rank < len(work_chunks) else []
+
+        # wait for all MPI processes to reach this point ######################################
+
+        comm.Barrier()
+
+        # reset the simulation results ########################################################
+
+        self.__simulation_results = {}
+
+        # Use multiprocessing to parallelize the simulation ###################################
+
+        results: 'list[tuple[int, int, int]]' = []
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._worker,
+                    step=step,
+                    circuit=self.__bbcircuit.circuit,
+                    circuit_modded=self.__bbcircuit_modded.circuit,
+                    qubit_order=self.__bbcircuit.qubit_order,
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order),
+                local_work)
+
+        # Ensure results are serializable #####################################################
+
+        serializable_result = [list(item) for item in results]
+
+        # Gather the results from all MPI processes ###########################################
+
+        all_results = comm.gather(serializable_result, root=0)
+
+        # Combine the results from all MPI processes ##########################################
+
+        if rank == 0:
+            root_results = list(itertools.chain(*all_results))
+
+            self.__print_simulation_results(root_results, start, stop, step)
+
+            print(f"{'='*150}\n\n")
+
+    def __multiprocessing_simulation(self, start:int, stop:int, step:int) -> None:
+        """
+        Simulates the circuit using multiprocessing.
+
+        Args:
+            start (int): The start index.
+            stop (int): The stop index.
+            step (int): The step index.
+        """
+
+        # reset the simulation results ########################################################
+
+        self.__simulation_results = multiprocessing.Manager().dict()
+        if self.__hpc:
             self.__simulation_results = {}
 
-            # simulation is not parallelized ######################################################
+        # use thread to load the simulation ###################################################
 
-            results: 'list[tuple[int, int, int]]' = []
-            for i in range(start, stop, step):
-                results.append(self._worker(
-                        i=i,
+        if self.__print_sim == "Loading":
+            stop_event = threading.Event()
+            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
+            loading_thread.start()
+
+        # Use multiprocessing to parallelize the simulation ###################################
+
+        results: 'list[tuple[int, int, int]]' = []
+
+        try:
+            with multiprocessing.Pool() as pool:
+                results = pool.map(
+                    partial(
+                        self._worker,
                         step=step,
                         circuit=self.__bbcircuit.circuit,
                         circuit_modded=self.__bbcircuit_modded.circuit,
                         qubit_order=self.__bbcircuit.qubit_order,
-                        qubit_order_modded=self.__bbcircuit_modded.qubit_order,
-                        initial_state=initial_state,
-                        initial_state_modded=initial_state_modded))
+                        qubit_order_modded=self.__bbcircuit_modded.qubit_order),
+                    range(start, stop, step))
+        finally:
+            if self.__print_sim == "Loading":
+                stop_event.set()
+                loading_thread.join()
+
+        self.__print_simulation_results(results, start, stop, step)
+
+    def __non_multiprocessing_simulation(self, start:int, stop:int, step:int) -> None:
+        """
+        Simulates the circuit without using multiprocessing.
+
+        Args:
+            start (int): The start index.
+            stop (int): The stop index.
+            step (int): The step index.
+        """
+
+        # reset the simulation results ########################################################
+
+        self.__simulation_results = {}
+
+        # simulation is not parallelized ######################################################
+
+        results: 'list[tuple[int, int, int]]' = []
+
+        for i in range(start, stop, step):
+            results.append(self._worker(
+                    i=i,
+                    step=step,
+                    circuit=self.__bbcircuit.circuit,
+                    circuit_modded=self.__bbcircuit_modded.circuit,
+                    qubit_order=self.__bbcircuit.qubit_order,
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order))
 
         self.__print_simulation_results(results, start, stop, step)
 
@@ -782,8 +880,6 @@ class QRAMCircuitSimulator:
             circuit_modded: cirq.Circuit,
             qubit_order: 'list[cirq.NamedQubit]',
             qubit_order_modded: 'list[cirq.NamedQubit]',
-            initial_state: np.ndarray,
-            initial_state_modded: np.ndarray
         ) -> 'tuple[int, int, int]':
         """
         Worker function for multiprocessing.
@@ -795,8 +891,6 @@ class QRAMCircuitSimulator:
             circuit_modded (cirq.Circuit): The modded circuit.
             qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
             qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
-            initial_state (np.ndarray): The initial state of the circuit.
-            initial_state_modded (np.ndarray): The initial state of the modded circuit.
 
         Returns:
             tuple[int, int, int]: The number of failed tests and the number of measurements and full tests success.
@@ -806,8 +900,6 @@ class QRAMCircuitSimulator:
         if self.__simulation_kind == 'dec':
             j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
 
-        initial_state[j] = 1
-        initial_state_modded[i] = 1
 
         f, sm, sv = self.__simulate_and_compare(
             i,
@@ -815,13 +907,9 @@ class QRAMCircuitSimulator:
             circuit,
             circuit_modded,
             qubit_order,
-            qubit_order_modded,
-            initial_state,
-            initial_state_modded
+            qubit_order_modded
         )
 
-        initial_state[j] = 0
-        initial_state_modded[i] = 0
         return f, sm, sv
 
     def __simulate_and_compare(
@@ -832,8 +920,6 @@ class QRAMCircuitSimulator:
             circuit_modded: cirq.Circuit,
             qubit_order: 'list[cirq.NamedQubit]',
             qubit_order_modded: 'list[cirq.NamedQubit]',
-            initial_state: np.ndarray,
-            initial_state_modded: np.ndarray
         ) -> 'tuple[int, int, int]':
         """
         Simulate and compares the results of the simulation.
@@ -845,8 +931,6 @@ class QRAMCircuitSimulator:
             circuit_modded (cirq.Circuit): The modded circuit.
             qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
             qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
-            initial_state (np.ndarray): The initial state of the circuit.
-            initial_state_modded (np.ndarray): The initial state of the modded circuit.
 
         Returns:
             int: The number of failed tests.
@@ -857,6 +941,9 @@ class QRAMCircuitSimulator:
         fail: int = 0
         success_measurements: int = 0
         success_vector: int = 0
+
+        initial_state: int = j
+        initial_state_modded: int = i
 
         result = self.__simulator.simulate(
             circuit,

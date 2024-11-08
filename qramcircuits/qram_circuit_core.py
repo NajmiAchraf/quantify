@@ -284,7 +284,7 @@ class QRAMCircuitCore:
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
         # prevent from simulate the circuit if the number of qubits is greater than 4
-        if nr_qubits > 4:
+        if nr_qubits > 4 and not self._hpc:
             self._simulate = False
 
         self._start_time = time.time()
