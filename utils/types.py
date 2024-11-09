@@ -1,4 +1,4 @@
-from typing import Literal
+from typing_extensions import Literal
 
 # Define the custom type for QRAM types
 type_qram = Literal["core", "bilan", "experiments", "stress"]

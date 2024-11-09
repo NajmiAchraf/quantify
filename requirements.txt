@@ -1,4 +1,7 @@
-cirq==0.8.0
+wheel
+cirq==0.8.2
+qsimcirq==0.4.1
+cirq-core==0.11.0
 pyzx
 pytest
 fasteners

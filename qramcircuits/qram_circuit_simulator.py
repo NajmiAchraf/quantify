@@ -3,6 +3,7 @@ import cirq.optimizers
 import itertools
 import math
 import numpy as np
+from qsimcirq import QSimSimulator
 import time
 from typing import Union
 
@@ -96,7 +97,6 @@ class QRAMCircuitSimulator:
     __bbcircuit_modded: bb.BucketBrigade
     __decomp_scenario: bb.BucketBrigadeDecompType
     __decomp_scenario_modded: bb.BucketBrigadeDecompType
-    __simulator: cirq.Simulator = cirq.Simulator()
 
     def get_simulation_bilan(self) -> 'list[str]':
         """
@@ -945,28 +945,60 @@ class QRAMCircuitSimulator:
         initial_state: int = j
         initial_state_modded: int = i
 
-        result = self.__simulator.simulate(
-            circuit,
-            qubit_order=qubit_order,
-            initial_state=initial_state
-        )
+        if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
+            simulator: cirq.Simulator = cirq.Simulator()
+        else:
+            simulator: QSimSimulator = QSimSimulator()
 
-        result_modded = self.__simulator.simulate(
-            circuit_modded,
-            qubit_order=qubit_order_modded,
-            initial_state=initial_state_modded
-        )
+        try:
+            result = simulator.simulate(
+                circuit,
+                qubit_order=qubit_order,
+                initial_state=initial_state
+            )
+
+            result_modded = simulator.simulate(
+                circuit_modded,
+                qubit_order=qubit_order_modded,
+                initial_state=initial_state_modded
+            )
+        except ValueError:
+            print(
+            """
+    An error occurred during the simulation.
+    Only on 4 qubits or less, the QSimSimulator can be used.
+    Please ensure that the following code is added to the qsim_circuit.py file:
+
+    def _cirq_gate_kind(gate):
+        ...
+        ...
+        ...
+
+        if isinstance(gate, cirq.ops.ControlledGate):
+            # Handle ControlledGate by returning the kind of the sub-gate
+            sub_gate_kind = _cirq_gate_kind(gate.sub_gate)
+            if sub_gate_kind is not None:
+                return sub_gate_kind
+            raise ValueError(f'Unrecognized controlled gate: {gate}')
+        ...
+        ...
+    """
+            )
+            return fail, success_measurements, success_vector
 
         # Extract specific measurements
         measurements = result.measurements
         measurements_modded = result_modded.measurements
 
         try:
-            # Compare final state which is the output vector, only for all qubits
-            assert np.array_equal(
-                np.array(np.around(result.final_state[j])),
-                np.array(np.around(result_modded.final_state[i]))
-            )
+            if self.__qubits_number <= 3  or self.__simulation_kind == 'dec':
+                # Compare final state which is the output vector, only for all qubits
+                assert np.array_equal(
+                    np.array(np.around(result.final_state[j])),
+                    np.array(np.around(result_modded.final_state[i]))
+                )
+            else:
+                raise AssertionError
         except AssertionError:
             try:
                 # Compare specific measurements for the specific qubits
