@@ -30,10 +30,9 @@ ifeq ($(SLURM), bilan)
 	QRAM_CMD = "python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)"
 	HPC_CMD = "srun $(QRAM_CMD)"
 else ifeq ($(SLURM), experiments)
-	NP = 1
 	JOB_NAME = "${QUBITS}Q_QD${T_COUNT}T"
-	QRAM_CMD = "python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=d"
-	HPC_CMD = "srun $(QRAM_CMD)"
+	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=h"
+	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
 else ifeq ($(SLURM), stress)
 	JOB_NAME = $(QUBITS)Q_C$(T_CANCEL)T_QD$(T_COUNT)T
 	QRAM_CMD = "python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h"
@@ -45,7 +44,7 @@ OUTPUT_FILE = output/$(SLURM)-output-$(JOB_NAME).txt
 ERROR_FILE = output/$(SLURM)-error-$(JOB_NAME).txt
 
 # SBATCH Flags
-SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=70G --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
+SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=170G --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
 
 # Default Target
 all:
@@ -89,8 +88,9 @@ all:
 script:
 	@echo "#!/bin/bash" > $(NAME)
 	@echo "cd /home/achraf.najmi/quantify-lab" >> $(NAME)
-	@echo "module load OpenMPI/4.0.5-GCC-10.2.0" >> $(NAME)
-	@echo "module load Python/3.8.6-GCCcore-10.2.0" >> $(NAME)
+	@echo "module load OpenMPI/3.1.4-GCC-8.3.0" >> $(NAME)
+	@echo "module load CMake/3.15.3-GCCcore-8.3.0" >> $(NAME)
+	@echo "module load Python/3.7.4-GCCcore-8.3.0" >> $(NAME)
 	@echo "source .venv/bin/activate" >> $(NAME)
 
 # Submit the QRAM job on HPC

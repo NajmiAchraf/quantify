@@ -3,7 +3,7 @@ import cirq.optimizers
 import itertools
 import math
 import numpy as np
-from qsimcirq import QSimSimulator
+import qsimcirq
 import time
 from typing import Union
 
@@ -746,14 +746,13 @@ class QRAMCircuitSimulator:
 
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
-        # Determine the range of work for this MPI process ####################################
-
-        total_work = range(start, stop, step)
-
         # Split the total work into chunks based on the number of ranks #######################
 
-        work_chunks = np.array_split(list(total_work), size)
-        local_work = work_chunks[rank] if rank < len(work_chunks) else []
+        chunk_size_per_rank = stop // size
+        if rank < size - 1:
+            local_work_range = range(rank * chunk_size_per_rank, (rank + 1) * chunk_size_per_rank, step)
+        else:
+            local_work_range = range(rank * chunk_size_per_rank, stop, step)
 
         # wait for all MPI processes to reach this point ######################################
 
@@ -775,7 +774,7 @@ class QRAMCircuitSimulator:
                     circuit_modded=self.__bbcircuit_modded.circuit,
                     qubit_order=self.__bbcircuit.qubit_order,
                     qubit_order_modded=self.__bbcircuit_modded.qubit_order),
-                local_work)
+                local_work_range)
 
         # Ensure results are serializable #####################################################
 
@@ -948,7 +947,7 @@ class QRAMCircuitSimulator:
         if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
             simulator: cirq.Simulator = cirq.Simulator()
         else:
-            simulator: QSimSimulator = QSimSimulator()
+            simulator: qsimcirq.QSimSimulator = qsimcirq.QSimSimulator()
 
         try:
             result = simulator.simulate(
@@ -985,6 +984,8 @@ class QRAMCircuitSimulator:
     """
             )
             return fail, success_measurements, success_vector
+        except MemoryError:
+            print("Memory error occurred during the simulation.")
 
         # Extract specific measurements
         measurements = result.measurements
@@ -1070,13 +1071,13 @@ class QRAMCircuitSimulator:
 
         if not self.__is_stress:
             print("\n\nResults of the simulation:\n")
-            colpr("r", "\t• Failed: ", f, "%")
+            colpr("r", f"\t• Failed: {fail} ({f} %)")
             if success_measurements == 0:
-                colpr("g", "\t• Succeed: ", ts, "%", end="\n\n")
+                colpr("g", f"\t• Succeed: {success_measurements + success_vector} ({ts} %)", end="\n\n")
             else:
-                colpr("y", "\t• Succeed: ", ts, "%", end="\t( ")
-                colpr("b", "Measurements: ", sm, "%", end=" • ")
-                colpr("g", "Output vector: ", sv, "%", end=" )\n\n")
+                colpr("y", f"\t• Succeed: {success_measurements + success_vector} ({ts} %)", end="\t( ")
+                colpr("b", f"Measurements: {success_measurements} ({sm} %)", end=" • ")
+                colpr("g", f"Output vector: {success_vector} ({sv} %)", end=" )\n\n")
 
             colpr("w", "Time elapsed on simulation and comparison:", end=" ")
             colpr("r", self.__stop_time, end="\n\n")
