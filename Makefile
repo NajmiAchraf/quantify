@@ -123,11 +123,11 @@ error:
 # Run the QRAM locally
 run:
 ifeq ($(LOCAL), bilan)
-	@python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
+	@python3.7 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
 else ifeq ($(LOCAL), experiments)
-	@python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d
+	@python3.7 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d
 else ifeq ($(LOCAL), stress)
-	@python3 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h
+	@python3.7 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h
 else
 	@$(MAKE) --no-print-directory all
 endif
@@ -139,15 +139,15 @@ build-docker:
 	@docker build -t quantify-env:latest .
 
 # Run the Docker container
-run-docker:
+run-docker: build-docker
 	@docker run -it --rm -v $(shell pwd):/app quantify-env:latest /bin/bash -c "make build"
 
 # Install the Python dependencies
 build:
-	python3.7 -m pip install --upgrade pip && \
-	python3.7 -m venv .venv && \
-	. .venv/bin/activate && \
-	python3.7 -m pip install -r requirements.txt && \
+	python3.7 -m pip install --upgrade pip
+	python3.7 -m venv .venv
+	. .venv/bin/activate
+	python3.7 -m pip install -r requirements.txt
 	/bin/bash
 
 # Prune the Docker system
