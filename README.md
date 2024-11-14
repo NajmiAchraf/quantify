@@ -17,9 +17,9 @@ Documentation, code, and examples are WIP.
 
 Examples are in the `examples` and `tests` folder.
 
-## Constructing the Environment
+## Constructing the Environment on System
 
-### Prerequisites on Ubuntu (22.04 or 20.04)
+### Prerequisites on Ubuntu 22.04
 
 #### Install the required packages
 
@@ -29,23 +29,37 @@ sudo apt-get install -y python3.7 python3.7-dev python3.7-venv python3-pip cmake
 
 ### Building the Environment for Python3.7
 
-#### 1. Update pip
-
 ```bash
-python3.7 -m pip install --upgrade pip
+make build
 ```
 
-#### 2. Create a virtual environment
+### Running the experiments
 
 ```bash
-python3.7 -m venv .venv
-source .venv/bin/activate
+make
 ```
 
-#### 3. Install the required Python packages
+## Constructing the Environment on Docker
+
+### Prerequisites of [Docker](https://docs.docker.com/engine/install/ubuntu/) on Ubuntu
+
+#### Install the required packages
 
 ```bash
-python3.7 -m pip install -r requirements.txt
+sudo apt-get install -y makefile
+```
+
+
+### Building the Docker Image
+
+```bash
+make build-docker
+```
+
+### Running the Docker Container
+
+```bash
+make run-docker
 ```
 
 ### Running the experiments

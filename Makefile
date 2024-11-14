@@ -132,4 +132,26 @@ else
 	@$(MAKE) --no-print-directory all
 endif
 
-.PHONY: all script submit clean output error
+# Docker Targets
+
+# Build the Docker image
+build-docker:
+	@docker build -t quantify-env:latest .
+
+# Run the Docker container
+run-docker:
+	@docker run -it --rm -v $(shell pwd):/app quantify-env:latest /bin/bash -c "make build"
+
+# Install the Python dependencies
+build:
+	python3.7 -m pip install --upgrade pip && \
+	python3.7 -m venv .venv && \
+	. .venv/bin/activate && \
+	python3.7 -m pip install -r requirements.txt && \
+	/bin/bash
+
+# Prune the Docker system
+prune:
+	@docker system prune --all
+
+.PHONY: all script submit clean output error run build-docker run-docker build
