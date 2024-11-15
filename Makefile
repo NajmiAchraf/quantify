@@ -132,26 +132,39 @@ else
 	@$(MAKE) --no-print-directory all
 endif
 
-# Docker Targets
+# Docker Targets ###############################################################
+
+# Install the Python dependencies
+build:
+	@python3.7 -m pip install --upgrade pip
+	@python3.7 -m venv .venv
+	@. .venv/bin/activate
+	@python3.7 -m pip install -r requirements.txt
 
 # Build the Docker image
 build-docker:
 	@docker build -t quantify-env:latest .
 
 # Run the Docker container
-run-docker: build-docker
-	@docker run -it --rm -v $(shell pwd):/app quantify-env:latest /bin/bash -c "make build"
+up-docker: build-docker
+	@docker run -it --rm -v $(shell pwd):/app --name quantify-env quantify-env:latest /bin/bash -c "make build && /bin/bash"
 
-# Install the Python dependencies
-build:
-	python3.7 -m pip install --upgrade pip
-	python3.7 -m venv .venv
-	. .venv/bin/activate
-	python3.7 -m pip install -r requirements.txt
-	/bin/bash
+# Run the Docker container without rebuilding
+run-docker:
+	@docker run -it --rm -v $(shell pwd):/app --name quantify-env quantify-env:latest /bin/bash -c ". .venv/bin/activate && /bin/bash"
+
+# Down the Docker container
+down-docker:
+	@docker stop quantify-env
+	@docker rm quantify-env
+
+ps:
+	@docker ps -a
+
+re: prune build-docker
 
 # Prune the Docker system
-prune:
-	@docker system prune --all
+prune: down-docker
+	@docker system prune --all --filter "label=quantify-env"
 
-.PHONY: all script submit clean output error run build-docker run-docker build
+.PHONY: all script submit clean output error run build-docker up-docker run-docker down-docker build prune

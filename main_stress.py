@@ -57,6 +57,7 @@ def main() -> int:
     elif T_Count == 4:
         Stress(ToffoliDecompType.AN0_TD3_TC4_CX6, T_Cancel)
 
+    return 0
 
 if __name__ == "__main__":
     main()

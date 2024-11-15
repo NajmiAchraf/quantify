@@ -21,19 +21,23 @@ Examples are in the `examples` and `tests` folder.
 
 ### Prerequisites on Ubuntu 22.04
 
-#### Install the required packages
+Install the required packages:
 
 ```bash
-sudo apt-get install -y python3.7 python3.7-dev python3.7-venv python3-pip cmake makefile build-essential libssl-dev libffi-dev
+sudo apt-get install -y python3.7 python3.7-dev python3.7-venv python3-pip cmake make build-essential libssl-dev libffi-dev
 ```
 
 ### Building the Environment for Python3.7
+
+Set up the Python virtual environment and install dependencies:
 
 ```bash
 make build
 ```
 
-### Running the experiments
+### Running the Experiments
+
+Run the experiments using the Makefile:
 
 ```bash
 make
@@ -41,33 +45,39 @@ make
 
 ## Constructing the Environment on Docker
 
-### Prerequisites of [Docker](https://docs.docker.com/engine/install/ubuntu/) on Ubuntu
+### Prerequisites
+
+Ensure you have [Docker](https://docs.docker.com/engine/install/ubuntu/) installed on Ubuntu.
 
 #### Install the required packages
 
 ```bash
-sudo apt-get install -y makefile
+sudo apt-get install -y make
 ```
 
+### First Time Setup
 
-### Building the Docker Image
+Build the Docker image and set up the environment:
 
 ```bash
-make build-docker
+make up-docker
 ```
 
-### Running the Docker Container
+### Subsequent Runs
+
+Run the Docker container without rebuilding the image:
 
 ```bash
 make run-docker
 ```
 
-### Running the experiments
+### Running the Experiments Inside the Docker Container
+
+Once inside the Docker container, you can run the experiments:
 
 ```bash
 make
 ```
-
 ## Citation
 
 To cite, please use:
