@@ -19,12 +19,19 @@ Examples are in the `examples` and `tests` folder.
 
 ## Constructing the Environment on System
 
-### Prerequisites on Ubuntu 22.04
+### Prerequisites on Ubuntu 20.04 or 22.04
+
+Install the required repositories for Python3.7:
+```bash
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt-get update -y
+```
 
 Install the required packages:
 
 ```bash
-sudo apt-get install -y python3.7 python3.7-dev python3.7-venv python3-pip cmake make build-essential libssl-dev libffi-dev
+sudo apt-get install -y python3.7 python3.7-dev python3.7-venv python3-pip clang cmake make git build-essential libssl-dev libffi-dev
 ```
 
 ### Building the Environment for Python3.7

@@ -138,6 +138,7 @@ build:
 	@python3.7 -m venv .venv
 	@. .venv/bin/activate
 	@python3.7 -m pip install -r requirements.txt
+	@python3.7 insert_missed_code.py local
 
 # Docker Targets ###############################################################
 
