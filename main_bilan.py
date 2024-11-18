@@ -38,7 +38,7 @@ def Bilan(QueryConfiguration: ToffoliDecompType) -> None:
 def main() -> int:
     """
     Main function for the QRAM circuit bilan.
-    """`
+    """
 
     T_Count = parser_args("bilan").parse_args().t_count
 

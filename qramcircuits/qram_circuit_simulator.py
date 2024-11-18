@@ -984,8 +984,6 @@ class QRAMCircuitSimulator:
     """
             )
             return fail, success_measurements, success_vector
-        except MemoryError:
-            print("Memory error occurred during the simulation.")
 
         # Extract specific measurements
         measurements = result.measurements

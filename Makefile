@@ -110,7 +110,7 @@ endif
 
 # Clean up generated files
 clean:
-	@rm -f slurm_bilan.sh slurm_experiments.sh slurm_stress.sh slurm_script.sh
+	@rm -f $(NAME)
 
 # Show the output log
 output:
@@ -134,11 +134,15 @@ endif
 
 # Install the Python dependencies
 build:
-	@python3.7 -m pip install --upgrade pip
 	@python3.7 -m venv .venv
 	@. .venv/bin/activate
+	@python3.7 -m pip install --upgrade pip
 	@python3.7 -m pip install -r requirements.txt
 	@python3.7 insert_missed_code.py local
+
+re:
+	@rm -rf .venv
+	@$(MAKE) --no-print-directory build
 
 # Docker Targets ###############################################################
 
@@ -167,7 +171,7 @@ ps:
 	@docker ps -a
 
 # Rebuild the Docker container from scratch
-re: prune up-docker
+re-docker: prune up-docker
 
 # Prune the Docker system
 prune: clean-docker
