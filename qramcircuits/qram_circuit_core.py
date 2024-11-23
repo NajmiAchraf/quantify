@@ -256,7 +256,7 @@ class QRAMCircuitCore:
             colpr("r", "Decomposition scenario is None")
             return
 
-        if title == "bilan":
+        if title == "bilan" and not self._hpc:
             stop_event = threading.Event()
             loading_thread = threading.Thread(target=loading_animation, args=(stop_event, title,))
             loading_thread.start()
@@ -268,7 +268,7 @@ class QRAMCircuitCore:
                 self._simulated = False
                 self._core(i)
         finally:
-            if title == "bilan":
+            if title == "bilan" and not self._hpc:
                 stop_event.set()
                 loading_thread.join()
 
@@ -277,13 +277,16 @@ class QRAMCircuitCore:
         Core function of the experiment.
         """
 
+        self._start_time = time.time()
+
+        if nr_qubits > 3 and self._print_sim == "Full":
+            self._print_sim = "Dot"
+
         qubits: 'list[cirq.NamedQubit]' = []
 
         qubits.clear()
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
-
-        self._start_time = time.time()
 
         def _create_bbcircuit():
             self._bbcircuit = bb.BucketBrigade(qubits, self._decomp_scenario)

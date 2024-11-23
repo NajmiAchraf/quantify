@@ -4,6 +4,7 @@ import itertools
 import math
 import numpy as np
 import qsimcirq
+import sys
 import time
 from typing import Union
 
@@ -625,6 +626,39 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit " + "="*20 + ">\n"
         self.__simulation(start, stop, step_m, message)
 
+    def _simulation_at_qubits(self) -> None:
+        """
+        Simulates the addressing and uncomputation and computation of the a, b, and m qubits and measure only the target qubit.
+        """
+
+        """ 2
+        the range of a qubits
+        0 00 0000 0000 0 -> 0 : start
+        0 01 0000 0000 0 -> 512 : step
+        0 10 0000 0000 0 -> 1024
+        0 11 0000 0000 0 -> 1536
+        1 00 0000 0000 0 -> 2048 : stop 
+        """
+        """ 3
+        the range of a qubits
+        0 000 00000000 00000000 0 -> 0 : start
+        0 001 00000000 00000000 0 -> 131072 : step
+        0 010 00000000 00000000 0 -> 262144
+        0 011 00000000 00000000 0 -> 393216
+        0 100 00000000 00000000 0 -> 524288
+        0 101 00000000 00000000 0 -> 655360
+        0 110 00000000 00000000 0 -> 786432
+        0 111 00000000 00000000 0 -> 917504
+        1 000 00000000 00000000 0 -> 1048576 : stop
+        """
+
+        start = 0
+        # step = 2**(2**self.start_range_qubits+1) * (2**(2**self.start_range_qubits))
+        step = 2 ** ( 2 * ( 2 ** self.__qubits_number ) + 1 )
+        stop = step * ( 2 ** self.__qubits_number )
+        message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing of the a qubits and measure only the target qubit " + "="*20 + ">\n"
+        self.__simulation(start, stop, step, message)
+
     def _simulation_full_qubits(self) -> None:
         """
         Simulates the circuit and measure all qubits.
@@ -663,6 +697,9 @@ class QRAMCircuitSimulator:
         for qubit in bbcircuit.qubit_order:
             if self.__specific_simulation == "full":
                 measurements.append(cirq.measure(qubit))
+            elif self.__specific_simulation == "at":
+                if qubit.name.startswith("t"):
+                    measurements.append(cirq.measure(qubit))
             else:
                 for _name in self.__specific_simulation:
                     if qubit.name.startswith(_name):
@@ -702,6 +739,9 @@ class QRAMCircuitSimulator:
             printCircuit(self.__print_circuit, self.__bbcircuit_modded.circuit, self.__bbcircuit_modded.qubit_order, "modded")
 
             printRange(start, stop, step)
+
+            print(f"Allocated memory for 'stop': {sys.getsizeof(stop)} bytes")
+            print(f"Allocated memory for 'step': {sys.getsizeof(step)} bytes")
 
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 

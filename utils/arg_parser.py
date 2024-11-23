@@ -113,6 +113,6 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit.")
         parser.add_argument('--print-circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
         parser.add_argument('--print-simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.")
-        parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't'], nargs='?', default="full", help=MSG1)
+        parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 'at', 't'], nargs='?', default="full", help=MSG1)
 
     return parser
