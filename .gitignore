@@ -7,7 +7,6 @@ output/
 experimental
 .message*
 **/*.out
-*.pdf
 *.txt
 *.sh
 file.lock
