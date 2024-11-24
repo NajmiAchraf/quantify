@@ -740,9 +740,6 @@ class QRAMCircuitSimulator:
 
             printRange(start, stop, step)
 
-            print(f"Allocated memory for 'stop': {sys.getsizeof(stop)} bytes")
-            print(f"Allocated memory for 'step': {sys.getsizeof(step)} bytes")
-
             colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
 
         if self.__hpc and not self.__is_stress:
