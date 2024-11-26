@@ -9,6 +9,7 @@ NAME = slurm_$(SLURM).sh
 QUBITS = 0
 T_COUNT = 0
 T_CANCEL = 0
+SPECIFIC = "full"
 
 # MPI and SLURM Variables
 NP = 1
@@ -31,17 +32,17 @@ ifeq ($(SLURM), bilan)
 	HPC_CMD = "srun $(QRAM_CMD)"
 else ifeq ($(SLURM), experiments)
 	JOB_NAME = "${QUBITS}Q_QD${T_COUNT}T"
-	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=h"
+	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=h --specific=$(SPECIFIC)"
 	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
 else ifeq ($(SLURM), stress)
 	JOB_NAME = $(QUBITS)Q_C$(T_CANCEL)T_QD$(T_COUNT)T
-	QRAM_CMD = "python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h"
+	QRAM_CMD = "python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h --specific=$(SPECIFIC)"
 	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
 endif
 
 # Output and Error Files
 OUTPUT_FILE = output/$(SLURM)-output-$(JOB_NAME).txt
-ERROR_FILE = output/$(SLURM)-error-$(JOB_NAME).txt
+ERROR_FILE = error/$(SLURM)-error-$(JOB_NAME).txt
 
 # SBATCH Flags
 SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=170G --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
@@ -125,9 +126,9 @@ run:
 ifeq ($(LOCAL), bilan)
 	@python3.7 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
 else ifeq ($(LOCAL), experiments)
-	@python3.7 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d
+	@python3.7 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d --specific=$(SPECIFIC)
 else ifeq ($(LOCAL), stress)
-	@python3.7 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h
+	@python3.7 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h --specific=$(SPECIFIC)
 else
 	@$(MAKE) --no-print-directory all
 endif

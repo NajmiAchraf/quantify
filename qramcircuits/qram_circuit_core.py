@@ -256,7 +256,11 @@ class QRAMCircuitCore:
             colpr("r", "Decomposition scenario is None")
             return
 
-        if title == "bilan" and not self._hpc:
+        animate = True
+        if title == "bilan" and self._hpc:
+            animate = False
+
+        if animate:
             stop_event = threading.Event()
             loading_thread = threading.Thread(target=loading_animation, args=(stop_event, title,))
             loading_thread.start()
@@ -268,7 +272,7 @@ class QRAMCircuitCore:
                 self._simulated = False
                 self._core(i)
         finally:
-            if title == "bilan" and not self._hpc:
+            if animate:
                 stop_event.set()
                 loading_thread.join()
 
