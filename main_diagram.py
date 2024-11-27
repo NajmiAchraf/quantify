@@ -1,115 +1,219 @@
+# main_diagram.py
 from graphviz import Digraph
 
-# Initialize Digraph with black background
+# Initialize the graph with a black background
 dot = Digraph(comment='QRAM Circuit Module Dependencies Diagram', format='pdf')
-dot.attr(rankdir='LR', fontsize='10', splines='ortho', bgcolor='black', fontcolor='white')
+dot.attr(rankdir='LR',  # Left to Right
+         fontsize='13',   # Default font size
+         splines='spline',   # Curved edges
+         bgcolor='black',     # Graph background color
+         fontcolor='white')   # Default font color for nodes and labels
 
-# Define synchronized bright colors for different types
-COLOR_CLASSES = 'dodgerblue'
-COLOR_MAIN = 'darkgreen'
+# Define colors for different module types
+COLOR_MODULE_CLASSES_INHERITANCE = 'dodgerblue'
+COLOR_MODULE_CLASSES_COMPOSITION = 'darkorange'
+COLOR_MODULE_CLASSES_OPTIMIZATION = 'gold'
+COLOR_MODULE_MAIN = 'darkgreen'
+COLOR_MODULE_UTILS = 'red'
+
+# Define colors and styles for different relation types
 COLOR_RELATIONS = {
-    'Inheritance': 'orange',
-    'Composition': 'cyan',
-    'Execution': 'magenta'
+    'Inheritance': {'color': 'cyan', 'style': 'solid'},
+    'Composition': {'color': 'orange', 'style': 'dashed'},
+    'Optimization': {'color': 'yellow', 'style': 'dotted'},
+    'Execution': {'color': 'lime', 'style': 'bold'},
+    'Utils': {'color': 'lightcoral', 'style': 'dotted'}
 }
 
 # Modules with Descriptions and Colors
 modules = {
-    'qram_circuit_simulator.py\nQRAMCircuitSimulator Class': {
-        'description': 'Simulates QRAM Circuits',
-        'color': COLOR_CLASSES,
-        'type': 'Class Composition'
-    },
-    'qram_circuit_core.py\nQRAMCircuitCore Class': {
+    # Class Inheritance
+    'qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class': {
         'description': 'Constructs QRAM Circuits',
-        'color': COLOR_CLASSES,
+        'color': COLOR_MODULE_CLASSES_INHERITANCE,
         'type': 'Class Inheritance'
     },
-    'qram_circuit_stress.py\nQRAMCircuitStress Class': {
+    'qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class': {
         'description': 'Performs stress testing on QRAM Circuits',
-        'color': COLOR_CLASSES,
+        'color': COLOR_MODULE_CLASSES_INHERITANCE,
         'type': 'Class Inheritance'
     },
-    'qram_circuit_experiments.py\nQRAMCircuitExperiments Class': {
+    'qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class': {
         'description': 'Handles experiments for QRAM Circuits',
-        'color': COLOR_CLASSES,
+        'color': COLOR_MODULE_CLASSES_INHERITANCE,
         'type': 'Class Inheritance'
     },
-    'qram_circuit_bilan.py\nQRAMCircuitBilan Class': {
+    'qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class': {
         'description': 'Generates bilan reports for QRAM Circuits',
-        'color': COLOR_CLASSES,
+        'color': COLOR_MODULE_CLASSES_INHERITANCE,
         'type': 'Class Inheritance'
     },
-    'bucket_brigade.py\nBucketBrigade Class': {
-        'description': 'Creates Bucket Brigade for QRAM Circuit',
-        'color': COLOR_CLASSES,
+
+    # Class Composition
+    'qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class': {
+        'description': 'Simulates QRAM Circuits',
+        'color': COLOR_MODULE_CLASSES_COMPOSITION,
         'type': 'Class Composition'
     },
+    'qramcircuits/bucket_brigade.py\nBucketBrigade Class': {
+        'description': 'Creates Bucket Brigade for QRAM Circuit',
+        'color': COLOR_MODULE_CLASSES_COMPOSITION,
+        'type': 'Class Composition'
+    },
+
+    # Class Optimization
+    'optimizers/transforme_ngh_gates.py\nTransformeNghGates Class': {
+        "description": "Transforms (T and T) or (T^-1 and T^-1) or (S and S) or (S^-1 and S^-1)\ngates that are neighbor horizontally on series qubits",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+    'optimizers/cancel_ngh_clifford_t_gates.py\nCancelNGHCliffordTGates Class': {
+        "description": "Cancels (H and H) or (T and T^-1) or (S and S^-1) or (Z and Z)\ngates that are neighbor horizontally on series qubits",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+    'optimizers/cancel_ngh_cnots.py\nCancelNghCNOTs Class': {
+        "description": "Cancels two neighbouring CNOTs",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+    'optimizers/commute_t_to_start.py\nCommuteTGatesToStart Class': {
+        "description": "Commutes T gates to the start of the circuit",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+    'optimizers/parallelize_cnots.py\nParallelizeCNOTs Class': {
+        "description": "Parallelizes CNOTs",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+    'optimizers/cancel_t_gates.py\nCancelTGates Class': {
+        "description": "Cancel T gates in a circuit",
+        "color": COLOR_MODULE_CLASSES_OPTIMIZATION,
+        "type": "Class Optimization"
+    },
+
+    # Main Executions
     'main_experiments.py\nMainExperiments': {
         'description': 'Executes QRAMCircuitExperiments',
-        'color': COLOR_MAIN,
+        'color': COLOR_MODULE_MAIN,
         'type': 'Main'
     },
     'main_bilan.py\nMainBilan': {
         'description': 'Executes QRAMCircuitBilan',
-        'color': COLOR_MAIN,
+        'color': COLOR_MODULE_MAIN,
         'type': 'Main'
     },
     'main_stress.py\nMainStress': {
         'description': 'Executes QRAMCircuitStress',
-        'color': COLOR_MAIN,
+        'color': COLOR_MODULE_MAIN,
         'type': 'Main'
+    },
+
+    # Utils
+    'utils/arg_parser.py': {
+        'description': 'Parses command line arguments',
+        'color': COLOR_MODULE_UTILS,
+        'type': 'Utils'
+    },
+    'utils/print_utils.py': {
+        'description': 'Prints formatted outputs',
+        'color': COLOR_MODULE_UTILS,
+        'type': 'Utils'
     }
 }
 
-# Define subgraphs (clusters) for layering
-with dot.subgraph(name='cluster_classes_inheritance') as c:
-    c.attr(style='filled', color='gray30', label='Classes Inheritance', fontcolor='white')
-    for module, attrs in modules.items():
-        if attrs['type'] == 'Class Inheritance':
-            c.node(module, f"{module}\n{attrs['description']}",
-                   style='filled', fillcolor=attrs['color'], fontcolor='white', shape='box')
+# Define subgraphs (clusters) for module types
+def add_cluster(cluster_name, label, color, fontcolor, module_type):
+    with dot.subgraph(name=f'cluster_{cluster_name}') as c:
+        c.attr(style='filled', color=color, label=label, fontcolor=fontcolor, fontsize='14')
+        for module, attrs in modules.items():
+            if attrs['type'] == module_type:
+                c.node(module, f"{module}\n{attrs['description']}",
+                       style='filled',
+                       fillcolor=attrs['color'],
+                       fontcolor='white' if attrs['color'] not in ['red', 'gold'] else 'black',
+                       shape='box',
+                       fontsize='10')
 
-with dot.subgraph(name='cluster_classes_composition') as c:
-    c.attr(style='filled', color='gray50', label='Classes Composition', fontcolor='white')
-    for module, attrs in modules.items():
-        if attrs['type'] == 'Class Composition':
-            c.node(module, f"{module}\n{attrs['description']}",
-                   style='filled', fillcolor=attrs['color'], fontcolor='white', shape='box')
+# Add clusters
+add_cluster('classes_inheritance', 'Classes Inheritance', 'gray30', 'white', 'Class Inheritance')
+add_cluster('classes_composition', 'Classes Composition', 'gray50', 'white', 'Class Composition')
+add_cluster('utils', 'Utils', 'gray90', 'black', 'Utils')
+add_cluster('classes_optimization', 'Classes Optimization', 'gray70', 'black', 'Class Optimization')
+add_cluster('main_executions', 'Main Executions', 'gray10', 'white', 'Main')
 
-with dot.subgraph(name='cluster_main') as c:
-    c.attr(style='filled', color='gray10', label='Main Executions', fontcolor='white')
-    for module, attrs in modules.items():
-        if attrs['type'] == 'Main':
-            c.node(module, f"{module}\n{attrs['description']}",
-                   style='filled', fillcolor=attrs['color'], fontcolor='white', shape='box')
-
-# Dependencies with Relation Types
+# Define dependencies with relation types
 dependencies = [
     # Class Inheritance
-    ("qram_circuit_experiments.py\nQRAMCircuitExperiments Class", "qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
-    ("qram_circuit_bilan.py\nQRAMCircuitBilan Class", "qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
-    ("qram_circuit_stress.py\nQRAMCircuitStress Class", "qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Inheritance'),
+    ("qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class",
+     "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
+    ("qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class",
+     "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
+    ("qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class",
+     "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Inheritance'),
 
-    # Composition
-    ("bucket_brigade.py\nBucketBrigade Class", "qram_circuit_core.py\nQRAMCircuitCore Class", 'Composition'),
-    ("qram_circuit_simulator.py\nQRAMCircuitSimulator Class", "qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Composition'),
+    # Class Composition
+    ("qramcircuits/bucket_brigade.py\nBucketBrigade Class",
+     "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Composition'),
+    ("qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class",
+     "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Composition'),
+
+    # Class Optimization
+    ("optimizers/transforme_ngh_gates.py\nTransformeNghGates Class",
+     "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
+    ("optimizers/cancel_ngh_clifford_t_gates.py\nCancelNGHCliffordTGates Class",
+     "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
+    ("optimizers/cancel_ngh_cnots.py\nCancelNghCNOTs Class",
+     "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
+    ("optimizers/commute_t_to_start.py\nCommuteTGatesToStart Class",
+     "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
+    ("optimizers/parallelize_cnots.py\nParallelizeCNOTs Class",
+     "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
+    ("optimizers/cancel_t_gates.py\nCancelTGates Class",
+     "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Optimization'),
 
     # Main Executions
-    ("main_experiments.py\nMainExperiments", "qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Execution'),
-    ("main_bilan.py\nMainBilan", "qram_circuit_bilan.py\nQRAMCircuitBilan Class", 'Execution'),
-    ("main_stress.py\nMainStress", "qram_circuit_stress.py\nQRAMCircuitStress Class", 'Execution')
+    ("main_experiments.py\nMainExperiments",
+     "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Execution'),
+    ("main_bilan.py\nMainBilan",
+     "qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class", 'Execution'),
+    ("main_stress.py\nMainStress",
+     "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Execution'),
+
+    # Utils
+    ("utils/arg_parser.py",
+     "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Utils'),
+    ("utils/arg_parser.py",
+     "main_experiments.py\nMainExperiments", 'Utils'),
+    ("utils/arg_parser.py",
+     "main_bilan.py\nMainBilan", 'Utils'),
+    ("utils/arg_parser.py",
+     "main_stress.py\nMainStress", 'Utils'),
+    ("utils/print_utils.py",
+     "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Utils'),
+    ("utils/print_utils.py",
+     "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Utils'),
+    ("utils/print_utils.py",
+     "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Utils'),
+    ("utils/print_utils.py",
+     "qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class", 'Utils')
 ]
 
 # Add edges with different colors and styles based on relation type
 for src, dst, relation in dependencies:
-    color = COLOR_RELATIONS.get(relation, 'white')
-    style = {
-        'Inheritance': 'solid',
-        'Composition': 'dashed',
-        'Execution': 'dotted'
-    }.get(relation, 'solid')
-    dot.edge(src, dst, label=relation, color=color, fontcolor='white', style=style)
+    relation_attrs = COLOR_RELATIONS.get(relation, {'color': 'white', 'style': 'solid'})
+    dot.edge(src, dst,
+             label=relation,
+             color=relation_attrs['color'],
+             fontcolor='white',
+             style=relation_attrs['style'],
+             fontsize='10')
+
+# Position the legend at the bottom using a subgraph with rank='sink'
+with dot.subgraph() as s:
+    s.attr(rank='sink')
+    s.node('legend')
 
 # Render the diagram
 dot.render('main_diagram', view=True)

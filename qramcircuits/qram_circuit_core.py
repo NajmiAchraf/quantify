@@ -256,9 +256,9 @@ class QRAMCircuitCore:
             colpr("r", "Decomposition scenario is None")
             return
 
-        animate = True
-        if title == "bilan" and self._hpc:
-            animate = False
+        animate = False
+        if title == "bilan" and not self._hpc:
+                animate = True
 
         if animate:
             stop_event = threading.Event()
