@@ -65,7 +65,7 @@ class QRAMCircuitCore:
     _print_sim: type_print_sim = "Hide"
     _start_range_qubits: int
     _end_range_qubits: int = 0
-    _specific_simulation: type_specific_simulation = "full"
+    _specific_simulation: type_specific_simulation = "qram"
 
     _start_time: float = 0
     _stop_time: str = ""

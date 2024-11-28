@@ -9,7 +9,7 @@ NAME = slurm_$(SLURM).sh
 QUBITS = 0
 T_COUNT = 0
 T_CANCEL = 0
-SPECIFIC = "full"
+SPECIFIC = "qram"
 
 # MPI and SLURM Variables
 NP = 1

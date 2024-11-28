@@ -10,3 +10,4 @@ experimental
 *.txt
 *.sh
 file.lock
+test

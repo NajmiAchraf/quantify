@@ -179,7 +179,7 @@ class BucketBrigade():
         memory_operations = []
         for i in range(len(memory)):
             mem_toff = cirq.TOFFOLI.on(
-                all_ancillas[len(memory) - 1 - i],
+                all_ancillas[i],
                 memory[i],
                 target
             )
@@ -276,7 +276,7 @@ class BucketBrigade():
         all_ancillas, compute_fanin_moments = self.construct_fan_structure(qubits)
 
         # Wiring the memory
-        compute_memory_moments = self.wiring_memory(all_ancillas, memory, target)
+        compute_memory_moments = self.wiring_memory(sorted(all_ancillas), memory, target)
 
         # Construct the fanout structure
         compute_fanout_moments = ctu.reverse_moments(compute_fanin_moments)
