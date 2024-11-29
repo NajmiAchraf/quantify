@@ -1,21 +1,19 @@
-import cirq
-import time
-
 import concurrent.futures
 import threading
-
+import time
+import sys
 from typing import Union
 
-import qramcircuits.bucket_brigade as bb
+import cirq
 
-from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
+import qramcircuits.bucket_brigade as bb
 from qramcircuits.bucket_brigade import ReverseMoments
+from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
-from utils.arg_parser import *
-from utils.counting_utils import *
-from utils.print_utils import *
-from utils.types import *
+from utils.print_utils import colpr, loading_animation, elapsed_time
+from utils.types import type_print_circuit, type_print_sim, type_specific_simulation
+from utils.arg_parser import parser_args
 
 
 #######################################
@@ -29,11 +27,11 @@ class QRAMCircuitCore:
     Attributes:
         _hpc (bool): Flag indicating whether to use High Performance Computing (HPC) mode.
         _simulate (bool): Flag indicating whether to simulate Toffoli decompositions and circuit.
-        _print_circuit (Literal["Print", "Display", "Hide"]): Flag indicating whether to print the circuits.
-        _print_sim (Literal["Dot", "Full", "Loading", "Hide"]): Flag indicating whether to print the full simulation result.
+        _print_circuit (type_print_circuit): Flag indicating whether to print the full circuit.
+        _print_sim (type_print_sim): Flag indicating whether to print the full simulation result.
         _start_range_qubits (int): Start range of qubits.
         _end_range_qubits (int): End range of qubits.
-        _specific_simulation (Literal["a", "b", "m", "ab", "bm", "abm", "t", "full"]): Specific simulation for specific qubit wire.
+        _specific_simulation (type_specific_simulation): Specific simulation for specific qubit wire.
 
         _start_time (float): Start time of the experiment.
         _stop_time (str): Stop time of the experiment.
@@ -81,14 +79,14 @@ class QRAMCircuitCore:
 
     def __init__(self):
         """
-        Constructor the QRAMCircuitCore class.
+        Constructor for the QRAMCircuitCore class.
         """
 
         try:
             self.__arg_input__()
         except Exception as e:
-            colpr("r", "\n", str(e), end="\n")
-            exit(1)
+            colpr("r", "\nError occurred while parsing arguments:", str(e), end="\n")
+            sys.exit(1)
 
         if not self._hpc:
             self.__print_input__()

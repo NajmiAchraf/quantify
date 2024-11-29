@@ -17,9 +17,8 @@ import qramcircuits.bucket_brigade as bb
 
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
 
-from utils.counting_utils import *
-from utils.print_utils import *
-from utils.types import *
+from utils.print_utils import colpr, elapsed_time, printRange, printCircuit, loading_animation
+from utils.types import type_specific_simulation, type_print_circuit, type_print_sim, type_simulation_kind
 
 
 #######################################
@@ -675,40 +674,41 @@ class QRAMCircuitSimulator:
 
         """ 2
         the range of qram logic
-        0 00 1000 0001 0 -> 258 : start
+        0 00 0000 0000 0 -> 0 : start
+        0 00 0000 0001 0 -> 2
+        0 00 1000 0000 0 -> 256
+        0 00 1000 0001 0 -> 258
+        0 01 0000 0000 0 -> 512
+        0 01 0000 0010 0 -> 516
+        0 01 0100 0000 0 -> 640
         0 01 0100 0010 0 -> 644
+        0 10 0000 0000 0 -> 1024
+        0 10 0000 0100 0 -> 1032
+        0 10 0010 0000 0 -> 1088
         0 10 0010 0100 0 -> 1096
+        0 11 0000 0000 0 -> 1536
+        0 11 0000 1000 0 -> 1552
+        0 11 0001 0000 0 -> 1568
         0 11 0001 1000 0 -> 1584
         1 00 0000 0000 0 -> 2048 : stop
         """
-        """ 3
-        the range of qram logic
-        0 000 10000000 00000001 0 -> 65538 : start
-        0 001 01000000 00000010 0 -> 163844
-        0 010 00100000 00000100 0 -> 278536
-        0 011 00010000 00001000 0 -> 401424
-        0 100 00001000 00010000 0 -> 528416
-        0 101 00000100 00100000 0 -> 657472
-        0 110 00000010 01000000 0 -> 787584
-        0 111 00000001 10000000 0 -> 918272
-        1 000 00000000 00000000 0 -> 1048576 : stop
-        """
         def generate_qram_patterns(n=2):
-            lines: 'list[int]' = []
-            num_ids = 2 ** n
-            control_length = 2 ** n
-            # Generate active lines
-            for i in range(num_ids):
-                flag = '0'
-                identifier = format(i, f'0{n}b')
-                control1 = format(1 << (control_length - 1 - i), f'0{control_length}b')
-                control2 = format(1 << i, f'0{control_length}b')
-                final_bit = '0'
-                # binary_str = f"{flag} {identifier} {control1} {control2} {final_bit}"
-                decimal_value = int(f"{flag}{identifier}{control1}{control2}{final_bit}", 2)
-                line = decimal_value
-                lines.append(line)
-            return lines
+                lines = []
+                num_ids = 2 ** n
+                control_length = 2 ** n
+                # Generate active lines
+                for i in range(num_ids):
+                    identifier = format(i, f'0{n}b')
+                    control1_options = ['0' * control_length, format(1 << (control_length - 1 - i), f'0{control_length}b')]
+                    control2_options = ['0' * control_length, format(1 << i, f'0{control_length}b')]
+                    for c1 in control1_options:
+                        for c2 in control2_options:
+                            flag = '0'
+                            final_bit = '0'
+                            decimal_value = int(f"{flag}{identifier}{c1}{c2}{final_bit}", 2)
+                            line = decimal_value
+                            lines.append(line)
+                return lines
 
         self.__simulation(generate_qram_patterns(self.__qubits_number), 1, "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ...")
         
@@ -741,7 +741,7 @@ class QRAMCircuitSimulator:
         Simulates the circuit.
 
         Args:
-            range ('list[int]'): The range of the simulation.
+            sim_range ('list[int]'): The range of the simulation.
             step (int): The step index.
             message (str): The message to print.
         """
@@ -787,7 +787,7 @@ class QRAMCircuitSimulator:
         Simulates the circuit using multiprocessing and MPI.
 
         Args:
-            range ('list[int]'): The range of the simulation.
+            sim_range ('list[int]'): The range of the simulation.
             step (int): The step index
         """
 
@@ -862,7 +862,7 @@ class QRAMCircuitSimulator:
         Simulates the circuit using multiprocessing.
 
         Args:
-            range ('list[int]'): The range of the simulation.
+            sim_range ('list[int]'): The range of the simulation.
             step (int): The step index.
         """
 
@@ -1100,7 +1100,7 @@ class QRAMCircuitSimulator:
 
         Args:
             results (list[tuple[int, int, int]]): The results of the simulation.
-            range (list[int]): The range of the simulation.
+            sim_range (list[int]): The range of the simulation.
             step (int): The step index.
 
         Returns:
