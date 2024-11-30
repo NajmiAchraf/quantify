@@ -1,4 +1,4 @@
-from typing import Literal
+from typing_extensions import Literal
 import subprocess
 
 slurm_type = Literal["bilan", "experiments", "stress"]
