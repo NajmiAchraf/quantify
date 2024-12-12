@@ -57,6 +57,7 @@ class QRAMCircuitCore:
         _core(nr_qubits): Core function of the experiment.
     """
 
+    _shots: int = 50
     _hpc: bool = False
     _simulate: bool = False
     _print_circuit: type_print_circuit = "Hide"
@@ -118,12 +119,17 @@ class QRAMCircuitCore:
         colpr("r", f"{self._end_range_qubits}")
 
         if self._simulate:
+
             sim_msg = "Simulate full circuit" if self._specific_simulation == "full" else f"Simulate specific measurement: {self._specific_simulation} qubits"
             colpr("w", "Simulation type:", end=" ")
             colpr("r", sim_msg)
 
             colpr("w", "Simulation display option:", end=" ")
             colpr("r", f"{self._print_sim}")
+
+            if self._specific_simulation != "full":
+                colpr("w", "Number of shots for the simulation:", end=" ")
+                colpr("r", f"{self._shots}")
 
         colpr("y", "\n================================================\n")
 
@@ -133,6 +139,9 @@ class QRAMCircuitCore:
         """
 
         args = parser_args("core").parse_known_args()[0]
+
+        # Number of shots for the simulation
+        self._shots = args.shots
 
         # High Performance Computing (HPC) mode
         self._hpc = args.hpc

@@ -52,7 +52,7 @@ def main() -> int:
     # THIRD EXPERIMENT : AN0_TD3_TC4_CX6
     elif T_Count == 4:
         Experiment(ToffoliDecompType.AN0_TD3_TC4_CX6)
-    
+
     return 0
 
 

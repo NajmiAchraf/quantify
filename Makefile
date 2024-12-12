@@ -96,6 +96,7 @@ script:
 
 # Submit the QRAM job on HPC
 submit: script
+	@mkdir -p output
 	@echo $(HPC_CMD) >> $(NAME)
 ifeq ($(SLURM), bilan)
 	@sbatch $(SBATCH_FLAGS) $(NAME)

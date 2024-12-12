@@ -15,6 +15,9 @@ RUN apt-get install -y clang
 # Install CMake and Make
 RUN apt-get install -y cmake make
 
+# Install OpenMPI
+RUN apt-get install -y openmpi-bin libopenmpi-dev
+
 # Install Git
 RUN apt-get install -y git
 
@@ -34,6 +37,7 @@ COPY requirements.txt .
 # Install dependencies of Python 3.7
 RUN python3.7 -m pip install --upgrade pip
 RUN python3.7 -m pip install -r requirements.txt
+RUN python3.7 -m pip install mpi4py
 
 # Copy the Python script into the container
 COPY insert_missed_code.py .

@@ -12,7 +12,7 @@ from functools import partial
 import multiprocessing
 from multiprocessing.managers import DictProxy
 import threading
-
+from concurrent.futures import ThreadPoolExecutor
 import qramcircuits.bucket_brigade as bb
 
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
@@ -37,6 +37,7 @@ class QRAMCircuitSimulator:
         __simulation_kind (Literal["bb", "dec"]): The simulation kind.
         __is_stress (bool): The stress flag.
         __hpc (bool): Flag indicating if high-performance computing is used.
+        __shots (int): The number of shots.
 
         __lock (multiprocessing.Lock): The multiprocessing lock.
 
@@ -87,6 +88,7 @@ class QRAMCircuitSimulator:
     __simulation_kind: type_simulation_kind = "dec"
     __is_stress: bool = False
     __hpc: bool
+    __shots: int
 
     __lock = multiprocessing.Lock()
 
@@ -119,7 +121,8 @@ class QRAMCircuitSimulator:
             qubits_number: int,
             print_circuit: str,
             print_sim: str,
-            hpc: bool
+            hpc: bool,
+            shots: int
         ) -> None:
         """
         Constructor of the CircuitSimulator class.
@@ -145,6 +148,7 @@ class QRAMCircuitSimulator:
         self.__print_circuit = print_circuit
         self.__print_sim = print_sim
         self.__hpc = hpc
+        self.__shots = shots
 
     def _run_simulation(self, is_stress: bool = False) -> None:
         """
@@ -242,6 +246,8 @@ class QRAMCircuitSimulator:
         """
         Simulates the Toffoli decompositions.
         """
+
+        self.__simulation_kind = "dec"
 
         message =  "<" + "="*20 + " Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate " + "="*20 + ">\n"
         colpr("y", f"\n{message}", end="\n\n")
@@ -672,46 +678,41 @@ class QRAMCircuitSimulator:
         Simulates the circuit and measure only the target qubit, with activating the QRAM behavior of the circuit.
         """
 
-        """ 2
-        the range of qram logic
-        0 00 0000 0000 0 -> 0 : start
-        0 00 0000 0001 0 -> 2
-        0 00 1000 0000 0 -> 256
-        0 00 1000 0001 0 -> 258
-        0 01 0000 0000 0 -> 512
-        0 01 0000 0010 0 -> 516
-        0 01 0100 0000 0 -> 640
-        0 01 0100 0010 0 -> 644
-        0 10 0000 0000 0 -> 1024
-        0 10 0000 0100 0 -> 1032
-        0 10 0010 0000 0 -> 1088
-        0 10 0010 0100 0 -> 1096
-        0 11 0000 0000 0 -> 1536
-        0 11 0000 1000 0 -> 1552
-        0 11 0001 0000 0 -> 1568
-        0 11 0001 1000 0 -> 1584
-        1 00 0000 0000 0 -> 2048 : stop
-        """
-        def generate_qram_patterns(n=2):
+        def generate_qram_patterns() -> 'list[int]':
+            """2
+            0 00 1000 0001 0 -> 258 : start
+            0 01 0100 0010 0 -> 644
+            0 10 0010 0100 0 -> 1096
+            0 11 0001 1000 0 -> 1584
+            """
+
+            """3
+            0 000 10000000 00000001 0 -> 65538 : start
+            0 001 01000000 00000010 0 -> 163844
+            0 010 00100000 00000100 0 -> 278536
+            0 011 00010000 00001000 0 -> 401424
+            0 100 00001000 00010000 0 -> 528416
+            0 101 00000100 00100000 0 -> 657472
+            0 110 00000010 01000000 0 -> 787584
+            0 111 00000001 10000000 0 -> 918272
+            """
+
+            for n in range(self.__qubits_number + 1):
                 lines = []
                 num_ids = 2 ** n
                 control_length = 2 ** n
                 # Generate active lines
                 for i in range(num_ids):
+                    flag = '0'
                     identifier = format(i, f'0{n}b')
-                    control1_options = ['0' * control_length, format(1 << (control_length - 1 - i), f'0{control_length}b')]
-                    control2_options = ['0' * control_length, format(1 << i, f'0{control_length}b')]
-                    for c1 in control1_options:
-                        for c2 in control2_options:
-                            flag = '0'
-                            final_bit = '0'
-                            decimal_value = int(f"{flag}{identifier}{c1}{c2}{final_bit}", 2)
-                            line = decimal_value
-                            lines.append(line)
-                return lines
+                    control1 = format(1 << (control_length - 1 - i), f'0{control_length}b')
+                    control2 = format(1 << i, f'0{control_length}b')
+                    final_bit = '0'
+                    decimal_value = int(f"{flag}{identifier}{control1}{control2}{final_bit}", 2)
+                    lines.append(decimal_value)
+            return lines
 
-        self.__simulation(generate_qram_patterns(self.__qubits_number), 1, "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ...")
-        
+        self.__simulation(generate_qram_patterns(), 1, "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ...")
 
     def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> None:
         """
@@ -778,6 +779,10 @@ class QRAMCircuitSimulator:
 
             self.__non_multiprocessing_simulation(sim_range, step)
 
+        elif self.__specific_simulation != "full" and not self.__hpc and self.__simulation_kind == "bb":
+
+            self.__non_multiprocessing_simulation(sim_range, step)
+
         else:
 
             self.__multiprocessing_simulation(sim_range, step)
@@ -829,16 +834,26 @@ class QRAMCircuitSimulator:
         # Use multiprocessing to parallelize the simulation ###################################
 
         results: 'list[tuple[int, int, int]]' = []
-        with multiprocessing.Pool() as pool:
-            results = pool.map(
-                partial(
-                    self._worker,
+        if self.__specific_simulation != "full" and self.__simulation_kind == "bb":
+            for i in local_work_range:
+                results.append(self._worker(
+                    i=i,
                     step=step,
                     circuit=self.__bbcircuit.circuit,
                     circuit_modded=self.__bbcircuit_modded.circuit,
                     qubit_order=self.__bbcircuit.qubit_order,
-                    qubit_order_modded=self.__bbcircuit_modded.qubit_order),
-                local_work_range)
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order))
+        else:
+            with multiprocessing.Pool() as pool:
+                results = pool.map(
+                    partial(
+                        self._worker,
+                        step=step,
+                        circuit=self.__bbcircuit.circuit,
+                        circuit_modded=self.__bbcircuit_modded.circuit,
+                        qubit_order=self.__bbcircuit.qubit_order,
+                        qubit_order_modded=self.__bbcircuit_modded.qubit_order),
+                    local_work_range)
 
         # Ensure results are serializable #####################################################
 
@@ -999,9 +1014,50 @@ class QRAMCircuitSimulator:
             int: The number of full tests success.
         """
 
-        fail: int = 0
-        success_measurements: int = 0
-        success_vector: int = 0
+        if self.__specific_simulation != "full" and self.__simulation_kind == "bb":
+            return self.__simulate_multiple_shots(
+                i,
+                j,
+                circuit,
+                circuit_modded,
+                qubit_order,
+                qubit_order_modded
+            )
+
+        return self.__simulate_one_shot(
+            i,
+            j,
+            circuit,
+            circuit_modded,
+            qubit_order,
+            qubit_order_modded
+        )
+
+    def __simulate_one_shot(
+            self,
+            i: int,
+            j: int,
+            circuit: cirq.Circuit,
+            circuit_modded: cirq.Circuit,
+            qubit_order: 'list[cirq.NamedQubit]',
+            qubit_order_modded: 'list[cirq.NamedQubit]',
+        ) -> 'tuple[int, int, int]':
+        """
+        Simulate and compares the results of the simulation.
+
+        Args:
+            i (int): The index of the simulation.
+            j (int): The index of the reversed binary number.
+            circuit (cirq.Circuit): The circuit.
+            circuit_modded (cirq.Circuit): The modded circuit.
+            qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
+            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
+
+        Returns:
+            int: The number of failed tests.
+            int: The number of measurements tests success.
+            int: The number of full tests success.
+        """
 
         initial_state: int = j
         initial_state_modded: int = i
@@ -1045,19 +1101,189 @@ class QRAMCircuitSimulator:
         ...
     """
             )
-            return fail, success_measurements, success_vector
 
-        # Extract specific measurements
-        measurements = result.measurements
-        measurements_modded = result_modded.measurements
+        return self.__compare_results(
+            i,
+            result,
+            result_modded,
+            result.measurements,
+            result_modded.measurements,
+            result.final_state[j],
+            result_modded.final_state[i]
+        )
+
+    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'tuple[np.ndarray, dict[str, np.ndarray]' or 'dict[str, np.ndarray]':
+        if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
+            simulator: cirq.Simulator = cirq.Simulator()
+        else:
+            simulator: qsimcirq.QSimSimulator = qsimcirq.QSimSimulator()
+
+        result = simulator.simulate(
+            circuit,
+            qubit_order=qubit_order,
+            initial_state=initial_state
+        )
+        if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
+            return result.final_state[index], result.measurements
+        return result.measurements
+
+    def __simulate_multiple_shots(
+            self,
+            i: int,
+            j: int,
+            circuit: cirq.Circuit,
+            circuit_modded: cirq.Circuit,
+            qubit_order: 'list[cirq.NamedQubit]',
+            qubit_order_modded: 'list[cirq.NamedQubit]',
+        ) -> 'tuple[int, int, int]':
+        """
+        Simulate and compares the results of the simulation.
+
+        Args:
+            i (int): The index of the simulation.
+            j (int): The index of the reversed binary number.
+            circuit (cirq.Circuit): The circuit.
+            circuit_modded (cirq.Circuit): The modded circuit.
+            qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
+            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
+
+        Returns:
+            int: The number of failed tests.
+            int: The number of measurements tests success.
+            int: The number of full tests success.
+        """
+
+        initial_state: int = j
+        initial_state_modded: int = i
+
+        measurements: 'dict[str, list]' = {}
+        measurements_modded: 'dict[str, list]' = {}
+
+        final_state: 'list[np.ndarray]' = []
+        final_state_modded: 'list[np.ndarray]' = []
+
+        try:
+            with multiprocessing.Pool() as pool:
+                results = pool.map(
+                    partial(
+                        self._run,
+                        index=j,
+                        circuit=circuit,
+                        qubit_order=qubit_order,
+                        initial_state=initial_state),
+                    range(self.__shots)
+                )
+
+            if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
+                for result in results:
+                    final_state.append(result[0])
+                    for key, val in result[1].items():
+                        measurements.setdefault(key, []).append(val)
+            else:
+                for result in results:
+                    for key, val in result.items():
+                        measurements.setdefault(key, []).append(val)
+
+            with multiprocessing.Pool() as pool:
+                results_modded = pool.map(
+                    partial(
+                        self._run,
+                        index=i,
+                        circuit=circuit_modded,
+                        qubit_order=qubit_order_modded,
+                        initial_state=initial_state_modded),
+                    range(self.__shots)
+                )
+
+            if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
+                for result_modded in results_modded:
+                    final_state_modded.append(result_modded[0])
+                    for key, val in result_modded[1].items():
+                        measurements_modded.setdefault(key, []).append(val)
+            else:
+                for result_modded in results_modded:
+                    for key, val in result_modded.items():
+                        measurements_modded.setdefault(key, []).append(val)
+
+        except ValueError:
+            print(
+            """
+    An error occurred during the simulation.
+    Only on 4 qubits or less, the QSimSimulator can be used.
+    Please ensure that the following code is added to the qsim_circuit.py file:
+
+    def _cirq_gate_kind(gate):
+        ...
+        ...
+        ...
+
+        if isinstance(gate, cirq.ops.ControlledGate):
+            # Handle ControlledGate by returning the kind of the sub-gate
+            sub_gate_kind = _cirq_gate_kind(gate.sub_gate)
+            if sub_gate_kind is not None:
+                return sub_gate_kind
+            raise ValueError(f'Unrecognized controlled gate: {gate}')
+        ...
+        ...
+    """
+            )
+
+        return self.__compare_results(
+            i,
+            result,
+            result_modded,
+            measurements,
+            measurements_modded,
+            final_state,
+            final_state_modded
+        )
+
+    def __compare_results(
+            self,
+            i: int,
+            result,
+            result_modded,
+            measurements: Union['dict[str, np.ndarray]', 'dict[str, list]'],
+            measurements_modded: Union['dict[str, np.ndarray]', 'dict[str, list]'],
+            final_state: 'list[np.ndarray]',
+            final_state_modded: 'list[np.ndarray]',
+        ) -> 'tuple[int, int, int]':
+        """
+        Compares the results of the simulation.
+
+        Args:
+            i (int): The index of the simulation.
+            result: The result of the circuit.
+            result_modded: The result of the modded circuit.
+            measurements (Union['dict[str, np.ndarray]', 'dict[str, list]']): The measurements of the circuit.
+            measurements_modded (Union['dict[str, np.ndarray]', 'dict[str, list]']): The measurements of the modded circuit.
+            final_state (np.ndarray): The final state of the circuit.
+            final_state_modded (np.ndarray): The final state of the modded circuit.
+        
+        Returns:
+            int: The number of failed tests.
+            int: The number of measurements tests success.
+            int: The number of full tests success.
+        """
+
+        fail: int = 0
+        success_measurements: int = 0
+        success_vector: int = 0
 
         try:
             if self.__qubits_number <= 3  or self.__simulation_kind == 'dec':
-                # Compare final state which is the output vector, only for all qubits
-                assert np.array_equal(
-                    np.array(np.around(result.final_state[j])),
-                    np.array(np.around(result_modded.final_state[i]))
-                )
+                if self.__specific_simulation == "full":
+                    # Compare rounded final state which is the output vector
+                    assert np.array_equal(
+                        np.array(np.around(final_state)),
+                        np.array(np.around(final_state_modded))
+                    )
+                else:
+                    # Compare final state which is the output vector
+                    assert np.array_equal(
+                        np.array(final_state),
+                        np.array(final_state_modded)
+                    )
             else:
                 raise AssertionError
         except AssertionError:
@@ -1076,21 +1302,21 @@ class QRAMCircuitSimulator:
                     if self.__print_sim in ["Full", "Dot"]:
                         colpr("r", "•", end="")
                     if self.__print_sim == "Full":
-                        self.__simulation_results[i] = ['r', result, result_modded]
+                        self.__simulation_results[i] = ['r', str(result), str(result_modded)]
             else:
                 success_measurements += 1
                 with self.__lock:
                     if self.__print_sim in ["Full", "Dot"]:
                         colpr("b", "•", end="")
                     if self.__print_sim == "Full":
-                        self.__simulation_results[i] = ['b', result, result_modded]
+                        self.__simulation_results[i] = ['b', str(result), str(result_modded)]
         else:
             success_vector += 1
             with self.__lock:
                 if self.__print_sim in ["Full", "Dot"]:
                     colpr("g", "•", end="")
                 if self.__print_sim == "Full":
-                    self.__simulation_results[i] = ['g', result, result_modded]
+                    self.__simulation_results[i] = ['g', str(result), str(result_modded)]
 
         return fail, success_measurements, success_vector
 

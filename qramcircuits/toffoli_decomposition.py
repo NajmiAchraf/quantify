@@ -593,11 +593,11 @@ class ToffoliDecomposition():
 
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
 
-                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
+                # cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
 
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
 
-                cirq.Moment([cirq.T.on(self.qubits[2])]),
+                # cirq.Moment([cirq.T.on(self.qubits[2])]),
 
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
 

@@ -85,6 +85,17 @@ def parse_qubit_range(value: str) -> Tuple[int, int]:
     return start, end
 
 
+def parse_shots(value: str) -> int:
+    """
+    Parse the number of shots for the simulation.
+    """
+
+    shots: int = int(value)
+    if shots < 10:
+        raise argparse.ArgumentTypeError("The number of shots should be greater than 10.")
+    return shots
+
+
 def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
     """
     Parse the arguments for the core functions.
@@ -109,6 +120,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         parser.add_argument("--t-cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
 
     if qram_type != "bilan":
+        parser.add_argument('--shots', type=parse_shots, nargs='?', default=50, help="The number of shots for the simulation, by default it is 50.")
         parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC.")
         parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit.")
         parser.add_argument('--print-circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
