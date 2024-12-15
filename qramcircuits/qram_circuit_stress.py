@@ -116,20 +116,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         return combinations
 
     def __simulate_local(self, combinations):
-        if self._start_range_qubits == 2:
-            self.__simulate_with_multiprocessing(combinations)
-        elif self._start_range_qubits == 3:
-            self.__simulate_sequentially(combinations)
+        self.__simulate_sequentially(combinations)
         self.__extract_results()
-
-    def __simulate_with_multiprocessing(self, combinations):
-        """
-        Use multiprocessing to parallelize the stress testing
-        """
-
-        with multiprocessing.Pool() as pool:
-            results = pool.map(partial(self._stress_experiment), combinations)
-        self.__length_combinations = len(results)
 
     def __simulate_sequentially(self, combinations):
         """

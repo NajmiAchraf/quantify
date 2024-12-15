@@ -223,10 +223,8 @@ class QRAMSimulatorCircuit(QRAMSimulatorBase):
             self._hpc_multiprocessing_simulation(sim_range, step)
 
         elif not self._hpc:
-            if (self._is_stress and self._qubits_number == 2) \
-                or (self._specific_simulation != "full" and self._simulation_kind == "bb"):
+            if self._specific_simulation != "full" and self._simulation_kind == "bb":
                 self._sequential_circuit_simulation(sim_range, step)
-
             else:
                 self._parallel_circuit_simulation(sim_range, step)
 

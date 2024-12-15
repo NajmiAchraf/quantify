@@ -128,7 +128,7 @@ class QRAMCircuitCore:
             colpr("r", f"{self._print_sim}")
 
             if self._specific_simulation != "full":
-                colpr("w", "Number of shots for the simulation:", end=" ")
+                colpr("w", "Number of shots for the each simulation:", end=" ")
                 colpr("r", f"{self._shots}")
 
         colpr("y", "\n================================================\n")
