@@ -18,6 +18,7 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
 
     # Define colors for different module types
     COLOR_MODULE_CLASSES_INHERITANCE = 'dodgerblue'
+    COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION = 'darkblue'
     COLOR_MODULE_CLASSES_COMPOSITION = 'darkorange'
     COLOR_MODULE_CLASSES_OPTIMIZATION = 'gold'
     COLOR_MODULE_MAIN = 'darkgreen'
@@ -56,12 +57,24 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
             'type': 'Class Inheritance'
         },
 
-        # Class Composition
-        'qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class': {
-            'description': 'Simulates QRAM Circuits',
-            'color': COLOR_MODULE_CLASSES_COMPOSITION,
-            'type': 'Class Composition'
+        # Class Inheritance Composition
+        'qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class': {
+            'description': 'Base class for QRAM Simulators',
+            'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
+            'type': 'Class Inheritance Composition'
         },
+        'qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class': {
+            'description': 'Simulates Toffoli decompositions',
+            'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
+            'type': 'Class Inheritance Composition'
+        },
+        'qramcircuits/qram_simulator_circuit.py\nQRAMSimulatorCircuit Class': {
+            'description': 'Simulates QRAM Circuits',
+            'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
+            'type': 'Class Inheritance Composition'
+        },
+
+        # Class Composition
         'qramcircuits/bucket_brigade.py\nBucketBrigade Class': {
             'description': 'Creates Bucket Brigade for QRAM Circuit',
             'color': COLOR_MODULE_CLASSES_COMPOSITION,
@@ -145,10 +158,11 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
 
     # Add clusters
     add_cluster(dot, 'classes_inheritance', 'Classes Inheritance', 'gray30', 'white', 'Class Inheritance')
-    add_cluster(dot, 'classes_composition', 'Classes Composition', 'gray50', 'white', 'Class Composition')
+    add_cluster(dot, 'classes_inheritance_composition', 'Classes Inheritance Composition', 'gray40', 'white', 'Class Inheritance Composition')
     add_cluster(dot, 'utils', 'Utils', 'gray90', 'black', 'Utils')
-    add_cluster(dot, 'classes_optimization', 'Classes Optimization', 'gray70', 'black', 'Class Optimization')
     add_cluster(dot, 'main_executions', 'Main Executions', 'gray10', 'white', 'Main')
+    add_cluster(dot, 'classes_optimization', 'Classes Optimization', 'gray70', 'black', 'Class Optimization')
+    add_cluster(dot, 'classes_composition', 'Classes Composition', 'gray50', 'white', 'Class Composition')
 
     # Define dependencies with relation types
     dependencies = [
@@ -160,10 +174,18 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
         ("qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class",
          "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Inheritance'),
 
+        # Class Inheritance Composition
+        ("qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class",
+            "qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class", 'Inheritance'),
+        ("qramcircuits/qram_simulator_circuit.py\nQRAMSimulatorCircuit Class",
+            "qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class", 'Inheritance'),
+        ("qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class",
+            "qramcircuits/qram_simulator_circuit.py\nQRAMSimulatorCircuit Class", 'Composition'),
+
         # Class Composition
         ("qramcircuits/bucket_brigade.py\nBucketBrigade Class",
          "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Composition'),
-        ("qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class",
+        ("qramcircuits/qram_simulator_circuit.py\nQRAMSimulatorCircuit Class",
          "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Composition'),
 
         # Class Optimization
