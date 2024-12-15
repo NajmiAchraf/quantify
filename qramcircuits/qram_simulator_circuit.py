@@ -172,9 +172,6 @@ class QRAMSimulatorCircuit(QRAMSimulatorBase):
         for qubit in bbcircuit.qubit_order:
             if self._specific_simulation in ["full", "qram"]:
                 measurements.append(cirq.measure(qubit))
-            # elif self._specific_simulation == "qram":
-            #     if qubit.name.startswith("t"):
-            #         measurements.append(cirq.measure(qubit))
             else:
                 for _name in self._specific_simulation:
                     if qubit.name.startswith(_name):

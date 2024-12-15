@@ -263,6 +263,7 @@ class QRAMSimulatorBase:
             int: The number of full tests success.
         """
 
+        # Multiple shots simulation used only for the bucket brigade circuit and not for the decomposed circuit
         if self._specific_simulation != "full" and self._simulation_kind == "bb":
             return self._simulate_multiple_shots(
                 i,
@@ -333,15 +334,13 @@ class QRAMSimulatorBase:
             result_modded.final_state[i]
         )
 
-    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'Union[tuple[np.ndarray, dict[str, np.ndarray]], dict[str, np.ndarray]]':
+    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'tuple[np.ndarray, dict[str, np.ndarray]]':
         result = self._simulator.simulate(
             circuit,
             qubit_order=qubit_order,
             initial_state=initial_state
         )
-        if self._qubits_number <= 3 or self._simulation_kind == 'dec':
-            return result.final_state[index], result.measurements
-        return result.measurements
+        return result.final_state[index], result.measurements
 
     def _simulate_multiple_shots(
             self,

@@ -120,9 +120,9 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         parser.add_argument("--t-cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
 
     if qram_type != "bilan":
-        parser.add_argument('--shots', type=parse_shots, nargs='?', default=50, help="The number of shots for the simulation, by default it is 50.")
-        parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC.")
-        parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and circuit.")
+        parser.add_argument('--shots', type=parse_shots, nargs='?', default=50, help="The number of shots for the simulation, except for specific 'full' simulation case, by default it is 50.")
+        parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC, need `OpenMPI` and `mpi4py` installed.")
+        parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and QRAM circuits.")
         parser.add_argument('--print-circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
         parser.add_argument('--print-simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.")
         parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't', 'qram', 'full'], nargs='?', default="qram", help=MSG1)
