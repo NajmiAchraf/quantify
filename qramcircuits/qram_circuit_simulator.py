@@ -3,7 +3,6 @@ import cirq.optimizers
 import itertools
 import math
 import numpy as np
-import qsimcirq
 import sys
 import time
 from typing import Union
@@ -12,7 +11,7 @@ from functools import partial
 import multiprocessing
 from multiprocessing.managers import DictProxy
 import threading
-from concurrent.futures import ThreadPoolExecutor
+
 import qramcircuits.bucket_brigade as bb
 
 from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
@@ -99,6 +98,8 @@ class QRAMCircuitSimulator:
     __bbcircuit_modded: bb.BucketBrigade
     __decomp_scenario: bb.BucketBrigadeDecompType
     __decomp_scenario_modded: bb.BucketBrigadeDecompType
+
+    __simulator: cirq.Simulator = cirq.Simulator()
 
     def get_simulation_bilan(self) -> 'list[str]':
         """
@@ -384,7 +385,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing of the a qubits " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step))
-        self.__simulation(sim_range, step, message)
+        self.__simulation_manager(sim_range, step, message)
 
     def _simulation_b_qubits(self) -> None:
         """
@@ -418,7 +419,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step))
-        self.__simulation(sim_range, step, message)
+        self.__simulation_manager(sim_range, step, message)
 
     def _simulation_m_qubits(self) -> None:
         """
@@ -455,7 +456,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step))
-        self.__simulation(sim_range, step, message)
+        self.__simulation_manager(sim_range, step, message)
 
     def _simulation_ab_qubits(self) -> None:
         """
@@ -496,7 +497,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step_b))
-        self.__simulation(sim_range, step_b, message)
+        self.__simulation_manager(sim_range, step_b, message)
 
     def _simulation_bm_qubits(self) -> None:
         """
@@ -541,7 +542,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step_m))
-        self.__simulation(sim_range, step_m, message)
+        self.__simulation_manager(sim_range, step_m, message)
 
     def _simulation_abm_qubits(self) -> None:
         """
@@ -592,7 +593,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step_m))
-        self.__simulation(sim_range, step_m, message)
+        self.__simulation_manager(sim_range, step_m, message)
 
     def _simulation_t_qubits(self) -> None:
         """
@@ -643,7 +644,7 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, step_m))
-        self.__simulation(sim_range, step_m, message)
+        self.__simulation_manager(sim_range, step_m, message)
 
     def _simulation_full_qubits(self) -> None:
         """
@@ -671,8 +672,8 @@ class QRAMCircuitSimulator:
         message =  "<" + "="*20 + " Simulating the circuit ... Checking the all qubits " + "="*20 + ">\n"
 
         sim_range = list(range(start, stop, 1))
-        self.__simulation(sim_range, 1, message)
-    
+        self.__simulation_manager(sim_range, 1, message)
+
     def _simulation_qram_qubits(self) -> None:
         """
         Simulates the circuit and measure only the target qubit, with activating the QRAM behavior of the circuit.
@@ -712,7 +713,7 @@ class QRAMCircuitSimulator:
                     lines.append(decimal_value)
             return lines
 
-        self.__simulation(generate_qram_patterns(), 1, "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ...")
+        self.__simulation_manager(generate_qram_patterns(), 1, "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ...")
 
     def __add_measurements(self, bbcircuit: bb.BucketBrigade) -> None:
         """
@@ -724,11 +725,11 @@ class QRAMCircuitSimulator:
 
         measurements = []
         for qubit in bbcircuit.qubit_order:
-            if self.__specific_simulation == "full":
+            if self.__specific_simulation in ["full", "qram"]:
                 measurements.append(cirq.measure(qubit))
-            elif self.__specific_simulation == "qram":
-                if qubit.name.startswith("t"):
-                    measurements.append(cirq.measure(qubit))
+            # elif self.__specific_simulation == "qram":
+            #     if qubit.name.startswith("t"):
+            #         measurements.append(cirq.measure(qubit))
             else:
                 for _name in self.__specific_simulation:
                     if qubit.name.startswith(_name):
@@ -737,7 +738,7 @@ class QRAMCircuitSimulator:
         bbcircuit.circuit.append(measurements)
         cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(bbcircuit.circuit)
 
-    def __simulation(self, sim_range: 'list[int]', step: int, message:str) -> None:
+    def __simulation_manager(self, sim_range: 'list[int]', step: int, message:str) -> None:
         """
         Simulates the circuit.
 
@@ -777,15 +778,15 @@ class QRAMCircuitSimulator:
 
         elif self.__qubits_number == 2 and not self.__hpc and self.__is_stress:
 
-            self.__non_multiprocessing_simulation(sim_range, step)
+            self.__sequential_circuit_simulation(sim_range, step)
 
         elif self.__specific_simulation != "full" and not self.__hpc and self.__simulation_kind == "bb":
 
-            self.__non_multiprocessing_simulation(sim_range, step)
+            self.__sequential_circuit_simulation(sim_range, step)
 
         else:
 
-            self.__multiprocessing_simulation(sim_range, step)
+            self.__parallel_circuit_simulation(sim_range, step)
 
     def __hpc_multiprocessing_simulation(self, sim_range: 'list[int]', step: int) -> None:
         """
@@ -834,26 +835,11 @@ class QRAMCircuitSimulator:
         # Use multiprocessing to parallelize the simulation ###################################
 
         results: 'list[tuple[int, int, int]]' = []
+
         if self.__specific_simulation != "full" and self.__simulation_kind == "bb":
-            for i in local_work_range:
-                results.append(self._worker(
-                    i=i,
-                    step=step,
-                    circuit=self.__bbcircuit.circuit,
-                    circuit_modded=self.__bbcircuit_modded.circuit,
-                    qubit_order=self.__bbcircuit.qubit_order,
-                    qubit_order_modded=self.__bbcircuit_modded.qubit_order))
+            results = self.__sequential_execution(local_work_range, step)
         else:
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._worker,
-                        step=step,
-                        circuit=self.__bbcircuit.circuit,
-                        circuit_modded=self.__bbcircuit_modded.circuit,
-                        qubit_order=self.__bbcircuit.qubit_order,
-                        qubit_order_modded=self.__bbcircuit_modded.qubit_order),
-                    local_work_range)
+            results = self.__parallel_execution(local_work_range, step)
 
         # Ensure results are serializable #####################################################
 
@@ -872,7 +858,7 @@ class QRAMCircuitSimulator:
 
             print(f"{'='*150}\n\n")
 
-    def __multiprocessing_simulation(self, sim_range: 'list[int]', step: int) -> None:
+    def __parallel_circuit_simulation(self, sim_range: 'list[int]', step: int) -> None:
         """
         Simulates the circuit using multiprocessing.
 
@@ -896,19 +882,9 @@ class QRAMCircuitSimulator:
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        results: 'list[tuple[int, int, int]]' = []
-
         try:
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._worker,
-                        step=step,
-                        circuit=self.__bbcircuit.circuit,
-                        circuit_modded=self.__bbcircuit_modded.circuit,
-                        qubit_order=self.__bbcircuit.qubit_order,
-                        qubit_order_modded=self.__bbcircuit_modded.qubit_order),
-                    sim_range)
+            results: 'list[tuple[int, int, int]]' = self.__parallel_execution(sim_range, step)
+
         finally:
             if self.__print_sim == "Loading":
                 stop_event.set()
@@ -916,7 +892,7 @@ class QRAMCircuitSimulator:
 
         self.__print_simulation_results(results, sim_range, step)
 
-    def __non_multiprocessing_simulation(self, sim_range: 'list[int]', step: int) -> None:
+    def __sequential_circuit_simulation(self, sim_range: 'list[int]', step: int) -> None:
         """
         Simulates the circuit without using multiprocessing.
 
@@ -931,6 +907,51 @@ class QRAMCircuitSimulator:
 
         # simulation is not parallelized ######################################################
 
+        results: 'list[tuple[int, int, int]]' = self.__sequential_execution(sim_range, step)
+
+        self.__print_simulation_results(results, sim_range, step)
+
+    #######################################
+    # Execution methods
+    #######################################
+
+    def __parallel_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+        """
+        Simulates the circuit using multiprocessing.
+
+        Args:
+            range ('list[int]'): The range of the simulation.
+            step (int): The step index.
+        """
+
+        # Use multiprocessing to parallelize the simulation ###################################
+
+        results: 'list[tuple[int, int, int]]' = []
+
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._worker,
+                    step=step,
+                    circuit=self.__bbcircuit.circuit,
+                    circuit_modded=self.__bbcircuit_modded.circuit,
+                    qubit_order=self.__bbcircuit.qubit_order,
+                    qubit_order_modded=self.__bbcircuit_modded.qubit_order),
+                sim_range)
+
+        return results
+
+    def __sequential_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+        """
+        Simulates the circuit sequentially.
+
+        Args:
+            range ('list[int]'): The range of the simulation.
+            step (int): The step index.
+        """
+
+        # simulation is not parallelized ######################################################
+
         results: 'list[tuple[int, int, int]]' = []
 
         for i in sim_range:
@@ -942,10 +963,10 @@ class QRAMCircuitSimulator:
                     qubit_order=self.__bbcircuit.qubit_order,
                     qubit_order_modded=self.__bbcircuit_modded.qubit_order))
 
-        self.__print_simulation_results(results, sim_range, step)
+        return results
 
     #######################################
-    # Core methods
+    # Worker methods
     #######################################
 
     def _worker(
@@ -975,7 +996,6 @@ class QRAMCircuitSimulator:
         j = i
         if self.__simulation_kind == 'dec':
             j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
-
 
         f, sm, sv = self.__simulate_and_compare(
             i,
@@ -1062,45 +1082,17 @@ class QRAMCircuitSimulator:
         initial_state: int = j
         initial_state_modded: int = i
 
-        if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
-            simulator: cirq.Simulator = cirq.Simulator()
-        else:
-            simulator: qsimcirq.QSimSimulator = qsimcirq.QSimSimulator()
+        result = self.__simulator.simulate(
+            circuit,
+            qubit_order=qubit_order,
+            initial_state=initial_state
+        )
 
-        try:
-            result = simulator.simulate(
-                circuit,
-                qubit_order=qubit_order,
-                initial_state=initial_state
-            )
-
-            result_modded = simulator.simulate(
-                circuit_modded,
-                qubit_order=qubit_order_modded,
-                initial_state=initial_state_modded
-            )
-        except ValueError:
-            print(
-            """
-    An error occurred during the simulation.
-    Only on 4 qubits or less, the QSimSimulator can be used.
-    Please ensure that the following code is added to the qsim_circuit.py file:
-
-    def _cirq_gate_kind(gate):
-        ...
-        ...
-        ...
-
-        if isinstance(gate, cirq.ops.ControlledGate):
-            # Handle ControlledGate by returning the kind of the sub-gate
-            sub_gate_kind = _cirq_gate_kind(gate.sub_gate)
-            if sub_gate_kind is not None:
-                return sub_gate_kind
-            raise ValueError(f'Unrecognized controlled gate: {gate}')
-        ...
-        ...
-    """
-            )
+        result_modded = self.__simulator.simulate(
+            circuit_modded,
+            qubit_order=qubit_order_modded,
+            initial_state=initial_state_modded
+        )
 
         return self.__compare_results(
             i,
@@ -1112,13 +1104,8 @@ class QRAMCircuitSimulator:
             result_modded.final_state[i]
         )
 
-    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'tuple[np.ndarray, dict[str, np.ndarray]' or 'dict[str, np.ndarray]':
-        if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
-            simulator: cirq.Simulator = cirq.Simulator()
-        else:
-            simulator: qsimcirq.QSimSimulator = qsimcirq.QSimSimulator()
-
-        result = simulator.simulate(
+    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'Union[tuple[np.ndarray, dict[str, np.ndarray]], dict[str, np.ndarray]]':
+        result = self.__simulator.simulate(
             circuit,
             qubit_order=qubit_order,
             initial_state=initial_state
@@ -1162,71 +1149,37 @@ class QRAMCircuitSimulator:
         final_state: 'list[np.ndarray]' = []
         final_state_modded: 'list[np.ndarray]' = []
 
-        try:
-            with multiprocessing.Pool() as pool:
-                results = pool.map(
-                    partial(
-                        self._run,
-                        index=j,
-                        circuit=circuit,
-                        qubit_order=qubit_order,
-                        initial_state=initial_state),
-                    range(self.__shots)
-                )
-
-            if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
-                for result in results:
-                    final_state.append(result[0])
-                    for key, val in result[1].items():
-                        measurements.setdefault(key, []).append(val)
-            else:
-                for result in results:
-                    for key, val in result.items():
-                        measurements.setdefault(key, []).append(val)
-
-            with multiprocessing.Pool() as pool:
-                results_modded = pool.map(
-                    partial(
-                        self._run,
-                        index=i,
-                        circuit=circuit_modded,
-                        qubit_order=qubit_order_modded,
-                        initial_state=initial_state_modded),
-                    range(self.__shots)
-                )
-
-            if self.__qubits_number <= 3 or self.__simulation_kind == 'dec':
-                for result_modded in results_modded:
-                    final_state_modded.append(result_modded[0])
-                    for key, val in result_modded[1].items():
-                        measurements_modded.setdefault(key, []).append(val)
-            else:
-                for result_modded in results_modded:
-                    for key, val in result_modded.items():
-                        measurements_modded.setdefault(key, []).append(val)
-
-        except ValueError:
-            print(
-            """
-    An error occurred during the simulation.
-    Only on 4 qubits or less, the QSimSimulator can be used.
-    Please ensure that the following code is added to the qsim_circuit.py file:
-
-    def _cirq_gate_kind(gate):
-        ...
-        ...
-        ...
-
-        if isinstance(gate, cirq.ops.ControlledGate):
-            # Handle ControlledGate by returning the kind of the sub-gate
-            sub_gate_kind = _cirq_gate_kind(gate.sub_gate)
-            if sub_gate_kind is not None:
-                return sub_gate_kind
-            raise ValueError(f'Unrecognized controlled gate: {gate}')
-        ...
-        ...
-    """
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._run,
+                    index=j,
+                    circuit=circuit,
+                    qubit_order=qubit_order,
+                    initial_state=initial_state),
+                range(self.__shots)
             )
+
+        for result in results:
+            final_state.append(result[0])
+            for key, val in result[1].items():
+                measurements.setdefault(key, []).append(val)
+
+        with multiprocessing.Pool() as pool:
+            results_modded = pool.map(
+                partial(
+                    self._run,
+                    index=i,
+                    circuit=circuit_modded,
+                    qubit_order=qubit_order_modded,
+                    initial_state=initial_state_modded),
+                range(self.__shots)
+            )
+
+        for result_modded in results_modded:
+            final_state_modded.append(result_modded[0])
+            for key, val in result_modded[1].items():
+                measurements_modded.setdefault(key, []).append(val)
 
         return self.__compare_results(
             i,
