@@ -4,7 +4,7 @@ import psutil
 import qramcircuits.bucket_brigade as bb
 
 from qramcircuits.qram_circuit_core import QRAMCircuitCore
-from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
+from qramcircuits.qram_simulator_circuit import QRAMSimulatorCircuit
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.counting_utils import *
@@ -51,7 +51,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         Prints the results of the experiment.
         """
 
-        self._Simulator = QRAMCircuitSimulator(
+        self._Simulator = QRAMSimulatorCircuit(
             self._bbcircuit,
             self._bbcircuit_modded,
             self._specific_simulation,
