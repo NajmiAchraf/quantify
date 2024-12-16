@@ -4,7 +4,7 @@ import psutil
 import qramcircuits.bucket_brigade as bb
 
 from qramcircuits.qram_circuit_core import QRAMCircuitCore
-from qramcircuits.qram_simulator_circuit import QRAMSimulatorCircuit
+from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.counting_utils import *
@@ -51,15 +51,15 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         Prints the results of the experiment.
         """
 
-        self._Simulator = QRAMSimulatorCircuit(
-            self._bbcircuit,
-            self._bbcircuit_modded,
-            self._specific_simulation,
-            self._start_range_qubits,
-            self._print_circuit,
-            self._print_sim,
-            self._hpc,
-            self._shots
+        self._Simulator = QRAMCircuitSimulator(
+            bbcircuit=self._bbcircuit,
+            bbcircuit_modded=self._bbcircuit_modded,
+            specific_simulation=self._specific_simulation,
+            qubits_number=self._start_range_qubits,
+            print_circuit=self._print_circuit,
+            print_sim=self._print_sim,
+            hpc=self._hpc,
+            shots=self._shots
         )
 
         if not self._simulate:
@@ -119,11 +119,11 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
                     decirc[0].reverse_moments
                 ))
 
-            for decomposition_type in self._Simulator._fan_in_mem_out(decirc[0]):
-                if decomposition_type == ToffoliDecompType.NO_DECOMP:
-                    continue
-                circuit, qubits = self._Simulator._create_decomposition_circuit(decomposition_type)
-                printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
+            # for decomposition_type in self._Simulator._fan_in_mem_out(decirc[0]):
+            #     if decomposition_type == ToffoliDecompType.NO_DECOMP:
+            #         continue
+            #     circuit, qubits = self._Simulator._create_decomposition_circuit(decomposition_type)
+            #     printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
 
             self.__verify_circuit_depth_count(decirc[0], decirc[1], decirc[2])
             printCircuit(self._print_circuit, decirc[1].circuit, decirc[1].qubit_order, decirc[2])
