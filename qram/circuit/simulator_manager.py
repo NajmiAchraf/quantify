@@ -1,20 +1,20 @@
 from qram.simulator.base import QRAMSimulatorBase
-from qram.simulator.circuit_hpc import QRAMSimulationCircuitHPC
+from qram.simulator.circuit_hpc import QRAMSimulatorCircuitHPC
 from qram.simulator.circuit_parallel import QRAMSimulatorCircuitParallel
 from qram.simulator.circuit_sequential import QRAMSimulatorCircuitSequential
 from qram.simulator.decomposition import QRAMSimulatorDecompositions
 
 
 #######################################
-# QRAM Circuit Simulator
+# QRAM Circuit Simulator Manager
 #######################################
 
-class QRAMCircuitSimulator():
+class QRAMCircuitSimulatorManager():
     """
-    The QRAMCircuitSimulator class to simulate the bucket brigade circuit.
+    The QRAMCircuitSimulatorManager class to manage the QRAM circuit simulation.
 
     Methods:
-        __init__(*args, **kwargs): Constructor of the QRAMCircuitSimulator class.
+        __init__(*args, **kwargs): Constructor of the QRAMCircuitSimulatorManager class.
         get_simulation_bilan(): Returns the simulation bilan.
         _run_simulation(is_stress: bool = False): Runs the simulation.
     """
@@ -23,7 +23,7 @@ class QRAMCircuitSimulator():
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        Constructor of the QRAMCircuitSimulator class.
+        Constructor of the QRAMCircuitSimulatorManager class.
 
         Args:
             *args: Variable length argument list.
@@ -50,7 +50,7 @@ class QRAMCircuitSimulator():
             QRAMSimulatorDecompositions(*self.args, **self.kwargs)
 
         if self.kwargs.get("hpc"):
-            self._simulator = QRAMSimulationCircuitHPC(is_stress, *self.args, **self.kwargs)
+            self._simulator = QRAMSimulatorCircuitHPC(is_stress, *self.args, **self.kwargs)
         elif not self.kwargs.get("hpc"):
             if self.kwargs.get("specific_simulation") != "full":
                 self._simulator = QRAMSimulatorCircuitSequential(is_stress, *self.args, **self.kwargs)

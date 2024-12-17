@@ -10,17 +10,17 @@ from utils.print_utils import colpr, printRange
 # QRAM Simulator Circuit HPC
 #######################################
 
-class QRAMSimulationCircuitHPC(QRAMSimulatorCircuitCore):
+class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
     """
-    The QRAMSimulationCircuitHPC class to simulate the bucket brigade circuit on high-performance computing.
+    The QRAMSimulatorCircuitHPC class to simulate the bucket brigade circuit on high-performance computing.
 
     Methods:
-        __init__(*args, **kwargs): Constructor of the QRAMSimulationCircuitHPC class.
+        __init__(*args, **kwargs): Constructor of the QRAMSimulatorCircuitHPC class.
     """
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        Constructor of the QRAMSimulationCircuitHPC class.
+        Constructor of the QRAMSimulatorCircuitHPC class.
 
         Args:
             *args: Variable length argument list.
