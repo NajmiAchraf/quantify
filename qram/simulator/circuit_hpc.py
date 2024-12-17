@@ -1,6 +1,6 @@
 import itertools
 
-from qramcircuits.qram_simulator_circuit_core import QRAMSimulatorCircuitCore
+from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.print_utils import colpr, printRange

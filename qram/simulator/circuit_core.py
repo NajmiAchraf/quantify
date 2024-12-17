@@ -3,7 +3,7 @@ import time
 
 import qramcircuits.bucket_brigade as bb
 
-from qramcircuits.qram_simulator_base import QRAMSimulatorBase
+from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.print_utils import colpr, printRange, printCircuit

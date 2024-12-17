@@ -1,5 +1,5 @@
 from qramcircuits.bucket_brigade import ReverseMoments
-from qramcircuits.qram_circuit_stress import QRAMCircuitStress
+from qram.circuit.stress import QRAMCircuitStress
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.arg_parser import *

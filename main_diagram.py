@@ -36,61 +36,61 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
     # Modules with Descriptions and Colors
     modules = {
         # Class Inheritance
-        'qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class': {
+        'qram/circuit/core.py\nQRAMCircuitCore Class': {
             'description': 'Constructs QRAM Circuits',
             'color': COLOR_MODULE_CLASSES_INHERITANCE,
             'type': 'Class Inheritance'
         },
-        'qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class': {
+        'qram/circuit/stress.py\nQRAMCircuitStress Class': {
             'description': 'Performs stress testing on QRAM Circuits',
             'color': COLOR_MODULE_CLASSES_INHERITANCE,
             'type': 'Class Inheritance'
         },
-        'qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class': {
+        'qram/circuit/experiments.py\nQRAMCircuitExperiments Class': {
             'description': 'Handles experiments for QRAM Circuits',
             'color': COLOR_MODULE_CLASSES_INHERITANCE,
             'type': 'Class Inheritance'
         },
-        'qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class': {
+        'qram/circuit/bilan.py\nQRAMCircuitBilan Class': {
             'description': 'Generates bilan reports for QRAM Circuits',
             'color': COLOR_MODULE_CLASSES_INHERITANCE,
             'type': 'Class Inheritance'
         },
 
         # Class Inheritance Composition
-        'qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class': {
+        'qram/simulator/base.py\nQRAMSimulatorBase Class': {
             'description': 'Base class for QRAM Simulators',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
-        'qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class': {
+        'qram/simulator/decomposition.py\nQRAMSimulatorDecompositions Class': {
             'description': 'Simulates Toffoli decompositions',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
-        'qramcircuits/qram_simulator_circuit_core.py\nQRAMSimulatorCircuitCore Class': {
+        'qram/simulator/circuit_core.py\nQRAMSimulatorCircuitCore Class': {
             'description': 'Core class for QRAM Circuit Simulators',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
-        'qramcircuits/qram_simulator_circuit_hpc.py\nQRAMSimulationCircuitHPC Class': {
+        'qram/simulator/circuit_hpc.py\nQRAMSimulationCircuitHPC Class': {
             'description': 'Simulates QRAM Circuit on HPC',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
-        'qramcircuits/qram_simulator_circuit_parallel.py\nQRAMSimulatorCircuitParallel Class': {
+        'qram/simulator/circuit_parallel.py\nQRAMSimulatorCircuitParallel Class': {
             'description': 'Simulates QRAM Circuit in parallel',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
-        'qramcircuits/qram_simulator_circuit_sequential.py\nQRAMSimulatorCircuitSequential Class': {
+        'qram/simulator/circuit_sequential.py\nQRAMSimulatorCircuitSequential Class': {
             'description': 'Simulates QRAM Circuit sequentially',
             'color': COLOR_MODULE_CLASSES_INHERITANCE_COMPOSITION,
             'type': 'Class Inheritance Composition'
         },
 
         # Class Composition
-        'qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class': {
+        'qram/circuit/simulator.py\nQRAMCircuitSimulator Class': {
             'description': 'Simulates QRAM Circuits',
             'color': COLOR_MODULE_CLASSES_COMPOSITION,
             'type': 'Class Composition'
@@ -187,38 +187,38 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
     # Define dependencies with relation types
     dependencies = [
         # Class Inheritance
-        ("qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class",
-            "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
-        ("qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class",
-            "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Inheritance'),
-        ("qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class",
-            "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Inheritance'),
+        ("qram/circuit/experiments.py\nQRAMCircuitExperiments Class",
+            "qram/circuit/core.py\nQRAMCircuitCore Class", 'Inheritance'),
+        ("qram/circuit/bilan.py\nQRAMCircuitBilan Class",
+            "qram/circuit/core.py\nQRAMCircuitCore Class", 'Inheritance'),
+        ("qram/circuit/stress.py\nQRAMCircuitStress Class",
+            "qram/circuit/experiments.py\nQRAMCircuitExperiments Class", 'Inheritance'),
 
         # Class Inheritance Composition
-        ("qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class",
-            "qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class", 'Inheritance'),
-        ("qramcircuits/qram_simulator_circuit_core.py\nQRAMSimulatorCircuitCore Class",
-            "qramcircuits/qram_simulator_base.py\nQRAMSimulatorBase Class", 'Inheritance'),
-        ("qramcircuits/qram_simulator_circuit_hpc.py\nQRAMSimulationCircuitHPC Class",
-            "qramcircuits/qram_simulator_circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
-        ("qramcircuits/qram_simulator_circuit_parallel.py\nQRAMSimulatorCircuitParallel Class",
-            "qramcircuits/qram_simulator_circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
-        ("qramcircuits/qram_simulator_circuit_sequential.py\nQRAMSimulatorCircuitSequential Class",
-            "qramcircuits/qram_simulator_circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
+        ("qram/simulator/decomposition.py\nQRAMSimulatorDecompositions Class",
+            "qram/simulator/base.py\nQRAMSimulatorBase Class", 'Inheritance'),
+        ("qram/simulator/circuit_core.py\nQRAMSimulatorCircuitCore Class",
+            "qram/simulator/base.py\nQRAMSimulatorBase Class", 'Inheritance'),
+        ("qram/simulator/circuit_hpc.py\nQRAMSimulationCircuitHPC Class",
+            "qram/simulator/circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
+        ("qram/simulator/circuit_parallel.py\nQRAMSimulatorCircuitParallel Class",
+            "qram/simulator/circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
+        ("qram/simulator/circuit_sequential.py\nQRAMSimulatorCircuitSequential Class",
+            "qram/simulator/circuit_core.py\nQRAMSimulatorCircuitCore Class", 'Inheritance'),
 
         # Class Composition
-        ("qramcircuits/qram_simulator_decomposition.py\nQRAMSimulatorDecompositions Class",
-            "qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
-        ("qramcircuits/qram_simulator_circuit_hpc.py\nQRAMSimulationCircuitHPC Class",
-            "qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
-        ("qramcircuits/qram_simulator_circuit_parallel.py\nQRAMSimulatorCircuitParallel Class",
-            "qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
-        ("qramcircuits/qram_simulator_circuit_sequential.py\nQRAMSimulatorCircuitSequential Class",
-            "qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
-        ("qramcircuits/qram_circuit_simulator.py\nQRAMCircuitSimulator Class",
-            "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Composition'),
+        ("qram/simulator/decomposition.py\nQRAMSimulatorDecompositions Class",
+            "qram/circuit/simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
+        ("qram/simulator/circuit_hpc.py\nQRAMSimulationCircuitHPC Class",
+            "qram/circuit/simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
+        ("qram/simulator/circuit_parallel.py\nQRAMSimulatorCircuitParallel Class",
+            "qram/circuit/simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
+        ("qram/simulator/circuit_sequential.py\nQRAMSimulatorCircuitSequential Class",
+            "qram/circuit/simulator.py\nQRAMCircuitSimulator Class", 'Composition'),
+        ("qram/circuit/simulator.py\nQRAMCircuitSimulator Class",
+            "qram/circuit/experiments.py\nQRAMCircuitExperiments Class", 'Composition'),
         ("qramcircuits/bucket_brigade.py\nBucketBrigade Class",
-            "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Composition'),
+            "qram/circuit/core.py\nQRAMCircuitCore Class", 'Composition'),
 
         # Class Optimization
         ("optimizers/transforme_ngh_gates.py\nTransformeNghGates Class",
@@ -232,19 +232,19 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
         ("optimizers/parallelize_cnots.py\nParallelizeCNOTs Class",
             "qramcircuits/bucket_brigade.py\nBucketBrigade Class", 'Optimization'),
         ("optimizers/cancel_t_gates.py\nCancelTGates Class",
-            "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Optimization'),
+            "qram/circuit/stress.py\nQRAMCircuitStress Class", 'Optimization'),
 
         # Main Executions
         ("main_experiments.py\nMainExperiments",
-            "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Execution'),
+            "qram/circuit/experiments.py\nQRAMCircuitExperiments Class", 'Execution'),
         ("main_bilan.py\nMainBilan",
-            "qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class", 'Execution'),
+            "qram/circuit/bilan.py\nQRAMCircuitBilan Class", 'Execution'),
         ("main_stress.py\nMainStress",
-            "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Execution'),
+            "qram/circuit/stress.py\nQRAMCircuitStress Class", 'Execution'),
 
         # Utils
         ("utils/arg_parser.py",
-            "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Utils'),
+            "qram/circuit/core.py\nQRAMCircuitCore Class", 'Utils'),
         ("utils/arg_parser.py",
             "main_experiments.py\nMainExperiments", 'Utils'),
         ("utils/arg_parser.py",
@@ -252,13 +252,13 @@ def create_diagram(engine='twopi', fmt='pdf', output_name='main_diagram'):
         ("utils/arg_parser.py",
             "main_stress.py\nMainStress", 'Utils'),
         ("utils/print_utils.py",
-            "qramcircuits/qram_circuit_core.py\nQRAMCircuitCore Class", 'Utils'),
+            "qram/circuit/core.py\nQRAMCircuitCore Class", 'Utils'),
         ("utils/print_utils.py",
-            "qramcircuits/qram_circuit_stress.py\nQRAMCircuitStress Class", 'Utils'),
+            "qram/circuit/stress.py\nQRAMCircuitStress Class", 'Utils'),
         ("utils/print_utils.py",
-            "qramcircuits/qram_circuit_experiments.py\nQRAMCircuitExperiments Class", 'Utils'),
+            "qram/circuit/experiments.py\nQRAMCircuitExperiments Class", 'Utils'),
         ("utils/print_utils.py",
-            "qramcircuits/qram_circuit_bilan.py\nQRAMCircuitBilan Class", 'Utils')
+            "qram/circuit/bilan.py\nQRAMCircuitBilan Class", 'Utils')
     ]
 
     # Add edges with different colors and styles based on relation type

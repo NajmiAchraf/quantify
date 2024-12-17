@@ -1,7 +1,7 @@
 import os
 import psutil
 
-from qramcircuits.qram_circuit_core import QRAMCircuitCore
+from qram.circuit.core import QRAMCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.counting_utils import *

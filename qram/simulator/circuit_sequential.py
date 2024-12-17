@@ -1,4 +1,4 @@
-from qramcircuits.qram_simulator_circuit_core import QRAMSimulatorCircuitCore
+from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 
 
 #######################################

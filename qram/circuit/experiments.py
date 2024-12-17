@@ -3,8 +3,8 @@ import psutil
 
 import qramcircuits.bucket_brigade as bb
 
-from qramcircuits.qram_circuit_core import QRAMCircuitCore
-from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
+from qram.circuit.core import QRAMCircuitCore
+from qram.circuit.simulator import QRAMCircuitSimulator
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.counting_utils import *

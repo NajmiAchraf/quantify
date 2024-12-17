@@ -1,5 +1,5 @@
 from qramcircuits.bucket_brigade import ReverseMoments
-from qramcircuits.qram_circuit_bilan import QRAMCircuitBilan
+from qram.circuit.bilan import QRAMCircuitBilan
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.arg_parser import *

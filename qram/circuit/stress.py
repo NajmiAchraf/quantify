@@ -6,13 +6,12 @@ import time
 import numpy as np
 import fasteners
 
-from functools import partial
 import multiprocessing
 from multiprocessing.managers import DictProxy
 
 import optimizers as qopt
 
-from qramcircuits.qram_circuit_experiments import QRAMCircuitExperiments
+from qram.circuit.experiments import QRAMCircuitExperiments
 
 from utils.counting_utils import *
 from utils.print_utils import *

@@ -1,8 +1,8 @@
-from qramcircuits.qram_simulator_base import QRAMSimulatorBase
-from qramcircuits.qram_simulator_circuit_hpc import QRAMSimulationCircuitHPC
-from qramcircuits.qram_simulator_circuit_parallel import QRAMSimulatorCircuitParallel
-from qramcircuits.qram_simulator_circuit_sequential import QRAMSimulatorCircuitSequential
-from qramcircuits.qram_simulator_decomposition import QRAMSimulatorDecompositions
+from qram.simulator.base import QRAMSimulatorBase
+from qram.simulator.circuit_hpc import QRAMSimulationCircuitHPC
+from qram.simulator.circuit_parallel import QRAMSimulatorCircuitParallel
+from qram.simulator.circuit_sequential import QRAMSimulatorCircuitSequential
+from qram.simulator.decomposition import QRAMSimulatorDecompositions
 
 
 #######################################

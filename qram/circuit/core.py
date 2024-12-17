@@ -8,7 +8,7 @@ import cirq
 
 import qramcircuits.bucket_brigade as bb
 from qramcircuits.bucket_brigade import ReverseMoments
-from qramcircuits.qram_circuit_simulator import QRAMCircuitSimulator
+from qram.circuit.simulator import QRAMCircuitSimulator
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 from utils.print_utils import colpr, loading_animation, elapsed_time

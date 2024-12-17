@@ -1,7 +1,7 @@
 import multiprocessing
 import threading
 
-from qramcircuits.qram_simulator_circuit_core import QRAMSimulatorCircuitCore
+from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 
 from utils.print_utils import loading_animation
 
