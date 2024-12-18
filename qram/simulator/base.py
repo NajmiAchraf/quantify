@@ -50,8 +50,6 @@ class QRAMSimulatorBase:
         __init__(bbcircuit, bbcircuit_modded, specific_simulation, qubits_number, print_circuit, print_sim, hpc):
             Constructor of the CircuitSimulator class.
 
-        _parallel_execution(sim_range, step): Simulates the circuit using multiprocessing.
-        _sequential_execution(sim_range, step): Simulates the circuit sequentially.
         _worker(i, step, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
             Worker function for multiprocessing.
         _simulate_and_compare(i, j, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
@@ -61,6 +59,7 @@ class QRAMSimulatorBase:
         _run(x, index, circuit, qubit_order, initial_state): Runs the simulation.
         _simulate_multiple_shots(i, j, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
             Simulate and compares the results of the simulation.
+        _log_results(i, result, result_modded, color): Logs the results of the simulation.
         _compare_results(i, result, result_modded, measurements, measurements_modded, final_state, final_state_modded):
             Compares the results of the simulation.
         _print_simulation_results(results, start, stop, step): Prints the simulation results.
@@ -141,60 +140,6 @@ class QRAMSimulatorBase:
         self._shots = shots
 
     #######################################
-    # Execution methods
-    #######################################
-
-    def _parallel_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
-        """
-        Simulates the circuit using multiprocessing.
-
-        Args:
-            range ('list[int]'): The range of the simulation.
-            step (int): The step index.
-        """
-
-        # Use multiprocessing to parallelize the simulation ###################################
-
-        results: 'list[tuple[int, int, int]]' = []
-
-        with multiprocessing.Pool() as pool:
-            results = pool.map(
-                partial(
-                    self._worker,
-                    step=step,
-                    circuit=self._bbcircuit.circuit,
-                    circuit_modded=self._bbcircuit_modded.circuit,
-                    qubit_order=self._bbcircuit.qubit_order,
-                    qubit_order_modded=self._bbcircuit_modded.qubit_order),
-                sim_range)
-
-        return results
-
-    def _sequential_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
-        """
-        Simulates the circuit sequentially.
-
-        Args:
-            range ('list[int]'): The range of the simulation.
-            step (int): The step index.
-        """
-
-        # simulation is not parallelized ######################################################
-
-        results: 'list[tuple[int, int, int]]' = []
-
-        for i in sim_range:
-            results.append(self._worker(
-                    i=i,
-                    step=step,
-                    circuit=self._bbcircuit.circuit,
-                    circuit_modded=self._bbcircuit_modded.circuit,
-                    qubit_order=self._bbcircuit.qubit_order,
-                    qubit_order_modded=self._bbcircuit_modded.qubit_order))
-
-        return results
-
-    #######################################
     # Worker methods
     #######################################
 
@@ -224,7 +169,7 @@ class QRAMSimulatorBase:
 
         j = i
         if self._simulation_kind == 'dec':
-            j = math.floor(i/step) # reverse the 2 ** nbr_anc binary number
+            j = math.floor(i/step) # Calculate the index for the decomposed circuit by reversing the binary representation of the index
 
         f, sm, sv = self._simulate_and_compare(
             i,
@@ -423,6 +368,13 @@ class QRAMSimulatorBase:
     # Results methods
     #######################################
 
+    def _log_results(self, i: int, result, result_modded, color: str) -> None:
+        with self._lock:
+            if self._print_sim in ["Full", "Dot"]:
+                colpr(color, "•", end="")
+            if self._print_sim == "Full":
+                self._simulation_results[i] = [color, str(result), str(result_modded)]
+
     def _compare_results(
             self,
             i: int,
@@ -483,25 +435,13 @@ class QRAMSimulatorBase:
                         )
             except AssertionError:
                 fail += 1
-                with self._lock:
-                    if self._print_sim in ["Full", "Dot"]:
-                        colpr("r", "•", end="")
-                    if self._print_sim == "Full":
-                        self._simulation_results[i] = ['r', str(result), str(result_modded)]
+                self._log_results(i, result, result_modded, "r")
             else:
                 success_measurements += 1
-                with self._lock:
-                    if self._print_sim in ["Full", "Dot"]:
-                        colpr("b", "•", end="")
-                    if self._print_sim == "Full":
-                        self._simulation_results[i] = ['b', str(result), str(result_modded)]
+                self._log_results(i, result, result_modded, "b")
         else:
             success_vector += 1
-            with self._lock:
-                if self._print_sim in ["Full", "Dot"]:
-                    colpr("g", "•", end="")
-                if self._print_sim == "Full":
-                    self._simulation_results[i] = ['g', str(result), str(result_modded)]
+            self._log_results(i, result, result_modded, "g")
 
         return fail, success_measurements, success_vector
 

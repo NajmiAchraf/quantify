@@ -1,6 +1,9 @@
 import cirq
 import time
 
+from functools import partial
+import multiprocessing
+
 import qramcircuits.bucket_brigade as bb
 
 from qram.simulator.base import QRAMSimulatorBase
@@ -51,6 +54,8 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     The QRAMSimulatorCircuitCore class to simulate the bucket brigade circuit.
 
     Methods:
+        _parallel_execution(sim_range, step): Simulates the circuit using multiprocessing.
+        _sequential_execution(sim_range, step): Simulates the circuit sequentially.
         _circuit_configuration(): Unified simulation function for all qubit types.
         _add_measurements(bbcircuit): Adds measurements to the circuit and returns the initial state.
         _simulation_manager(): Manages the simulation.
@@ -74,6 +79,64 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
         super().__init__(*args, **kwargs)
 
         self._is_stress = is_stress
+
+    #######################################
+    # Execution methods
+    #######################################
+
+    def _parallel_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+        """
+        Simulates the circuit using multiprocessing.
+
+        Args:
+            range ('list[int]'): The range of the simulation.
+            step (int): The step index.
+        """
+
+        # Use multiprocessing to parallelize the simulation ###################################
+
+        results: 'list[tuple[int, int, int]]' = []
+
+        with multiprocessing.Pool() as pool:
+            results = pool.map(
+                partial(
+                    self._worker,
+                    step=step,
+                    circuit=self._bbcircuit.circuit,
+                    circuit_modded=self._bbcircuit_modded.circuit,
+                    qubit_order=self._bbcircuit.qubit_order,
+                    qubit_order_modded=self._bbcircuit_modded.qubit_order),
+                sim_range)
+
+        return results
+
+    def _sequential_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+        """
+        Simulates the circuit sequentially.
+
+        Args:
+            range ('list[int]'): The range of the simulation.
+            step (int): The step index.
+        """
+
+        # simulation is not parallelized ######################################################
+
+        results: 'list[tuple[int, int, int]]' = []
+
+        for i in sim_range:
+            results.append(self._worker(
+                    i=i,
+                    step=step,
+                    circuit=self._bbcircuit.circuit,
+                    circuit_modded=self._bbcircuit_modded.circuit,
+                    qubit_order=self._bbcircuit.qubit_order,
+                    qubit_order_modded=self._bbcircuit_modded.qubit_order))
+
+        return results
+
+    #######################################
+    # Configuration methods
+    #######################################
 
     def _circuit_configuration(self) -> 'tuple[list[int], int, str]':
         """

@@ -1,5 +1,7 @@
 import itertools
 
+from mpi4py import MPI
+
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
@@ -26,8 +28,6 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-
-        from mpi4py import MPI
 
         super().__init__(*args, **kwargs)
 
