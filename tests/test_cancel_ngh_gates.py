@@ -3,6 +3,7 @@ import cirq.optimizers
 
 import optimizers as cnc
 
+
 def test_optimise_hadamards():
 
     circ = cirq.Circuit()
@@ -24,7 +25,8 @@ def test_optimise_hadamards():
 
     # print("3", circ)
 
-    assert(len(circ) == 1)
+    assert len(circ) == 1
+
 
 def test_optimise_T_gate():
 
@@ -32,7 +34,7 @@ def test_optimise_T_gate():
     qubit_a = cirq.NamedQubit("a")
 
     circ.append(cirq.ops.T.on(qubit_a))
-    circ.append(cirq.ops.T.on(qubit_a)**-1)
+    circ.append(cirq.ops.T.on(qubit_a) ** -1)
     circ.append(cirq.ops.T.on(qubit_a))
 
     # print("1", circ)
@@ -47,7 +49,8 @@ def test_optimise_T_gate():
 
     # print("3", circ)
 
-    assert(len(circ) == 1)
+    assert len(circ) == 1
+
 
 def test_optimise_S_gate():
 
@@ -55,7 +58,7 @@ def test_optimise_S_gate():
     qubit_a = cirq.NamedQubit("a")
 
     circ.append(cirq.ops.S.on(qubit_a))
-    circ.append(cirq.ops.S.on(qubit_a)**-1)
+    circ.append(cirq.ops.S.on(qubit_a) ** -1)
     circ.append(cirq.ops.S.on(qubit_a))
 
     # print("1", circ)
@@ -70,7 +73,8 @@ def test_optimise_S_gate():
 
     # print("3", circ)
 
-    assert(len(circ) == 1)
+    assert len(circ) == 1
+
 
 def test_optimise_Z_gate():
 
@@ -93,4 +97,4 @@ def test_optimise_Z_gate():
 
     # print("3", circ)
 
-    assert(len(circ) == 1)
+    assert len(circ) == 1

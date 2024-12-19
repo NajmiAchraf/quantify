@@ -51,7 +51,9 @@ class CancelNghGates(TransferFlagOptimizer):
 
             next_op = circuit.operation_at(op.qubits[0], n_idx)
 
-            if (next_op.gate == gates[gate][0] and op.gate == gates[gate][1]) or (next_op.gate == gates[gate][1] and op.gate == gates[gate][0]):
+            if (next_op.gate == gates[gate][0] and op.gate == gates[gate][1]) or (
+                next_op.gate == gates[gate][1] and op.gate == gates[gate][0]
+            ):
 
                 if self.transfer_flag and (not mu.has_flag(next_op)):
                     # Optimize only flagged operations
@@ -60,8 +62,10 @@ class CancelNghGates(TransferFlagOptimizer):
                 if self.transfer_flag:
                     mu.transfer_flags(circuit, op.qubits[0], index, n_idx)
 
-                return cirq.PointOptimizationSummary(clear_span= n_idx - index + 1,
-                                                clear_qubits=op.qubits,
-                                                new_operations=[])
+                return cirq.PointOptimizationSummary(
+                    clear_span=n_idx - index + 1,
+                    clear_qubits=op.qubits,
+                    new_operations=[],
+                )
 
         return None

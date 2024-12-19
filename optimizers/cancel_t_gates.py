@@ -1,5 +1,7 @@
-import cirq
 from typing import Dict, List, Tuple
+
+import cirq
+
 
 class CancelTGate:
     """
@@ -32,8 +34,7 @@ class CancelTGate:
     def __delitem__(self, index: int):
         if index in self.T_Gate:
             self.circuit.clear_operations_touching(
-                self.T_Gate[index][0],
-                [self.T_Gate[index][1]]
+                self.T_Gate[index][0], [self.T_Gate[index][1]]
             )
             del self.T_Gate[index]
 
@@ -41,7 +42,7 @@ class CancelTGate:
         return self.T_Gate
 
     def __str__(self):
-        return '\n'.join(f"{key}: {value}" for key, value in self.T_Gate.items())
+        return "\n".join(f"{key}: {value}" for key, value in self.T_Gate.items())
 
     def optimize_circuit(self, indices: Tuple[int, ...]):
         for index in indices:

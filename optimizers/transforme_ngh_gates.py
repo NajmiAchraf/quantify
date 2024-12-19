@@ -1,11 +1,9 @@
-from typing import (Dict, Tuple, cast)
-
 from collections import defaultdict
-
-from cirq import ops
-from cirq.circuits.circuit import Circuit
+from typing import Dict, Tuple, cast
 
 import cirq
+from cirq import ops
+from cirq.circuits.circuit import Circuit
 from cirq.ops import Qid
 
 import utils.misc_utils as mu
@@ -55,7 +53,7 @@ class TransformeNghGates(TransferFlagOptimizer):
 
             next_op = circuit.operation_at(op.qubits[0], n_idx)
 
-            if (next_op.gate == gates[gate] and op.gate == gates[gate]):
+            if next_op.gate == gates[gate] and op.gate == gates[gate]:
 
                 if self.transfer_flag and (not mu.has_flag(next_op)):
                     # Optimize only flagged operations
@@ -64,14 +62,16 @@ class TransformeNghGates(TransferFlagOptimizer):
                 if self.transfer_flag:
                     mu.transfer_flags(circuit, op.qubits[0], index, n_idx)
 
-                return cirq.PointOptimizationSummary(clear_span= n_idx - index + 1,
-                                                clear_qubits=op.qubits,
-                                                new_operations=[])
+                return cirq.PointOptimizationSummary(
+                    clear_span=n_idx - index + 1,
+                    clear_qubits=op.qubits,
+                    new_operations=[],
+                )
 
         return None
 
     def optimize_circuit(self, circuit: Circuit):
-        frontier: Dict['Qid', int] = defaultdict(lambda: 0)
+        frontier: Dict["Qid", int] = defaultdict(lambda: 0)
         i = 0
         while i < len(circuit):  # Note: circuit may mutate as we go.
             for op in circuit[i].operations:
@@ -86,7 +86,7 @@ class TransformeNghGates(TransferFlagOptimizer):
                 if op not in circuit[i].operations:
                     continue
 
-                sog = op.gate # Save original gate
+                sog = op.gate  # Save original gate
 
                 opt = self.optimization_at(circuit, i, op)
                 # Skip if the optimization did nothing.
@@ -95,18 +95,19 @@ class TransformeNghGates(TransferFlagOptimizer):
 
                 # Clear target area, and insert new operations.
                 circuit.clear_operations_touching(
-                    opt.clear_qubits,
-                    [e for e in range(i, i + opt.clear_span)])
+                    opt.clear_qubits, [e for e in range(i, i + opt.clear_span)]
+                )
 
                 if sog == cirq.T:
                     circuit.insert(i, cirq.S(op.qubits[0]))
                 if sog == cirq.T**-1:
-                    circuit.insert(i, cirq.S(op.qubits[0])**-1)
+                    circuit.insert(i, cirq.S(op.qubits[0]) ** -1)
                 if sog == cirq.S or sog == cirq.S**-1:
                     circuit.insert(i, cirq.Z(op.qubits[0]))
 
                 new_operations = self.post_clean_up(
-                    cast(Tuple[ops.Operation], opt.new_operations))
+                    cast(Tuple[ops.Operation], opt.new_operations)
+                )
                 circuit.insert_at_frontier(new_operations, i, frontier)
 
             i += 1

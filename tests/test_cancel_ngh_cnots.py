@@ -3,6 +3,7 @@ import cirq.optimizers
 
 import optimizers.cancel_ngh_cnots as cnc
 
+
 def test_optimise_cnots():
 
     circ = cirq.Circuit()
@@ -25,4 +26,4 @@ def test_optimise_cnots():
 
     # print("3", circ)
 
-    assert(len(circ) == 1)
+    assert len(circ) == 1
