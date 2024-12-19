@@ -1,27 +1,25 @@
-import cirq
-import cirq.optimizers
-import time
-
-from functools import partial
 import multiprocessing
 import threading
+import time
+from functools import partial
+
+import cirq
+import cirq.optimizers
 
 import qramcircuits.bucket_brigade as bb
-
 from qram.simulator.base import QRAMSimulatorBase
-from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
-
-from utils.print_utils import colpr, printRange, printCircuit, loading_animation
-
+from qramcircuits.toffoli_decomposition import ToffoliDecomposition, ToffoliDecompType
+from utils.print_utils import colpr, loading_animation, printCircuit, printRange
 
 #######################################
 # QRAM Simulator Decompositions
 #######################################
 
+
 class QRAMSimulatorDecompositions(QRAMSimulatorBase):
     """
     The QRAMDecompositionsSimulator class to simulate the Toffoli decompositions.
-    
+
     Methods:
         _fan_in_mem_out(decomp_scenario): Returns the fan-in, memory, and fan-out decomposition types.
         _create_decomposition_circuit(decomposition_type): Creates a Toffoli decomposition circuit.
@@ -47,9 +45,8 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         self._simulate_decompositions()
 
     def _fan_in_mem_out(
-            self, 
-            decomp_scenario: bb.BucketBrigadeDecompType
-    ) -> 'list[ToffoliDecompType]':
+        self, decomp_scenario: bb.BucketBrigadeDecompType
+    ) -> "list[ToffoliDecompType]":
         """
         Returns the fan-in, memory, and fan-out decomposition types.
 
@@ -63,9 +60,8 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         return list(set(decomp_scenario.get_decomp_types()))
 
     def _create_decomposition_circuit(
-            self, 
-            decomposition_type: ToffoliDecompType
-    ) -> 'tuple[cirq.Circuit, list[cirq.NamedQubit]]':
+        self, decomposition_type: ToffoliDecompType
+    ) -> "tuple[cirq.Circuit, list[cirq.NamedQubit]]":
         """
         Creates a Toffoli decomposition circuit.
 
@@ -75,26 +71,27 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         Returns:
             'tuple[cirq.Circuit, list[cirq.NamedQubit]]': The Toffoli decomposition circuit and qubits.
         """
-        
+
         circuit = cirq.Circuit()
 
         qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
 
         decomp = ToffoliDecomposition(
-            decomposition_type=decomposition_type,
-            qubits=qubits)
+            decomposition_type=decomposition_type, qubits=qubits
+        )
 
         if decomp.number_of_ancilla() > 0:
-            qubits += [decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))]
+            qubits += [
+                decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))
+            ]
 
         circuit.append(decomp.decomposition())
 
         return circuit, qubits
 
     def _decomposed_circuit(
-            self, 
-            decomposition_type: ToffoliDecompType
-    ) -> 'tuple[cirq.Circuit, list[cirq.NamedQubit]]':
+        self, decomposition_type: ToffoliDecompType
+    ) -> "tuple[cirq.Circuit, list[cirq.NamedQubit]]":
         """
         Creates a Toffoli decomposition with measurements circuit.
 
@@ -116,7 +113,12 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(circuit)
 
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
-            printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
+            printCircuit(
+                self._print_circuit,
+                circuit,
+                qubits,
+                f"decomposition {str(decomposition_type)}",
+            )
 
         return circuit, qubits
 
@@ -127,7 +129,13 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
 
         self._simulation_kind = "dec"
 
-        message =  "<" + "="*20 + " Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate " + "="*20 + ">\n"
+        message = (
+            "<"
+            + "=" * 20
+            + " Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate "
+            + "=" * 20
+            + ">\n"
+        )
         colpr("y", f"\n{message}", end="\n\n")
 
         for decomp_scenario in [self._decomp_scenario, self._decomp_scenario_modded]:
@@ -149,7 +157,7 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
 
         self._start_time = time.time()
 
-        circuit, qubits= self._decomposed_circuit(ToffoliDecompType.NO_DECOMP)
+        circuit, qubits = self._decomposed_circuit(ToffoliDecompType.NO_DECOMP)
         circuit_modded, qubits_modded = self._decomposed_circuit(decomposition_type)
 
         nbr_anc = ToffoliDecomposition.numbers_of_ancilla(decomposition_type)
@@ -170,13 +178,18 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
             1 0 0 0 0 0 -> 32 : stop
         """
         start = 0
-        step = 2 ** nbr_anc
+        step = 2**nbr_anc
         stop = 8 * step
 
         # prints ##############################################################################
         printRange(start, stop, step)
 
-        colpr("c", "Simulating the decomposition ... ", str(decomposition_type),  end="\n\n")
+        colpr(
+            "c",
+            "Simulating the decomposition ... ",
+            str(decomposition_type),
+            end="\n\n",
+        )
 
         # reset the simulation results ########################################################
         self._simulation_results = multiprocessing.Manager().dict()
@@ -184,7 +197,13 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         # use thread to load the simulation ###################################################
         if self._print_sim == "Loading":
             stop_event = threading.Event()
-            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
+            loading_thread = threading.Thread(
+                target=loading_animation,
+                args=(
+                    stop_event,
+                    "simulation",
+                ),
+            )
             loading_thread.start()
 
         # Use multiprocessing to parallelize the simulation ###################################
@@ -197,8 +216,10 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
                         circuit=circuit,
                         circuit_modded=circuit_modded,
                         qubit_order=qubits,
-                        qubit_order_modded=qubits_modded),
-                    range(start, stop, step))
+                        qubit_order_modded=qubits_modded,
+                    ),
+                    range(start, stop, step),
+                )
         finally:
             if self._print_sim == "Loading":
                 stop_event.set()

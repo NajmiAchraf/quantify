@@ -1,25 +1,23 @@
-import cirq
 import copy
 import itertools
+import multiprocessing
 import os
 import time
-import numpy as np
-import fasteners
-
-import multiprocessing
 from multiprocessing.managers import DictProxy
 
+import cirq
+import fasteners
+import numpy as np
+
 import optimizers as qopt
-
 from qram.circuit.experiments import QRAMCircuitExperiments
-
 from utils.counting_utils import *
 from utils.print_utils import *
-
 
 #######################################
 # QRAM Circuit Stress
 #######################################
+
 
 class QRAMCircuitStress(QRAMCircuitExperiments):
     """
@@ -56,9 +54,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         _simulate_circuit(): Simulates the circuit.
     """
 
-    _stress_bilan: 'DictProxy[str, list[str]]' = multiprocessing.Manager().dict()
+    _stress_bilan: "DictProxy[str, list[str]]" = multiprocessing.Manager().dict()
 
-    _combinations: 'itertools.combinations[tuple[int, ...]]'
+    _combinations: "itertools.combinations[tuple[int, ...]]"
 
     __circuit_save: cirq.Circuit
     __circuit_modded_save: cirq.Circuit
@@ -110,7 +108,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self.__t_count = count_t_of_circuit(self.__circuit_modded_save)
 
     def __generate_combinations(self):
-        combinations = itertools.combinations(range(1, self.__t_count + 1), self.__nbr_combinations)
+        combinations = itertools.combinations(
+            range(1, self.__t_count + 1), self.__nbr_combinations
+        )
         self._combinations = copy.deepcopy(combinations)
         return combinations
 
@@ -146,7 +146,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         # Split the total work into chunks based on the number of ranks
         work_chunks = np.array_split(total_work, size)
         local_work = work_chunks[self.__rank] if self.__rank < len(work_chunks) else []
-        self.__chunk = len(work_chunks[self.__rank]) if self.__rank < len(work_chunks) else 0
+        self.__chunk = (
+            len(work_chunks[self.__rank]) if self.__rank < len(work_chunks) else 0
+        )
 
         # print("rank, local_work : ", rank, local_work)
 
@@ -160,7 +162,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         #         print(f"rank, map_name, value : {rank}, {map_name}, {value}")
 
         # Ensure results are serializable
-        serializable_result = {map_name: value for item in result for map_name, value in item.items()}
+        serializable_result = {
+            map_name: value for item in result for map_name, value in item.items()
+        }
         # print(f"rank, serializable_result : {rank}, {serializable_result}")
 
         # Gather results from all MPI processes
@@ -195,9 +199,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         if self._simulate:
             self.__print_bilan()
             self.__export_bilan()
-        print(f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {self._stop_time}", end="\n\n")
+        print(
+            f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {self._stop_time}",
+            end="\n\n",
+        )
 
-    def _stress_experiment(self, indices: 'tuple[int, ...]') -> 'DictProxy[str, list[str]]':
+    def _stress_experiment(
+        self, indices: "tuple[int, ...]"
+    ) -> "DictProxy[str, list[str]]":
         """
         Stress experiment for the bucket brigade circuit.
 
@@ -206,9 +215,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         """
 
         # Ensure the lock file exists
-        lock_file = 'file.lock'
+        lock_file = "file.lock"
         if not os.path.exists(lock_file):
-            open(lock_file, 'w').close()
+            open(lock_file, "w").close()
 
         start = time.time()
 
@@ -223,18 +232,22 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
                 colpr("y", "with T gate indices:", end=" ")
             else:
                 colpr("y", "\nLoading stress experiment with T gate indices:", end=" ")
-            colpr("r", ' '.join(map(str, indices)), end="\n\n")
+            colpr("r", " ".join(map(str, indices)), end="\n\n")
 
         self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
         self._bbcircuit_modded.circuit = copy.deepcopy(self.__circuit_modded_save)
 
-        self._bbcircuit_modded.circuit = qopt.CancelTGate(self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order).optimize_circuit(indices)
+        self._bbcircuit_modded.circuit = qopt.CancelTGate(
+            self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order
+        ).optimize_circuit(indices)
 
         self._simulated = False
         self._results()
 
         if self._simulate:
-            self._stress_bilan[",".join(map(str, indices))] = self._Simulator.get_simulation_bilan()
+            self._stress_bilan[",".join(map(str, indices))] = (
+                self._Simulator.get_simulation_bilan()
+            )
 
         elapsed = elapsed_time(start)
 
@@ -248,8 +261,10 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
                 colpr("r", f"{self.__chunk}", end=" ")
                 colpr("g", "with T gate indices:", end=" ")
             else:
-                colpr("g", "\nCompleted stress experiment with T gate indices:", end=" ")
-            colpr("r", ' '.join(map(str, indices)), end="\n")
+                colpr(
+                    "g", "\nCompleted stress experiment with T gate indices:", end=" "
+                )
+            colpr("r", " ".join(map(str, indices)), end="\n")
             colpr("w", "Time elapsed:", end=" ")
             colpr("r", elapsed, end="\n\n")
 
@@ -304,8 +319,10 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         directory = f"data/{self._decomp_scenario_modded.dec_mem}"
         if not os.path.exists(directory):
             os.makedirs(directory)
-        time_elapsed = self._stop_time.replace(' ', '')
-        time_stamp_start = time.strftime("%Y%m%d-%H%M%S", time.localtime(self._start_time))
+        time_elapsed = self._stop_time.replace(" ", "")
+        time_stamp_start = time.strftime(
+            "%Y%m%d-%H%M%S", time.localtime(self._start_time)
+        )
         time_stamp_end = time.strftime("%Y%m%d-%H%M%S")
         # export in file
         with open(
@@ -316,7 +333,9 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             f"_{self.__length_combinations}-{self._specific_simulation}-tests"
             f"_{time_elapsed}"
             f"_{time_stamp_start}"
-            f"_{time_stamp_end}.csv", "w") as file:
+            f"_{time_stamp_end}.csv",
+            "w",
+        ) as file:
             file.write(csv)
 
     #######################################

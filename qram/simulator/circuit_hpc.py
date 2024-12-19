@@ -1,16 +1,18 @@
 import itertools
 
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
+except ImportError:
+    pass
 
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
 from utils.print_utils import colpr, printRange
-
 
 #######################################
 # QRAM Simulator Circuit HPC
 #######################################
+
 
 class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
     """
@@ -45,18 +47,29 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
 
         if rank == 0 and not self._is_stress:
             print(f"{'='*150}\n\n")
-    
-            name = "bucket brigade" if self._decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+
+            name = (
+                "bucket brigade"
+                if self._decomp_scenario.get_decomp_types()[0]
+                == ToffoliDecompType.NO_DECOMP
+                else "reference"
+            )
 
             printRange(sim_range[0], sim_range[-1], step)
 
-            colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
+            colpr(
+                "c",
+                f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...",
+                end="\n\n",
+            )
 
         # Split the total work into chunks based on the number of ranks #######################
 
         chunk_size_per_rank = len(sim_range) // size
         if rank < size - 1:
-            local_work_range = sim_range[rank * chunk_size_per_rank : (rank + 1) * chunk_size_per_rank]
+            local_work_range = sim_range[
+                rank * chunk_size_per_rank : (rank + 1) * chunk_size_per_rank
+            ]
         else:
             local_work_range = sim_range[rank * chunk_size_per_rank :]
 
@@ -70,7 +83,7 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        results: 'list[tuple[int, int, int]]' = []
+        results: "list[tuple[int, int, int]]" = []
 
         if self._specific_simulation != "full" and self._simulation_kind == "bb":
             results = self._sequential_execution(local_work_range, step)

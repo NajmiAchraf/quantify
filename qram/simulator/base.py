@@ -1,24 +1,27 @@
-import cirq
-import cirq.optimizers
 import math
-import numpy as np
+import multiprocessing
+from functools import partial
+from multiprocessing.managers import DictProxy
 from typing import Union
 
-from functools import partial
-import multiprocessing
-from multiprocessing.managers import DictProxy
+import cirq
+import cirq.optimizers
+import numpy as np
 
 import qramcircuits.bucket_brigade as bb
-
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
 from utils.print_utils import colpr, elapsed_time
-from utils.types import type_specific_simulation, type_print_circuit, type_print_sim, type_simulation_kind
-
+from utils.types import (
+    type_print_circuit,
+    type_print_sim,
+    type_simulation_kind,
+    type_specific_simulation,
+)
 
 #######################################
 # QRAM Simulator Base
 #######################################
+
 
 class QRAMSimulatorBase:
     """
@@ -77,7 +80,7 @@ class QRAMSimulatorBase:
     _lock = multiprocessing.Lock()
 
     _simulation_results: Union[DictProxy, dict]
-    _simulation_bilan: 'list[str]' = []
+    _simulation_bilan: "list[str]" = []
 
     _bbcircuit: bb.BucketBrigade
     _bbcircuit_modded: bb.BucketBrigade
@@ -89,7 +92,7 @@ class QRAMSimulatorBase:
     _start_time: float
     _stop_time: str
 
-    def get_simulation_bilan(self) -> 'list[str]':
+    def get_simulation_bilan(self) -> "list[str]":
         """
         Returns the simulation bilan.
 
@@ -103,16 +106,16 @@ class QRAMSimulatorBase:
         return self._simulation_bilan
 
     def __init__(
-            self,
-            bbcircuit: bb.BucketBrigade,
-            bbcircuit_modded: bb.BucketBrigade,
-            specific_simulation: type_specific_simulation,
-            qubits_number: int,
-            print_circuit: type_print_circuit,
-            print_sim: type_print_sim,
-            hpc: bool,
-            shots: int
-        ) -> None:
+        self,
+        bbcircuit: bb.BucketBrigade,
+        bbcircuit_modded: bb.BucketBrigade,
+        specific_simulation: type_specific_simulation,
+        qubits_number: int,
+        print_circuit: type_print_circuit,
+        print_sim: type_print_sim,
+        hpc: bool,
+        shots: int,
+    ) -> None:
         """
         Constructor of the CircuitSimulator class.
 
@@ -144,14 +147,14 @@ class QRAMSimulatorBase:
     #######################################
 
     def _worker(
-            self,
-            i: int,
-            step: int,
-            circuit: cirq.Circuit,
-            circuit_modded: cirq.Circuit,
-            qubit_order: 'list[cirq.NamedQubit]',
-            qubit_order_modded: 'list[cirq.NamedQubit]',
-        ) -> 'tuple[int, int, int]':
+        self,
+        i: int,
+        step: int,
+        circuit: cirq.Circuit,
+        circuit_modded: cirq.Circuit,
+        qubit_order: "list[cirq.NamedQubit]",
+        qubit_order_modded: "list[cirq.NamedQubit]",
+    ) -> "tuple[int, int, int]":
         """
         Worker function for multiprocessing.
 
@@ -168,29 +171,26 @@ class QRAMSimulatorBase:
         """
 
         j = i
-        if self._simulation_kind == 'dec':
-            j = math.floor(i/step) # Calculate the index for the decomposed circuit by reversing the binary representation of the index
+        if self._simulation_kind == "dec":
+            j = math.floor(
+                i / step
+            )  # Calculate the index for the decomposed circuit by reversing the binary representation of the index
 
         f, sm, sv = self._simulate_and_compare(
-            i,
-            j,
-            circuit,
-            circuit_modded,
-            qubit_order,
-            qubit_order_modded
+            i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
         )
 
         return f, sm, sv
 
     def _simulate_and_compare(
-            self,
-            i: int,
-            j: int,
-            circuit: cirq.Circuit,
-            circuit_modded: cirq.Circuit,
-            qubit_order: 'list[cirq.NamedQubit]',
-            qubit_order_modded: 'list[cirq.NamedQubit]',
-        ) -> 'tuple[int, int, int]':
+        self,
+        i: int,
+        j: int,
+        circuit: cirq.Circuit,
+        circuit_modded: cirq.Circuit,
+        qubit_order: "list[cirq.NamedQubit]",
+        qubit_order_modded: "list[cirq.NamedQubit]",
+    ) -> "tuple[int, int, int]":
         """
         Simulate and compares the results of the simulation.
 
@@ -211,32 +211,22 @@ class QRAMSimulatorBase:
         # Multiple shots simulation used only for the bucket brigade circuit and not for the decomposed circuit
         if self._specific_simulation != "full" and self._simulation_kind == "bb":
             return self._simulate_multiple_shots(
-                i,
-                j,
-                circuit,
-                circuit_modded,
-                qubit_order,
-                qubit_order_modded
+                i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
             )
 
         return self._simulate_one_shot(
-            i,
-            j,
-            circuit,
-            circuit_modded,
-            qubit_order,
-            qubit_order_modded
+            i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
         )
 
     def _simulate_one_shot(
-            self,
-            i: int,
-            j: int,
-            circuit: cirq.Circuit,
-            circuit_modded: cirq.Circuit,
-            qubit_order: 'list[cirq.NamedQubit]',
-            qubit_order_modded: 'list[cirq.NamedQubit]',
-        ) -> 'tuple[int, int, int]':
+        self,
+        i: int,
+        j: int,
+        circuit: cirq.Circuit,
+        circuit_modded: cirq.Circuit,
+        qubit_order: "list[cirq.NamedQubit]",
+        qubit_order_modded: "list[cirq.NamedQubit]",
+    ) -> "tuple[int, int, int]":
         """
         Simulate and compares the results of the simulation.
 
@@ -258,15 +248,13 @@ class QRAMSimulatorBase:
         initial_state_modded: int = i
 
         result = self._simulator.simulate(
-            circuit,
-            qubit_order=qubit_order,
-            initial_state=initial_state
+            circuit, qubit_order=qubit_order, initial_state=initial_state
         )
 
         result_modded = self._simulator.simulate(
             circuit_modded,
             qubit_order=qubit_order_modded,
-            initial_state=initial_state_modded
+            initial_state=initial_state_modded,
         )
 
         return self._compare_results(
@@ -276,26 +264,26 @@ class QRAMSimulatorBase:
             result.measurements,
             result_modded.measurements,
             result.final_state[j],
-            result_modded.final_state[i]
+            result_modded.final_state[i],
         )
 
-    def _run(self, x, index, circuit, qubit_order, initial_state) -> 'tuple[np.ndarray, dict[str, np.ndarray]]':
+    def _run(
+        self, x, index, circuit, qubit_order, initial_state
+    ) -> "tuple[np.ndarray, dict[str, np.ndarray]]":
         result = self._simulator.simulate(
-            circuit,
-            qubit_order=qubit_order,
-            initial_state=initial_state
+            circuit, qubit_order=qubit_order, initial_state=initial_state
         )
         return result.final_state[index], result.measurements
 
     def _simulate_multiple_shots(
-            self,
-            i: int,
-            j: int,
-            circuit: cirq.Circuit,
-            circuit_modded: cirq.Circuit,
-            qubit_order: 'list[cirq.NamedQubit]',
-            qubit_order_modded: 'list[cirq.NamedQubit]',
-        ) -> 'tuple[int, int, int]':
+        self,
+        i: int,
+        j: int,
+        circuit: cirq.Circuit,
+        circuit_modded: cirq.Circuit,
+        qubit_order: "list[cirq.NamedQubit]",
+        qubit_order_modded: "list[cirq.NamedQubit]",
+    ) -> "tuple[int, int, int]":
         """
         Simulate and compares the results of the simulation.
 
@@ -316,11 +304,11 @@ class QRAMSimulatorBase:
         initial_state: int = j
         initial_state_modded: int = i
 
-        measurements: 'dict[str, list]' = {}
-        measurements_modded: 'dict[str, list]' = {}
+        measurements: "dict[str, list]" = {}
+        measurements_modded: "dict[str, list]" = {}
 
-        final_state: 'list[np.ndarray]' = []
-        final_state_modded: 'list[np.ndarray]' = []
+        final_state: "list[np.ndarray]" = []
+        final_state_modded: "list[np.ndarray]" = []
 
         with multiprocessing.Pool() as pool:
             results = pool.map(
@@ -329,8 +317,9 @@ class QRAMSimulatorBase:
                     index=j,
                     circuit=circuit,
                     qubit_order=qubit_order,
-                    initial_state=initial_state),
-                range(self._shots)
+                    initial_state=initial_state,
+                ),
+                range(self._shots),
             )
 
         for result in results:
@@ -345,8 +334,9 @@ class QRAMSimulatorBase:
                     index=i,
                     circuit=circuit_modded,
                     qubit_order=qubit_order_modded,
-                    initial_state=initial_state_modded),
-                range(self._shots)
+                    initial_state=initial_state_modded,
+                ),
+                range(self._shots),
             )
 
         for result_modded in results_modded:
@@ -361,7 +351,7 @@ class QRAMSimulatorBase:
             measurements,
             measurements_modded,
             final_state,
-            final_state_modded
+            final_state_modded,
         )
 
     #######################################
@@ -376,15 +366,15 @@ class QRAMSimulatorBase:
                 self._simulation_results[i] = [color, str(result), str(result_modded)]
 
     def _compare_results(
-            self,
-            i: int,
-            result,
-            result_modded,
-            measurements: Union['dict[str, np.ndarray]', 'dict[str, list]'],
-            measurements_modded: Union['dict[str, np.ndarray]', 'dict[str, list]'],
-            final_state: 'list[np.ndarray]',
-            final_state_modded: 'list[np.ndarray]',
-        ) -> 'tuple[int, int, int]':
+        self,
+        i: int,
+        result,
+        result_modded,
+        measurements: Union["dict[str, np.ndarray]", "dict[str, list]"],
+        measurements_modded: Union["dict[str, np.ndarray]", "dict[str, list]"],
+        final_state: "list[np.ndarray]",
+        final_state_modded: "list[np.ndarray]",
+    ) -> "tuple[int, int, int]":
         """
         Compares the results of the simulation.
 
@@ -396,7 +386,7 @@ class QRAMSimulatorBase:
             measurements_modded (Union['dict[str, np.ndarray]', 'dict[str, list]']): The measurements of the modded circuit.
             final_state (np.ndarray): The final state of the circuit.
             final_state_modded (np.ndarray): The final state of the modded circuit.
-        
+
         Returns:
             int: The number of failed tests.
             int: The number of measurements tests success.
@@ -408,18 +398,17 @@ class QRAMSimulatorBase:
         success_vector: int = 0
 
         try:
-            if self._qubits_number <= 3  or self._simulation_kind == 'dec':
+            if self._qubits_number <= 3 or self._simulation_kind == "dec":
                 if self._specific_simulation == "full":
                     # Compare rounded final state which is the output vector
                     assert np.array_equal(
                         np.array(np.around(final_state)),
-                        np.array(np.around(final_state_modded))
+                        np.array(np.around(final_state_modded)),
                     )
                 else:
                     # Compare final state which is the output vector
                     assert np.array_equal(
-                        np.array(final_state),
-                        np.array(final_state_modded)
+                        np.array(final_state), np.array(final_state_modded)
                     )
             else:
                 raise AssertionError
@@ -431,7 +420,7 @@ class QRAMSimulatorBase:
                     if qubit_str in measurements:
                         assert np.array_equal(
                             measurements[qubit_str],
-                            measurements_modded.get(qubit_str, np.array([]))
+                            measurements_modded.get(qubit_str, np.array([])),
                         )
             except AssertionError:
                 fail += 1
@@ -445,7 +434,9 @@ class QRAMSimulatorBase:
 
         return fail, success_measurements, success_vector
 
-    def _print_simulation_results(self, results: 'list[tuple[int, int, int]]', sim_range: 'list[int]', step: int) -> None:
+    def _print_simulation_results(
+        self, results: "list[tuple[int, int, int]]", sim_range: "list[int]", step: int
+    ) -> None:
         """
         Prints the simulation results.
 
@@ -472,10 +463,12 @@ class QRAMSimulatorBase:
 
         self._stop_time = elapsed_time(self._start_time)
 
-        f = format(((fail * 100)/total_tests), ',.2f')
-        sm = format(((success_measurements * 100)/total_tests), ',.2f')
-        sv = format(((success_vector * 100)/total_tests), ',.2f')
-        ts = format((((success_measurements + success_vector) * 100)/total_tests), ',.2f')
+        f = format(((fail * 100) / total_tests), ",.2f")
+        sm = format(((success_measurements * 100) / total_tests), ",.2f")
+        sv = format(((success_vector * 100) / total_tests), ",.2f")
+        ts = format(
+            (((success_measurements + success_vector) * 100) / total_tests), ",.2f"
+        )
 
         self._simulation_bilan = [f, ts, sm, sv]
 
@@ -483,9 +476,17 @@ class QRAMSimulatorBase:
             print("\n\nResults of the simulation:\n")
             colpr("r", f"\t• Failed: {fail} ({f} %)")
             if success_measurements == 0:
-                colpr("g", f"\t• Succeed: {success_measurements + success_vector} ({ts} %)", end="\n\n")
+                colpr(
+                    "g",
+                    f"\t• Succeed: {success_measurements + success_vector} ({ts} %)",
+                    end="\n\n",
+                )
             else:
-                colpr("y", f"\t• Succeed: {success_measurements + success_vector} ({ts} %)", end="\t( ")
+                colpr(
+                    "y",
+                    f"\t• Succeed: {success_measurements + success_vector} ({ts} %)",
+                    end="\t( ",
+                )
                 colpr("b", f"Measurements: {success_measurements} ({sm} %)", end=" • ")
                 colpr("g", f"Output vector: {success_vector} ({sv} %)", end=" )\n\n")
 
@@ -495,23 +496,32 @@ class QRAMSimulatorBase:
         if self._print_sim != "Full":
             return
 
-        if self._simulation_kind == 'dec':
+        if self._simulation_kind == "dec":
             name = "Toffoli"
             name_modded = "Decomposed Toffoli"
         else:
-            name = "Bucket brigade" if self._decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "Reference"
+            name = (
+                "Bucket brigade"
+                if self._decomp_scenario.get_decomp_types()[0]
+                == ToffoliDecompType.NO_DECOMP
+                else "Reference"
+            )
             name_modded = "Modded circuit"
 
         colpr("c", "Printing the simulation results ...", end="\n\n")
 
         for i in sim_range:
             j = i
-            if self._simulation_kind == 'dec':
-                j = math.floor(i/step)
+            if self._simulation_kind == "dec":
+                j = math.floor(i / step)
             color, result, result_modded = self._simulation_results[i]
             colpr("c", f"Index of array {j} {i}", end="\n")
             colpr("w", f"{name} circuit result: ")
             colpr("w", str(result))
-            colpr("c", "Comparing the output vector and measurements of both circuits ...", end="\n")
+            colpr(
+                "c",
+                "Comparing the output vector and measurements of both circuits ...",
+                end="\n",
+            )
             colpr(color, f"{name_modded} circuit result: ")
             colpr(color, str(result_modded), end="\n\n")

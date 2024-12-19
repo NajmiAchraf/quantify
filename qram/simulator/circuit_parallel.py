@@ -2,13 +2,12 @@ import multiprocessing
 import threading
 
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
-
 from utils.print_utils import loading_animation
-
 
 #######################################
 # QRAM Simulator Circuit Parallel
 #######################################
+
 
 class QRAMSimulatorCircuitParallel(QRAMSimulatorCircuitCore):
     """
@@ -28,7 +27,7 @@ class QRAMSimulatorCircuitParallel(QRAMSimulatorCircuitCore):
         """
 
         super().__init__(*args, **kwargs)
-        
+
         sim_range, step, message = self._circuit_configuration()
 
         self._begin_configurations()
@@ -45,13 +44,21 @@ class QRAMSimulatorCircuitParallel(QRAMSimulatorCircuitCore):
 
         if self._print_sim == "Loading":
             stop_event = threading.Event()
-            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, 'simulation',))
+            loading_thread = threading.Thread(
+                target=loading_animation,
+                args=(
+                    stop_event,
+                    "simulation",
+                ),
+            )
             loading_thread.start()
 
         # Use multiprocessing to parallelize the simulation ###################################
 
         try:
-            results: 'list[tuple[int, int, int]]' = self._parallel_execution(sim_range, step)
+            results: "list[tuple[int, int, int]]" = self._parallel_execution(
+                sim_range, step
+            )
 
         finally:
             if self._print_sim == "Loading":

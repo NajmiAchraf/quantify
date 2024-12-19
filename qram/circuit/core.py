@@ -1,7 +1,7 @@
 import concurrent.futures
+import sys
 import threading
 import time
-import sys
 from typing import Union
 
 import cirq
@@ -10,20 +10,19 @@ import qramcircuits.bucket_brigade as bb
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
 from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
-from utils.print_utils import colpr, loading_animation, elapsed_time
-from utils.types import type_print_circuit, type_print_sim, type_specific_simulation
 from utils.arg_parser import parser_args
-
+from utils.print_utils import colpr, elapsed_time, loading_animation
+from utils.types import type_print_circuit, type_print_sim, type_specific_simulation
 
 #######################################
 # QRAM Circuit Core
 #######################################
 
+
 class QRAMCircuitCore:
     """
     A class used to represent the QRAM circuit core.
-    
+
     Attributes:
         _hpc (bool): Flag indicating whether to use High Performance Computing (HPC) mode.
         _simulate (bool): Flag indicating whether to simulate Toffoli decompositions and circuit.
@@ -77,7 +76,6 @@ class QRAMCircuitCore:
     _simulated: bool = False
     _Simulator: QRAMCircuitSimulatorManager
 
-
     def __init__(self):
         """
         Constructor for the QRAMCircuitCore class.
@@ -120,7 +118,11 @@ class QRAMCircuitCore:
 
         if self._simulate:
 
-            sim_msg = "Simulate full circuit" if self._specific_simulation == "full" else f"Simulate specific measurement: {self._specific_simulation} qubits"
+            sim_msg = (
+                "Simulate full circuit"
+                if self._specific_simulation == "full"
+                else f"Simulate specific measurement: {self._specific_simulation} qubits"
+            )
             colpr("w", "Simulation type:", end=" ")
             colpr("r", sim_msg)
 
@@ -149,7 +151,9 @@ class QRAMCircuitCore:
             try:
                 import mpi4py
             except ImportError:
-                raise RuntimeError("`mpi4py` is not installed. Please install it to run the experiment in HPC mode, and it requires OpenMPI to be installed in the system.")
+                raise RuntimeError(
+                    "`mpi4py` is not installed. Please install it to run the experiment in HPC mode, and it requires OpenMPI to be installed in the system."
+                )
 
         # Simulate Toffoli decompositions and circuit
         self._simulate = args.simulate
@@ -171,10 +175,10 @@ class QRAMCircuitCore:
     #######################################
 
     def __bb_decompose(
-            self,
-            toffoli_decomp_type: Union['list[ToffoliDecompType]', ToffoliDecompType],
-            parallel_toffolis: bool,
-            reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE
+        self,
+        toffoli_decomp_type: Union["list[ToffoliDecompType]", ToffoliDecompType],
+        parallel_toffolis: bool,
+        reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE,
     ) -> bb.BucketBrigadeDecompType:
         """
         Decomposes the Toffoli gates in the bucket brigade circuit.
@@ -191,32 +195,31 @@ class QRAMCircuitCore:
         if isinstance(toffoli_decomp_type, list):
             return bb.BucketBrigadeDecompType(
                 toffoli_decomp_types=[
-                    toffoli_decomp_type[0],    # fan_in_decomp
-                    toffoli_decomp_type[1],    # mem_decomp
-                    toffoli_decomp_type[2]     # fan_out_decomp
+                    toffoli_decomp_type[0],  # fan_in_decomp
+                    toffoli_decomp_type[1],  # mem_decomp
+                    toffoli_decomp_type[2],  # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                reverse_moments=reverse_moments
+                reverse_moments=reverse_moments,
             )
         else:
             return bb.BucketBrigadeDecompType(
                 toffoli_decomp_types=[
-                    toffoli_decomp_type,    # fan_in_decomp
-                    toffoli_decomp_type,    # mem_decomp
-                    toffoli_decomp_type     # fan_out_decomp
+                    toffoli_decomp_type,  # fan_in_decomp
+                    toffoli_decomp_type,  # mem_decomp
+                    toffoli_decomp_type,  # fan_out_decomp
                 ],
                 parallel_toffolis=parallel_toffolis,
-                reverse_moments=reverse_moments
+                reverse_moments=reverse_moments,
             )
 
     def bb_decompose_test(
-            self,
-            dec: Union['list[ToffoliDecompType]', ToffoliDecompType],
-            parallel_toffolis: bool,
-
-            dec_mod: Union['list[ToffoliDecompType]', ToffoliDecompType],
-            parallel_toffolis_mod: bool,
-            reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE
+        self,
+        dec: Union["list[ToffoliDecompType]", ToffoliDecompType],
+        parallel_toffolis: bool,
+        dec_mod: Union["list[ToffoliDecompType]", ToffoliDecompType],
+        parallel_toffolis_mod: bool,
+        reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE,
     ) -> None:
         """
         Tests the bucket brigade circuit with different decomposition scenarios.
@@ -235,17 +238,13 @@ class QRAMCircuitCore:
         # ===============REFERENCE==============
 
         self._decomp_scenario = self.__bb_decompose(
-            dec, 
-            parallel_toffolis, 
-            reverse_moments
+            dec, parallel_toffolis, reverse_moments
         )
 
         # ================MODDED================
 
         self._decomp_scenario_modded = self.__bb_decompose(
-            dec_mod, 
-            parallel_toffolis_mod,
-            reverse_moments
+            dec_mod, parallel_toffolis_mod, reverse_moments
         )
 
         self._run()
@@ -254,7 +253,7 @@ class QRAMCircuitCore:
     # core functions
     #######################################
 
-    def _run(self, title: str="bucket brigade") -> None:
+    def _run(self, title: str = "bucket brigade") -> None:
         """
         Runs the experiment for a range of qubits.
         """
@@ -265,11 +264,17 @@ class QRAMCircuitCore:
 
         animate = False
         if title == "bilan" and not self._hpc:
-                animate = True
+            animate = True
 
         if animate:
             stop_event = threading.Event()
-            loading_thread = threading.Thread(target=loading_animation, args=(stop_event, title,))
+            loading_thread = threading.Thread(
+                target=loading_animation,
+                args=(
+                    stop_event,
+                    title,
+                ),
+            )
             loading_thread.start()
 
         try:
@@ -293,7 +298,7 @@ class QRAMCircuitCore:
         if nr_qubits > 3 and self._print_sim == "Full":
             self._print_sim = "Dot"
 
-        qubits: 'list[cirq.NamedQubit]' = []
+        qubits: "list[cirq.NamedQubit]" = []
 
         qubits.clear()
         for i in range(nr_qubits):
@@ -303,7 +308,9 @@ class QRAMCircuitCore:
             self._bbcircuit = bb.BucketBrigade(qubits, self._decomp_scenario)
 
         def _create_bbcircuit_modded():
-            self._bbcircuit_modded = bb.BucketBrigade(qubits, self._decomp_scenario_modded)
+            self._bbcircuit_modded = bb.BucketBrigade(
+                qubits, self._decomp_scenario_modded
+            )
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.submit(_create_bbcircuit)

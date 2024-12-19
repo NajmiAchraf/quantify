@@ -1,16 +1,16 @@
 import os
+
 import psutil
 
 from qram.circuit.core import QRAMCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
 from utils.counting_utils import *
 from utils.print_utils import *
-
 
 #######################################
 # QRAM Circuit Bilan
 #######################################
+
 
 class QRAMCircuitBilan(QRAMCircuitCore):
     """
@@ -82,7 +82,7 @@ class QRAMCircuitBilan(QRAMCircuitCore):
                 circuit_depth,
                 t_depth,
                 t_count,
-                hadamard_count
+                hadamard_count,
             ]
 
         num_qubits = len(self._bbcircuit_modded.circuit.all_qubits())
@@ -94,7 +94,7 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
         rss = format_bytes(process.memory_info().rss)
         vms = format_bytes(process.memory_info().vms)
-        
+
         self._data_modded[nr_qubits] = [
             nr_qubits,
             num_qubits,
@@ -104,7 +104,7 @@ class QRAMCircuitBilan(QRAMCircuitCore):
             hadamard_count,
             self._stop_time,
             rss,
-            vms
+            vms,
         ]
 
     def __print_bilan(self) -> None:
@@ -149,14 +149,17 @@ class QRAMCircuitBilan(QRAMCircuitCore):
         # Comparing bilans
         if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
 
-            def calculate(i: int, j: int) -> 'tuple[str, str]':
+            def calculate(i: int, j: int) -> "tuple[str, str]":
                 modded_percent = (self._data_modded[i][j] / self._data[i][j]) * 100
-                modded_percent_str = format(modded_percent, ',.2f')
+                modded_percent_str = format(modded_percent, ",.2f")
                 modded = str(self._data_modded[i][j]) + f"  ( {modded_percent_str} )"
 
                 cancelled_percent = 100.0 - modded_percent
-                cancelled_percent_str = format(cancelled_percent, ',.2f')
-                cancelled = str(self._data[i][j] - self._data_modded[i][j]) + f"  ( {cancelled_percent_str} )"
+                cancelled_percent_str = format(cancelled_percent, ",.2f")
+                cancelled = (
+                    str(self._data[i][j] - self._data_modded[i][j])
+                    + f"  ( {cancelled_percent_str} )"
+                )
 
                 return modded, cancelled
 

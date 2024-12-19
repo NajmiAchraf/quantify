@@ -4,12 +4,12 @@ from qram.simulator.circuit_parallel import QRAMSimulatorCircuitParallel
 from qram.simulator.circuit_sequential import QRAMSimulatorCircuitSequential
 from qram.simulator.decomposition import QRAMSimulatorDecompositions
 
-
 #######################################
 # QRAM Circuit Simulator Manager
 #######################################
 
-class QRAMCircuitSimulatorManager():
+
+class QRAMCircuitSimulatorManager:
     """
     The QRAMCircuitSimulatorManager class to manage the QRAM circuit simulation.
 
@@ -19,7 +19,7 @@ class QRAMCircuitSimulatorManager():
         _run_simulation(is_stress: bool = False): Runs the simulation.
     """
 
-    _simulator: 'QRAMSimulatorBase'
+    _simulator: "QRAMSimulatorBase"
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -33,7 +33,7 @@ class QRAMCircuitSimulatorManager():
         self.args = args
         self.kwargs = kwargs
 
-    def get_simulation_bilan(self) -> 'list[str]':
+    def get_simulation_bilan(self) -> "list[str]":
         return self._simulator.get_simulation_bilan()
 
     def _run_simulation(self, is_stress: bool = False) -> None:
@@ -50,9 +50,15 @@ class QRAMCircuitSimulatorManager():
             QRAMSimulatorDecompositions(*self.args, **self.kwargs)
 
         if self.kwargs.get("hpc"):
-            self._simulator = QRAMSimulatorCircuitHPC(is_stress, *self.args, **self.kwargs)
+            self._simulator = QRAMSimulatorCircuitHPC(
+                is_stress, *self.args, **self.kwargs
+            )
         elif not self.kwargs.get("hpc"):
             if self.kwargs.get("specific_simulation") != "full":
-                self._simulator = QRAMSimulatorCircuitSequential(is_stress, *self.args, **self.kwargs)
+                self._simulator = QRAMSimulatorCircuitSequential(
+                    is_stress, *self.args, **self.kwargs
+                )
             else:
-                self._simulator = QRAMSimulatorCircuitParallel(is_stress, *self.args, **self.kwargs)
+                self._simulator = QRAMSimulatorCircuitParallel(
+                    is_stress, *self.args, **self.kwargs
+                )

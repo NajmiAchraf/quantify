@@ -1,18 +1,16 @@
-import cirq
-import time
-
-from functools import partial
 import multiprocessing
+import time
+from functools import partial
+
+import cirq
 
 import qramcircuits.bucket_brigade as bb
-
 from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
+from utils.print_utils import colpr, printCircuit, printRange
 
-from utils.print_utils import colpr, printRange, printCircuit
 
-
-def generate_qram_patterns(qubits_number: int) -> 'list[int]':
+def generate_qram_patterns(qubits_number: int) -> "list[int]":
     """2
     00 1000 0001 0 -> 258 : start
     01 0100 0010 0 -> 644
@@ -32,14 +30,14 @@ def generate_qram_patterns(qubits_number: int) -> 'list[int]':
     """
 
     lines = []
-    num_ids = 2 ** qubits_number
-    control_length = 2 ** qubits_number
+    num_ids = 2**qubits_number
+    control_length = 2**qubits_number
     # Generate active lines
     for i in range(num_ids):
-        address = format(i, f'0{qubits_number}b')
-        bytes = format(1 << (control_length - 1 - i), f'0{control_length}b')
-        memory = format(1 << i, f'0{control_length}b')
-        target = '0'
+        address = format(i, f"0{qubits_number}b")
+        bytes = format(1 << (control_length - 1 - i), f"0{control_length}b")
+        memory = format(1 << i, f"0{control_length}b")
+        target = "0"
         decimal_value = int(f"{address}{bytes}{memory}{target}", 2)
         lines.append(decimal_value)
     return lines
@@ -49,6 +47,7 @@ def generate_qram_patterns(qubits_number: int) -> 'list[int]':
 # QRAM Simulator Circuit Core
 #######################################
 
+
 class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     """
     The QRAMSimulatorCircuitCore class to simulate the bucket brigade circuit.
@@ -56,6 +55,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     Methods:
         _parallel_execution(sim_range, step): Simulates the circuit using multiprocessing.
         _sequential_execution(sim_range, step): Simulates the circuit sequentially.
+        _message(message): Prints the simulation message.
         _circuit_configuration(): Unified simulation function for all qubit types.
         _add_measurements(bbcircuit): Adds measurements to the circuit and returns the initial state.
         _simulation_manager(): Manages the simulation.
@@ -84,7 +84,9 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     # Execution methods
     #######################################
 
-    def _parallel_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+    def _parallel_execution(
+        self, sim_range: "list[int]", step: int
+    ) -> "list[tuple[int, int, int]]":
         """
         Simulates the circuit using multiprocessing.
 
@@ -95,7 +97,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        results: 'list[tuple[int, int, int]]' = []
+        results: "list[tuple[int, int, int]]" = []
 
         with multiprocessing.Pool() as pool:
             results = pool.map(
@@ -105,12 +107,16 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                     circuit=self._bbcircuit.circuit,
                     circuit_modded=self._bbcircuit_modded.circuit,
                     qubit_order=self._bbcircuit.qubit_order,
-                    qubit_order_modded=self._bbcircuit_modded.qubit_order),
-                sim_range)
+                    qubit_order_modded=self._bbcircuit_modded.qubit_order,
+                ),
+                sim_range,
+            )
 
         return results
 
-    def _sequential_execution(self, sim_range: 'list[int]', step: int) -> 'list[tuple[int, int, int]]':
+    def _sequential_execution(
+        self, sim_range: "list[int]", step: int
+    ) -> "list[tuple[int, int, int]]":
         """
         Simulates the circuit sequentially.
 
@@ -121,16 +127,19 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         # simulation is not parallelized ######################################################
 
-        results: 'list[tuple[int, int, int]]' = []
+        results: "list[tuple[int, int, int]]" = []
 
         for i in sim_range:
-            results.append(self._worker(
+            results.append(
+                self._worker(
                     i=i,
                     step=step,
                     circuit=self._bbcircuit.circuit,
                     circuit_modded=self._bbcircuit_modded.circuit,
                     qubit_order=self._bbcircuit.qubit_order,
-                    qubit_order_modded=self._bbcircuit_modded.qubit_order))
+                    qubit_order_modded=self._bbcircuit_modded.qubit_order,
+                )
+            )
 
         return results
 
@@ -138,7 +147,17 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     # Configuration methods
     #######################################
 
-    def _circuit_configuration(self) -> 'tuple[list[int], int, str]':
+    def _message(self, message: str) -> str:
+        """
+        Prints the simulation message.
+
+        Args:
+            message (str): The message to print.
+        """
+
+        return "<" + "=" * 20 + " " + message + " " + "=" * 20 + ">\n"
+
+    def _circuit_configuration(self) -> "tuple[list[int], int, str]":
         """
         Unified simulation function for all qubit types.
         """
@@ -147,59 +166,78 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         simulation_configs = {
             "a": {
-                "step": 2 ** (2 * (2 ** self._qubits_number) + 1),
-                "step_multiplier": 2 ** (2 * (2 ** self._qubits_number) + 1),
-                "stop_multiplier": 2 ** self._qubits_number,
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the addressing of the a qubits " + "="*20 + ">\n"
+                "step": 2 ** (2 * (2**self._qubits_number) + 1),
+                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
+                "stop_multiplier": 2**self._qubits_number,
+                "message": self._message(
+                    "Simulating the circuit ... Checking the addressing of the a qubits"
+                ),
             },
             "b": {
-                "step": 2 ** (2 ** self._qubits_number + 1),
-                "step_multiplier": 2 ** (2 ** self._qubits_number + 1),
-                "stop_multiplier": 2 ** (2 ** self._qubits_number),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state " + "="*20 + ">\n"
+                "step": 2 ** (2**self._qubits_number + 1),
+                "step_multiplier": 2 ** (2**self._qubits_number + 1),
+                "stop_multiplier": 2 ** (2**self._qubits_number),
+                "message": self._message(
+                    "Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state"
+                ),
             },
             "m": {
                 "step": 2,
                 "step_multiplier": 2,
-                "stop_multiplier": 2 ** (2 ** self._qubits_number),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation " + "="*20 + ">\n"
+                "stop_multiplier": 2 ** (2**self._qubits_number),
+                "message": self._message(
+                    "Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation"
+                ),
             },
             "ab": {
-                "step": 2 ** (2 ** self._qubits_number + 1),
-                "step_multiplier": 2 ** (2 * (2 ** self._qubits_number ) + 1),
-                "stop_multiplier": 2 ** self._qubits_number,
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits " + "="*20 + ">\n"
+                "step": 2 ** (2**self._qubits_number + 1),
+                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
+                "stop_multiplier": 2**self._qubits_number,
+                "message": self._message(
+                    "Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits"
+                ),
             },
             "bm": {
                 "step": 2,
-                "step_multiplier": 2 ** (2 ** self._qubits_number + 1),
-                "stop_multiplier": 2 ** (2 ** self._qubits_number),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits " + "="*20 + ">\n"
+                "step_multiplier": 2 ** (2**self._qubits_number + 1),
+                "stop_multiplier": 2 ** (2**self._qubits_number),
+                "message": self._message(
+                    "Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits"
+                ),
             },
             "abm": {
                 "step": 2,
-                "step_multiplier": 2 ** (2 * (2 ** self._qubits_number ) + 1),
-                "stop_multiplier": 2 ** (2 ** self._qubits_number),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits " + "="*20 + ">\n"
+                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
+                "stop_multiplier": 2 ** (2**self._qubits_number),
+                "message": self._message(
+                    "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits"
+                ),
             },
             "t": {
                 "step": 2,
-                "step_multiplier": 2 ** (2 * (2 ** self._qubits_number ) + 1),
-                "stop_multiplier": 2 ** (2 ** self._qubits_number),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit " + "="*20 + ">\n"
+                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
+                "stop_multiplier": 2 ** (2**self._qubits_number),
+                "message": self._message(
+                    "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit"
+                ),
             },
             "full": {
                 "step": 1,
                 "step_multiplier": 1,
-                "stop_multiplier": 2 ** (2 * (2 ** self._qubits_number) + self._qubits_number + 1),
-                "message": "<" + "="*20 + " Simulating the circuit ... Checking all qubits " + "="*20 + ">\n"
+                "stop_multiplier": 2
+                ** (2 * (2**self._qubits_number) + self._qubits_number + 1),
+                "message": self._message(
+                    "Simulating the circuit ... Checking all qubits"
+                ),
             },
             "qram": {
                 "step": 1,
                 "step_multiplier": None,
                 "stop_multiplier": None,
-                "message": "Simulating the circuit ... Checking the QRAM logic and measure only the target qubit ..."
-            }
+                "message": self._message(
+                    "Simulating the circuit ... Checking the QRAM logic and measure all qubits"
+                ),
+            },
         }
 
         config = simulation_configs.get(self._specific_simulation)
@@ -209,7 +247,9 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
         start = 0
         step = config["step"]
         if self._specific_simulation != "qram":
-            stop = (config.get("step_multiplier", 1)) * (config.get("stop_multiplier", 1))
+            stop = (config.get("step_multiplier", 1)) * (
+                config.get("stop_multiplier", 1)
+            )
             sim_range = list(range(start, stop, step))
         else:
             sim_range = generate_qram_patterns(self._qubits_number)
@@ -234,7 +274,9 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                         measurements.append(cirq.measure(qubit))
 
         bbcircuit.circuit.append(measurements)
-        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(bbcircuit.circuit)
+        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(
+            bbcircuit.circuit
+        )
 
     def _begin_configurations(self) -> None:
         """
@@ -254,7 +296,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         self._add_measurements(self._bbcircuit_modded)
 
-    def _prints(self, sim_range: 'list[int]', step: int, message: str) -> None:
+    def _prints(self, sim_range: "list[int]", step: int, message: str) -> None:
         """
         Prints the simulation configuration and circuit details.
 
@@ -266,14 +308,33 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         if not self._is_stress and not self._hpc:
 
-            name = "bucket brigade" if self._decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+            name = (
+                "bucket brigade"
+                if self._decomp_scenario.get_decomp_types()[0]
+                == ToffoliDecompType.NO_DECOMP
+                else "reference"
+            )
 
-            colpr("y", '\n', message, end="\n\n")
+            colpr("y", "\n", message, end="\n\n")
 
-            printCircuit(self._print_circuit, self._bbcircuit.circuit, self._bbcircuit.qubit_order, name)
+            printCircuit(
+                self._print_circuit,
+                self._bbcircuit.circuit,
+                self._bbcircuit.qubit_order,
+                name,
+            )
 
-            printCircuit(self._print_circuit, self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order, "modded")
+            printCircuit(
+                self._print_circuit,
+                self._bbcircuit_modded.circuit,
+                self._bbcircuit_modded.qubit_order,
+                "modded",
+            )
 
             printRange(sim_range[0], sim_range[-1], step)
 
-            colpr("c", f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...", end="\n\n")
+            colpr(
+                "c",
+                f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...",
+                end="\n\n",
+            )

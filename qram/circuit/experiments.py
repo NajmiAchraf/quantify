@@ -1,19 +1,18 @@
 import os
+
 import psutil
 
 import qramcircuits.bucket_brigade as bb
-
 from qram.circuit.core import QRAMCircuitCore
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
 from utils.counting_utils import *
 from utils.print_utils import *
-
 
 #######################################
 # QRAM Circuit Experiments
 #######################################
+
 
 class QRAMCircuitExperiments(QRAMCircuitCore):
     """
@@ -59,7 +58,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             print_circuit=self._print_circuit,
             print_sim=self._print_sim,
             hpc=self._hpc,
-            shots=self._shots
+            shots=self._shots,
         )
 
         if not self._simulate:
@@ -93,31 +92,38 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
                 self._start_range_qubits,
                 self._stop_time,
                 format_bytes(process.memory_info().rss),
-                format_bytes(process.memory_info().vms)),
-            end="\n\n")
+                format_bytes(process.memory_info().vms),
+            ),
+            end="\n\n",
+        )
 
-        name = "bucket brigade" if self._decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP else "reference"
+        name = (
+            "bucket brigade"
+            if self._decomp_scenario.get_decomp_types()[0]
+            == ToffoliDecompType.NO_DECOMP
+            else "reference"
+        )
         for decirc in [
-            [self._decomp_scenario, self._bbcircuit, name], 
-            [self._decomp_scenario_modded, self._bbcircuit_modded, "modded"]
+            [self._decomp_scenario, self._bbcircuit, name],
+            [self._decomp_scenario_modded, self._bbcircuit_modded, "modded"],
         ]:
             colpr("y", f"Decomposition scenario of {decirc[2]} circuit:", end="\n\n")
             print(
                 "\t• fan_in_decomp: \t{}\n"
                 "\t• mem_decomp:    \t{}\n"
                 "\t• fan_out_decomp:\t{}\n\n".format(
-                    decirc[0].dec_fan_in,
-                    decirc[0].dec_mem,
-                    decirc[0].dec_fan_out
-                ))
+                    decirc[0].dec_fan_in, decirc[0].dec_mem, decirc[0].dec_fan_out
+                )
+            )
 
             colpr("y", f"Optimization methods of {decirc[2]} circuit:", end="\n\n")
             print(
                 "\t• parallel_toffolis:\t{}\n"
                 "\t• reverse_moments:  \t{}\n\n".format(
                     "YES !!" if decirc[0].parallel_toffolis else "NO !!",
-                    decirc[0].reverse_moments
-                ))
+                    decirc[0].reverse_moments,
+                )
+            )
 
             # for decomposition_type in self._Simulator._fan_in_mem_out(decirc[0]):
             #     if decomposition_type == ToffoliDecompType.NO_DECOMP:
@@ -126,13 +132,15 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             #     printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
 
             self.__verify_circuit_depth_count(decirc[0], decirc[1], decirc[2])
-            printCircuit(self._print_circuit, decirc[1].circuit, decirc[1].qubit_order, decirc[2])
+            printCircuit(
+                self._print_circuit, decirc[1].circuit, decirc[1].qubit_order, decirc[2]
+            )
 
     def __verify_circuit_depth_count(
-            self, 
-            decomp_scenario: bb.BucketBrigadeDecompType,
-            bbcircuit: bb.BucketBrigade, 
-            name: str
+        self,
+        decomp_scenario: bb.BucketBrigadeDecompType,
+        bbcircuit: bb.BucketBrigade,
+        name: str,
     ) -> None:
         """
         Verifies the depth and count of the circuit.
@@ -155,12 +163,23 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         circuit_depth = len(bbcircuit.circuit)
 
         if decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP:
-            data.append([self._start_range_qubits, num_qubits, circuit_depth, '-', '-', '-'])
+            data.append(
+                [self._start_range_qubits, num_qubits, circuit_depth, "-", "-", "-"]
+            )
         else:
             t_depth = count_t_depth_of_circuit(bbcircuit.circuit)
             t_count = count_t_of_circuit(bbcircuit.circuit)
             hadamard_count = count_h_of_circuit(bbcircuit.circuit)
-            data.append([self._start_range_qubits, num_qubits, circuit_depth, t_depth, t_count, hadamard_count])
+            data.append(
+                [
+                    self._start_range_qubits,
+                    num_qubits,
+                    circuit_depth,
+                    t_depth,
+                    t_count,
+                    hadamard_count,
+                ]
+            )
 
         # Create the Markdown table
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
@@ -175,7 +194,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
     # simulate circuit method
     #######################################
 
-    def _simulate_circuit(self, is_stress: bool=False) -> None:
+    def _simulate_circuit(self, is_stress: bool = False) -> None:
         """
         Simulates the circuit.
         """

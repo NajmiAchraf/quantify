@@ -1,9 +1,9 @@
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 
-
 #######################################
 # QRAM Simulator Circuit Sequential
 #######################################
+
 
 class QRAMSimulatorCircuitSequential(QRAMSimulatorCircuitCore):
     """
@@ -36,6 +36,8 @@ class QRAMSimulatorCircuitSequential(QRAMSimulatorCircuitCore):
 
         # simulation is not parallelized ######################################################
 
-        results: 'list[tuple[int, int, int]]' = self._sequential_execution(sim_range, step)
+        results: "list[tuple[int, int, int]]" = self._sequential_execution(
+            sim_range, step
+        )
 
         self._print_simulation_results(results, sim_range, step)
