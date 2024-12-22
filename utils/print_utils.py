@@ -1,22 +1,21 @@
-import cirq
-import cirq.optimizers
+import base64
+import threading
 import time
 from datetime import timedelta
 
-import base64
-
-import threading
-
-from IPython.display import  display, HTML
+import cirq
+import cirq.optimizers
 from cirq.contrib.svg import SVGCircuit, circuit_to_svg
-from utils.counting_utils import *
+from IPython.display import HTML, display
 
+from utils.counting_utils import *
 
 #######################################
 # static methods
 #######################################
 
-def colpr(color: str, *args: str, end: str="\n") -> None:
+
+def colpr(color: str, *args: str, end: str = "\n") -> None:
     """
     Prints colored text.
 
@@ -40,7 +39,7 @@ def colpr(color: str, *args: str, end: str="\n") -> None:
         "m": "\033[95m",
         "k": "\033[90m",
         "d": "\033[2m",
-        "u": "\033[4m"
+        "u": "\033[4m",
     }
     print(colors[color] + "".join(args) + "\033[0m", flush=True, end=end)
 
@@ -79,6 +78,22 @@ def elapsed_time(start: float) -> str:
         return f"{milliseconds}ms"
 
 
+def format_bytes(num_bytes):
+    """
+    Convert bytes to a human-readable format using SI units.
+
+    Args:
+        num_bytes (int): The number of bytes.
+
+    Returns:
+        str: The human-readable format.
+    """
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if num_bytes < 1024:
+            return f"{num_bytes:.2f} {unit}"
+        num_bytes /= 1024
+
+
 def loading_animation(stop_event: threading.Event, title: str) -> None:
     animation = "|/-\\"
     idx = 0
@@ -90,24 +105,21 @@ def loading_animation(stop_event: threading.Event, title: str) -> None:
     colpr("y", f"Loading {title} done")
 
 
-def format_bytes(num_bytes):
+def message(message: str) -> str:
     """
-    Convert bytes to a human-readable format using SI units.
+    Prints the simulation message.
 
     Args:
-        num_bytes (int): The number of bytes.
-
-    Returns:
-        str: The human-readable format.
+        message (str): The message to print.
     """
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if num_bytes < 1024:
-            return f"{num_bytes:.2f} {unit}"
-        num_bytes /= 1024
+
+    return "<" + "=" * 20 + " " + message + " " + "=" * 20 + ">\n"
+
 
 _html_template = '<img width="{}" style="background-color:white;" src="data:image/svg+xml;base64,{}" >'
 
-def display_rescaled_svg(tdd: 'cirq.TextDiagramDrawer') -> None:
+
+def display_rescaled_svg(tdd: "cirq.TextDiagramDrawer") -> None:
     """
     Display the circuit as a rescaled SVG.
 
@@ -118,19 +130,22 @@ def display_rescaled_svg(tdd: 'cirq.TextDiagramDrawer') -> None:
     try:
         from cirq.contrib.svg import tdd_to_svg
     except ImportError:
-        raise ImportError("Please modify manually the cirq/contrib/svg/__init__.py by add the import tdd_to_svg")
+        raise ImportError(
+            "Please modify manually the cirq/contrib/svg/__init__.py by add the import tdd_to_svg"
+        )
     svg = tdd_to_svg(tdd)
     # Encode the SVG data to base64
-    svg_base64 = base64.b64encode(svg.encode('utf-8')).decode('utf-8')
+    svg_base64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
     # Display the SVG with a fixed width to avoid horizontal scrolling
     html = _html_template.format("100%", svg_base64)
     display(HTML(html))
 
+
 def printCircuit(
-        print_circuit: str,
-        circuit: cirq.Circuit,
-        qubits: 'list[cirq.NamedQubit]',
-        name: str = "bucket brigade"
+    print_circuit: str,
+    circuit: cirq.Circuit,
+    qubits: "list[cirq.NamedQubit]",
+    name: str = "bucket brigade",
 ) -> None:
     """
     Prints the circuit.
@@ -145,13 +160,13 @@ def printCircuit(
         # Print the circuit
         start = time.time()
 
-        colpr("c", f"Print {name} circuit:" , end="\n\n")
+        colpr("c", f"Print {name} circuit:", end="\n\n")
         print(
             circuit.to_text_diagram(
                 # use_unicode_characters=False,
                 qubit_order=qubits
             ),
-            end="\n\n"
+            end="\n\n",
         )
 
         stop = elapsed_time(start)
@@ -162,15 +177,12 @@ def printCircuit(
         # Display the circuit
         start = time.time()
 
-        colpr("c", f"Display {name} circuit:" , end="\n\n")
+        colpr("c", f"Display {name} circuit:", end="\n\n")
 
         if "ToffoliDecompType" in name:
             display(SVGCircuit(circuit))
         else:
-            tdd = circuit.to_text_diagram_drawer(
-                transpose=False,
-                qubit_order=qubits
-            )
+            tdd = circuit.to_text_diagram_drawer(transpose=False, qubit_order=qubits)
             display_rescaled_svg(tdd)
 
         stop = elapsed_time(start)
@@ -180,6 +192,7 @@ def printCircuit(
     # # Save the circuit as an SVG file
     # with open(f"images/{self.__start_range_qubits}_{name}_circuit.svg", "w") as f:
     #     f.write(sv.circuit_to_svg(circuit))
+
 
 def printRange(start: int, stop: int, step: int) -> None:
     """

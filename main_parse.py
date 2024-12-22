@@ -2,16 +2,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import sys
+import matplotlib
 
+matplotlib.use('TkAgg')
+
+if len(sys.argv) < 2:
+    print("Usage: python parse.py <file_path>")
+    sys.exit(1)
 # Step 1: Read the data from the file
-file_path = 'stress_bilan_1560.txt'
-data = pd.read_csv(file_path, delimiter='|', skiprows=1)  # Adjust delimiter and skip the first row
+file_path = sys.argv[1]  # Get the file path from the command line
+data = pd.read_csv(file_path, delimiter=',')  # Adjust delimiter and skip the first row
 
 # Step 2: Parse the data to extract T index, T indey, and categories
 # Assuming the columns are named 'T_index', 'T_indey', and 'category'
-t_index = data[data.columns[1]]
-t_indey = data[data.columns[2]]
-categories = data[data.columns[3]]
+t_index = data[data.columns[0]]
+t_indey = data[data.columns[1]]
+categories = data[data.columns[4]]
 
 # Step 3: Initialize dictionaries for each category
 failed_dict = {}
@@ -65,6 +72,6 @@ def plot3D(data, title, color):
     plt.show()
 
 # Example usage
-plot3D(failed_df, 'Failed', 'red')
+# plot3D(failed_df, 'Failed', 'red')
 # plot3D(failed_df, 'Succeed', 'yellow')
-# plot3D(failed_df, 'Measurement', 'blue')
+plot3D(failed_df, 'Measurement', 'blue')

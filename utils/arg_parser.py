@@ -1,7 +1,7 @@
 import argparse
 from typing import Tuple
-from utils.types import type_qram
 
+from utils.types import type_qram
 
 # Help messages
 MSG0 = "Qubit range must start at least from 2 and the end range must be greater than or equal to the start range, for example 2-5 (start-end) or 2 (single start)"
@@ -49,8 +49,10 @@ def parse_print_circuit(value: str) -> str:
     Parse the print circuit option.
     """
 
-    if value not in ['p', 'd', 'h']:
-        raise argparse.ArgumentTypeError("The print circuit option should be one of (p, d, h).")
+    if value not in ["p", "d", "h"]:
+        raise argparse.ArgumentTypeError(
+            "The print circuit option should be one of (p, d, h)."
+        )
 
     circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
     return circuit_options[value]
@@ -61,10 +63,12 @@ def parse_print_simulation(value: str) -> str:
     Parse the print simulation option.
     """
 
-    if value not in ['f', 'd', 'l', 'h']:
-        raise argparse.ArgumentTypeError("The print simulation option should be one of (f, d, l, h).")
+    if value not in ["f", "d", "l", "h"]:
+        raise argparse.ArgumentTypeError(
+            "The print simulation option should be one of (f, d, l, h)."
+        )
 
-    simulation_options = {"d": "Dot", "f": "Full", 'l': "Loading", "h": "Hide"}
+    simulation_options = {"d": "Dot", "f": "Full", "l": "Loading", "h": "Hide"}
     return simulation_options[value]
 
 
@@ -74,8 +78,8 @@ def parse_qubit_range(value: str) -> Tuple[int, int]:
     The string can be a single integer or a range in the form 'start-end'.
     """
 
-    if '-' in value:
-        start, end = map(int, value.split('-'))
+    if "-" in value:
+        start, end = map(int, value.split("-"))
     else:
         start = end = int(value)
 
@@ -92,7 +96,9 @@ def parse_shots(value: str) -> int:
 
     shots: int = int(value)
     if shots < 10:
-        raise argparse.ArgumentTypeError("The number of shots should be greater than 10.")
+        raise argparse.ArgumentTypeError(
+            "The number of shots should be greater than 10."
+        )
     return shots
 
 
@@ -107,24 +113,85 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         argparse.ArgumentParser: The argument parser with the defined arguments.
     """
 
-    parser = argparse.ArgumentParser(description=f"QRAM {qram_type.capitalize()} Arguments")
+    parser = argparse.ArgumentParser(
+        description=f"QRAM {qram_type.capitalize()} Arguments"
+    )
 
-    parser.add_argument('--qubit-range', type=parse_qubit_range, nargs='?', default=(2, 2), help=f"{MSG0}, by default it is 2.")
+    parser.add_argument(
+        "--qubit-range",
+        type=parse_qubit_range,
+        nargs="?",
+        default=(2, 2),
+        help=f"{MSG0}, by default it is 2.",
+    )
 
     if qram_type == "experiments" or qram_type == "stress":
-        parser.add_argument("--t-count", type=parse_t_count, nargs='?', default=7, required=True, help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.")
+        parser.add_argument(
+            "--t-count",
+            type=parse_t_count,
+            nargs="?",
+            default=7,
+            required=True,
+            help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
+        )
     elif qram_type == "bilan":
-        parser.add_argument("--t-count", type=parse_t_count_bilan, nargs='?', default=6, required=True, help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.")
+        parser.add_argument(
+            "--t-count",
+            type=parse_t_count_bilan,
+            nargs="?",
+            default=6,
+            required=True,
+            help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.",
+        )
 
     if qram_type == "stress":
-        parser.add_argument("--t-cancel", type=parse_t_cancel, nargs='?', default=1, help="The T cancel for the combinations it should be greater than 0, by default it is 1.")
+        parser.add_argument(
+            "--t-cancel",
+            type=parse_t_cancel,
+            nargs="?",
+            default=1,
+            help="The T cancel for the combinations it should be greater than 0, by default it is 1.",
+        )
 
     if qram_type != "bilan":
-        parser.add_argument('--shots', type=parse_shots, nargs='?', default=50, help="The number of shots for the simulation, except for specific 'full' simulation case, by default it is 50.")
-        parser.add_argument('--hpc', action='store_true', help="Run the experiment on HPC, need `OpenMPI` and `mpi4py` installed.")
-        parser.add_argument('--simulate', action='store_true', help="Simulate Toffoli decompositions and QRAM circuits.")
-        parser.add_argument('--print-circuit', type=parse_print_circuit, nargs='?', default="h", help="(p) print or (d) display or (h) hide circuits, by default it is hide")
-        parser.add_argument('--print-simulation', type=parse_print_simulation, nargs='?', default="h", help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.")
-        parser.add_argument('--specific', type=str, choices=['a', 'b', 'm', 'ab', 'bm', 'abm', 't', 'qram', 'full'], nargs='?', default="qram", help=MSG1)
+        parser.add_argument(
+            "--shots",
+            type=parse_shots,
+            nargs="?",
+            default=50,
+            help="The number of shots for the simulation, except for specific 'full' simulation case, by default it is 50.",
+        )
+        parser.add_argument(
+            "--hpc",
+            action="store_true",
+            help="Run the experiment on HPC, need `OpenMPI` and `mpi4py` installed.",
+        )
+        parser.add_argument(
+            "--simulate",
+            action="store_true",
+            help="Simulate Toffoli decompositions and QRAM circuits.",
+        )
+        parser.add_argument(
+            "--print-circuit",
+            type=parse_print_circuit,
+            nargs="?",
+            default="h",
+            help="(p) print or (d) display or (h) hide circuits, by default it is hide",
+        )
+        parser.add_argument(
+            "--print-simulation",
+            type=parse_print_simulation,
+            nargs="?",
+            default="h",
+            help="Print (f) full simulation, (d) just dots, (l) loading or (h) hide the simulation, by default it is hide.",
+        )
+        parser.add_argument(
+            "--specific",
+            type=str,
+            choices=["a", "b", "m", "ab", "bm", "abm", "t", "qram", "full"],
+            nargs="?",
+            default="qram",
+            help=MSG1,
+        )
 
     return parser

@@ -246,7 +246,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         if self._simulate:
             self._stress_bilan[",".join(map(str, indices))] = (
-                self._Simulator.get_simulation_bilan()
+                self._simulator_manager.get_simulation_bilan()
             )
 
         elapsed = elapsed_time(start)

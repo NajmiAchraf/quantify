@@ -5,6 +5,7 @@ import psutil
 import qramcircuits.bucket_brigade as bb
 from qram.circuit.core import QRAMCircuitCore
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
+from qram.simulator.decomposition import create_decomposition_circuit, fan_in_mem_out
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.counting_utils import *
 from utils.print_utils import *
@@ -49,17 +50,6 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         """
         Prints the results of the experiment.
         """
-
-        self._Simulator = QRAMCircuitSimulatorManager(
-            bbcircuit=self._bbcircuit,
-            bbcircuit_modded=self._bbcircuit_modded,
-            specific_simulation=self._specific_simulation,
-            qubits_number=self._start_range_qubits,
-            print_circuit=self._print_circuit,
-            print_sim=self._print_sim,
-            hpc=self._hpc,
-            shots=self._shots,
-        )
 
         if not self._simulate:
             self.__essential_checks()
@@ -125,11 +115,11 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
                 )
             )
 
-            # for decomposition_type in self._Simulator._fan_in_mem_out(decirc[0]):
-            #     if decomposition_type == ToffoliDecompType.NO_DECOMP:
-            #         continue
-            #     circuit, qubits = self._Simulator._create_decomposition_circuit(decomposition_type)
-            #     printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
+            for decomposition_type in fan_in_mem_out(decirc[0]):
+                if decomposition_type == ToffoliDecompType.NO_DECOMP:
+                    continue
+                circuit, qubits = create_decomposition_circuit(decomposition_type)
+                printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
 
             self.__verify_circuit_depth_count(decirc[0], decirc[1], decirc[2])
             printCircuit(
@@ -149,9 +139,6 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
             bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
             name (str): The name of the circuit.
-
-        Returns:
-            None
         """
 
         # Collect data for multiple qubit configurations
@@ -197,10 +184,13 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
     def _simulate_circuit(self, is_stress: bool = False) -> None:
         """
         Simulates the circuit.
+
+        Args:
+            is_stress (bool, optional): Whether the simulation is a stress test. Defaults to False.
         """
 
         if self._simulated:
             return
         self._simulated = True
 
-        self._Simulator._run_simulation(is_stress=is_stress)
+        self._simulator_manager._run_simulation(is_stress=is_stress)

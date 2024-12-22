@@ -7,7 +7,7 @@ import cirq
 import qramcircuits.bucket_brigade as bb
 from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-from utils.print_utils import colpr, printCircuit, printRange
+from utils.print_utils import colpr, message, printCircuit, printRange
 
 
 def generate_qram_patterns(qubits_number: int) -> "list[int]":
@@ -147,16 +147,6 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
     # Configuration methods
     #######################################
 
-    def _message(self, message: str) -> str:
-        """
-        Prints the simulation message.
-
-        Args:
-            message (str): The message to print.
-        """
-
-        return "<" + "=" * 20 + " " + message + " " + "=" * 20 + ">\n"
-
     def _circuit_configuration(self) -> "tuple[list[int], int, str]":
         """
         Unified simulation function for all qubit types.
@@ -169,7 +159,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2 ** (2 * (2**self._qubits_number) + 1),
                 "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
                 "stop_multiplier": 2**self._qubits_number,
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the addressing of the a qubits"
                 ),
             },
@@ -177,7 +167,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2 ** (2**self._qubits_number + 1),
                 "step_multiplier": 2 ** (2**self._qubits_number + 1),
                 "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state"
                 ),
             },
@@ -185,7 +175,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2,
                 "step_multiplier": 2,
                 "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation"
                 ),
             },
@@ -193,7 +183,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2 ** (2**self._qubits_number + 1),
                 "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
                 "stop_multiplier": 2**self._qubits_number,
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits"
                 ),
             },
@@ -201,7 +191,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2,
                 "step_multiplier": 2 ** (2**self._qubits_number + 1),
                 "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits"
                 ),
             },
@@ -209,7 +199,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2,
                 "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
                 "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits"
                 ),
             },
@@ -217,7 +207,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step": 2,
                 "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
                 "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit"
                 ),
             },
@@ -226,15 +216,13 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step_multiplier": 1,
                 "stop_multiplier": 2
                 ** (2 * (2**self._qubits_number) + self._qubits_number + 1),
-                "message": self._message(
-                    "Simulating the circuit ... Checking all qubits"
-                ),
+                "message": message("Simulating the circuit ... Checking all qubits"),
             },
             "qram": {
                 "step": 1,
                 "step_multiplier": None,
                 "stop_multiplier": None,
-                "message": self._message(
+                "message": message(
                     "Simulating the circuit ... Checking the QRAM logic and measure all qubits"
                 ),
             },

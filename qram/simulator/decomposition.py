@@ -9,7 +9,57 @@ import cirq.optimizers
 import qramcircuits.bucket_brigade as bb
 from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecomposition, ToffoliDecompType
-from utils.print_utils import colpr, loading_animation, printCircuit, printRange
+from utils.print_utils import (
+    colpr,
+    loading_animation,
+    message,
+    printCircuit,
+    printRange,
+)
+
+
+def fan_in_mem_out(
+    decomp_scenario: bb.BucketBrigadeDecompType,
+) -> "list[ToffoliDecompType]":
+    """
+    Returns the fan-in, memory, and fan-out decomposition types.
+
+    Args:
+        decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+
+    Returns:
+        'list[ToffoliDecompType]': The fan-in, memory, and fan-out decomposition types.
+    """
+
+    return list(set(decomp_scenario.get_decomp_types()))
+
+
+def create_decomposition_circuit(
+    decomposition_type: ToffoliDecompType,
+) -> "tuple[cirq.Circuit, list[cirq.NamedQubit]]":
+    """
+    Creates a Toffoli decomposition circuit.
+
+    Args:
+        decomposition_type (ToffoliDecompType): The type of Toffoli decomposition.
+
+    Returns:
+        'tuple[cirq.Circuit, list[cirq.NamedQubit]]': The Toffoli decomposition circuit and qubits.
+    """
+
+    circuit = cirq.Circuit()
+
+    qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
+
+    decomp = ToffoliDecomposition(decomposition_type=decomposition_type, qubits=qubits)
+
+    if decomp.number_of_ancilla() > 0:
+        qubits += [decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))]
+
+    circuit.append(decomp.decomposition())
+
+    return circuit, qubits
+
 
 #######################################
 # QRAM Simulator Decompositions
@@ -21,8 +71,6 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
     The QRAMDecompositionsSimulator class to simulate the Toffoli decompositions.
 
     Methods:
-        _fan_in_mem_out(decomp_scenario): Returns the fan-in, memory, and fan-out decomposition types.
-        _create_decomposition_circuit(decomposition_type): Creates a Toffoli decomposition circuit.
         _decomposed_circuit(decomposition_type): Creates a Toffoli decomposition with measurements circuit.
         _simulate_decompositions(): Simulates the Toffoli decompositions.
         _simulate_decomposition(decomposition_type): Simulates a Toffoli decomposition.
@@ -44,50 +92,9 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
 
         self._simulate_decompositions()
 
-    def _fan_in_mem_out(
-        self, decomp_scenario: bb.BucketBrigadeDecompType
-    ) -> "list[ToffoliDecompType]":
-        """
-        Returns the fan-in, memory, and fan-out decomposition types.
-
-        Args:
-            decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
-
-        Returns:
-            'list[ToffoliDecompType]': The fan-in, memory, and fan-out decomposition types.
-        """
-
-        return list(set(decomp_scenario.get_decomp_types()))
-
-    def _create_decomposition_circuit(
-        self, decomposition_type: ToffoliDecompType
-    ) -> "tuple[cirq.Circuit, list[cirq.NamedQubit]]":
-        """
-        Creates a Toffoli decomposition circuit.
-
-        Args:
-            decomposition_type (ToffoliDecompType): The type of Toffoli decomposition.
-
-        Returns:
-            'tuple[cirq.Circuit, list[cirq.NamedQubit]]': The Toffoli decomposition circuit and qubits.
-        """
-
-        circuit = cirq.Circuit()
-
-        qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
-
-        decomp = ToffoliDecomposition(
-            decomposition_type=decomposition_type, qubits=qubits
-        )
-
-        if decomp.number_of_ancilla() > 0:
-            qubits += [
-                decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))
-            ]
-
-        circuit.append(decomp.decomposition())
-
-        return circuit, qubits
+    #######################################
+    # core functions
+    #######################################
 
     def _decomposed_circuit(
         self, decomposition_type: ToffoliDecompType
@@ -102,7 +109,7 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
             'tuple[cirq.Circuit, list[cirq.NamedQubit]]': The Toffoli decomposition circuit and qubits.
         """
 
-        circuit, qubits = self._create_decomposition_circuit(decomposition_type)
+        circuit, qubits = create_decomposition_circuit(decomposition_type)
 
         measurements = []
         for qubit in qubits:
@@ -129,17 +136,13 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
 
         self._simulation_kind = "dec"
 
-        message = (
-            "<"
-            + "=" * 20
-            + " Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate "
-            + "=" * 20
-            + ">\n"
+        msg = message(
+            "Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate"
         )
-        colpr("y", f"\n{message}", end="\n\n")
+        colpr("y", f"\n{msg}", end="\n\n")
 
         for decomp_scenario in [self._decomp_scenario, self._decomp_scenario_modded]:
-            for decomposition_type in self._fan_in_mem_out(decomp_scenario):
+            for decomposition_type in fan_in_mem_out(decomp_scenario):
                 if decomposition_type == ToffoliDecompType.NO_DECOMP:
                     continue
                 self._simulate_decomposition(decomposition_type)

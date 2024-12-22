@@ -74,7 +74,7 @@ class QRAMCircuitCore:
     _bbcircuit_modded: bb.BucketBrigade
 
     _simulated: bool = False
-    _Simulator: QRAMCircuitSimulatorManager
+    _simulator_manager: QRAMCircuitSimulatorManager
 
     def __init__(self):
         """
@@ -317,3 +317,15 @@ class QRAMCircuitCore:
             executor.submit(_create_bbcircuit_modded)
 
         self._stop_time = elapsed_time(self._start_time)
+
+        if self._simulate:
+            self._simulator_manager = QRAMCircuitSimulatorManager(
+                bbcircuit=self._bbcircuit,
+                bbcircuit_modded=self._bbcircuit_modded,
+                specific_simulation=self._specific_simulation,
+                qubits_number=self._start_range_qubits,
+                print_circuit=self._print_circuit,
+                print_sim=self._print_sim,
+                hpc=self._hpc,
+                shots=self._shots,
+            )
