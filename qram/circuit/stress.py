@@ -331,6 +331,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             f"_{self.__t_count}T"
             f"_{self.__nbr_combinations}-comb"
             f"_{self.__length_combinations}-{self._specific_simulation}-tests"
+            f"_{self._shots}-shots"
             f"_{time_elapsed}"
             f"_{time_stamp_start}"
             f"_{time_stamp_end}.csv",

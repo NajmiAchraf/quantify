@@ -172,9 +172,8 @@ class QRAMSimulatorBase:
 
         j = i
         if self._simulation_kind == "dec":
-            j = math.floor(
-                i / step
-            )  # Calculate the index for the decomposed circuit by reversing the binary representation of the index
+            # Calculate the index for the decomposed circuit by reversing the binary representation of the index
+            j = math.floor(i / step)
 
         f, sm, sv = self._simulate_and_compare(
             i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
@@ -275,46 +274,31 @@ class QRAMSimulatorBase:
         )
         return result.final_state[index], result.measurements
 
-    def _simulate_multiple_shots(
+    def _simulate_circuit(
         self,
-        i: int,
-        j: int,
         circuit: cirq.Circuit,
-        circuit_modded: cirq.Circuit,
         qubit_order: "list[cirq.NamedQubit]",
-        qubit_order_modded: "list[cirq.NamedQubit]",
-    ) -> "tuple[int, int, int]":
+        initial_state: int,
+    ) -> "tuple[list[np.ndarray], dict[str, list]]":
         """
-        Simulate and compares the results of the simulation.
+        Simulates the given circuit and collects final states and measurements.
 
         Args:
-            i (int): The index of the simulation.
-            j (int): The index of the reversed binary number.
-            circuit (cirq.Circuit): The circuit.
-            circuit_modded (cirq.Circuit): The modded circuit.
-            qubit_order (list[cirq.NamedQubit]): The qubit order of the circuit.
-            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
+            circuit (cirq.Circuit): The quantum circuit to simulate.
+            qubit_order (list[cirq.NamedQubit]): The order of qubits.
+            initial_state (int): The initial state index.
 
         Returns:
-            int: The number of failed tests.
-            int: The number of measurements tests success.
-            int: The number of full tests success.
+            tuple: A tuple containing a list of final states and a dictionary of measurements.
         """
-
-        initial_state: int = j
-        initial_state_modded: int = i
-
         measurements: "dict[str, list]" = {}
-        measurements_modded: "dict[str, list]" = {}
-
         final_state: "list[np.ndarray]" = []
-        final_state_modded: "list[np.ndarray]" = []
 
         with multiprocessing.Pool() as pool:
             results = pool.map(
                 partial(
                     self._run,
-                    index=j,
+                    index=initial_state,
                     circuit=circuit,
                     qubit_order=qubit_order,
                     initial_state=initial_state,
@@ -327,22 +311,56 @@ class QRAMSimulatorBase:
             for key, val in result[1].items():
                 measurements.setdefault(key, []).append(val)
 
-        with multiprocessing.Pool() as pool:
-            results_modded = pool.map(
-                partial(
-                    self._run,
-                    index=i,
-                    circuit=circuit_modded,
-                    qubit_order=qubit_order_modded,
-                    initial_state=initial_state_modded,
-                ),
-                range(self._shots),
-            )
+        return final_state, measurements
 
-        for result_modded in results_modded:
-            final_state_modded.append(result_modded[0])
-            for key, val in result_modded[1].items():
-                measurements_modded.setdefault(key, []).append(val)
+    def _simulate_multiple_shots(
+        self,
+        i: int,
+        j: int,
+        circuit: cirq.Circuit,
+        circuit_modded: cirq.Circuit,
+        qubit_order: "list[cirq.NamedQubit]",
+        qubit_order_modded: "list[cirq.NamedQubit]",
+    ) -> "tuple[int, int, int]":
+        """
+        Simulate and compare the results of the simulation.
+
+        Args:
+            i (int): The index of the modded simulation.
+            j (int): The index of the standard simulation.
+            circuit (cirq.Circuit): The standard circuit.
+            circuit_modded (cirq.Circuit): The modded circuit.
+            qubit_order (list[cirq.NamedQubit]): The qubit order of the standard circuit.
+            qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
+
+        Returns:
+            tuple: A tuple containing the number of failed tests, successful measurement tests, and successful full tests.
+        """
+        initial_state = j
+        initial_state_modded = i
+
+        # Simulate standard circuit
+        final_state, measurements = self._simulate_circuit(
+            circuit, qubit_order, initial_state
+        )
+
+        # Simulate modded circuit
+        final_state_modded, measurements_modded = self._simulate_circuit(
+            circuit_modded, qubit_order_modded, initial_state_modded
+        )
+
+        # Format the results
+        str_measurements = self._format_measurements(measurements)
+        str_output_vector = str(np.around(final_state)[0])
+        str_final_state = self._format_final_state(str_output_vector, measurements)
+        result = str_measurements + "\n" + str_final_state
+
+        str_measurements_modded = self._format_measurements(measurements_modded)
+        str_output_vector_modded = str(np.around(final_state_modded)[0])
+        str_final_state_modded = self._format_final_state(
+            str_output_vector_modded, measurements_modded
+        )
+        result_modded = str_measurements_modded + "\n" + str_final_state_modded
 
         return self._compare_results(
             i,
@@ -354,6 +372,52 @@ class QRAMSimulatorBase:
             final_state_modded,
         )
 
+    @staticmethod
+    def bitstring(vals):
+        if np.isscalar(vals):
+            vals = [vals]
+        separator = " " if np.max(vals) >= 10 else ""
+        return separator.join(str(int(v)) for v in vals)
+
+    def _format_measurements(self, measurements: "dict[str, list]") -> str:
+        """
+        Formats the measurements dictionary into a string.
+
+        Args:
+            measurements (dict[str, list]): The measurements to format.
+
+        Returns:
+            str: The formatted measurements string.
+        """
+        formatted = []
+        for o_qubit in self._bbcircuit.qubit_order:
+            qubit_str = str(o_qubit)
+            if qubit_str in measurements:
+                formatted.append(
+                    f"{qubit_str}={self.bitstring(measurements[qubit_str])[0]}"
+                )
+        return "measurements: " + " ".join(formatted)
+
+    def _format_final_state(
+        self, str_output_vector: str, measurements: "dict[str, list]"
+    ) -> str:
+        """
+        Formats the final state into a string.
+
+        Args:
+            str_output_vector (str): The rounded output vector as a string.
+            measurements (dict[str, list]): The measurements to include in the final state.
+
+        Returns:
+            str: The formatted final state string.
+        """
+        formatted = []
+        for o_qubit in self._bbcircuit.qubit_order:
+            qubit_str = str(o_qubit)
+            if qubit_str in measurements:
+                formatted.append(f"{self.bitstring(measurements[qubit_str])[0]}")
+        return f"output vector: {str_output_vector}|" + "".join(formatted) + "⟩"
+
     #######################################
     # Results methods
     #######################################
@@ -363,7 +427,7 @@ class QRAMSimulatorBase:
             if self._print_sim in ["Full", "Dot"]:
                 colpr(color, "•", end="")
             if self._print_sim == "Full":
-                self._simulation_results[i] = [color, str(result), str(result_modded)]
+                self._simulation_results[i] = [color, result, result_modded]
 
     def _compare_results(
         self,
@@ -399,17 +463,11 @@ class QRAMSimulatorBase:
 
         try:
             if self._qubits_number <= 3 or self._simulation_kind == "dec":
-                if self._specific_simulation == "full":
-                    # Compare rounded final state which is the output vector
-                    assert np.array_equal(
-                        np.array(np.around(final_state)),
-                        np.array(np.around(final_state_modded)),
-                    )
-                else:
-                    # Compare final state which is the output vector
-                    assert np.array_equal(
-                        np.array(final_state), np.array(final_state_modded)
-                    )
+                # Compare rounded final state which is the output vector
+                assert np.array_equal(
+                    np.array(np.around(final_state)),
+                    np.array(np.around(final_state_modded)),
+                )
             else:
                 raise AssertionError
         except AssertionError:
