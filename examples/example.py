@@ -1,11 +1,10 @@
-from qramcircuits.mpmct_decomposition import *
 import cirq
+
 import optimizers as qopt
 import utils.misc_utils as miscutils
-from utils.counting_utils import *
+from qramcircuits.mpmct_decomposition import *
 from qramcircuits.toffoli_decomposition import *
-
-
+from utils.counting_utils import *
 
 # qubits = [cirq.NamedQubit("a"+str(i)) for i in range(3)]
 # target = cirq.NamedQubit("t")
@@ -44,7 +43,7 @@ from qramcircuits.toffoli_decomposition import *
 # qopt.CancelNghCNOTs(transfer_flag=False) \
 #             .apply_until_nothing_changes(cir, count_cnot_of_circuit)
 # # qopt.CommuteTGatesToStart().optimize_circuit(cir)
-# cirq.optimizers.DropEmptyMoments().optimize_circuit(cir)
+# cirq.drop_empty_moments(cir)
 # print(cir)
 # print(count_t_depth_of_circuit(cir),
 # count_cnot_of_circuit(cir),

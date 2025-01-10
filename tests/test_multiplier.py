@@ -1,6 +1,7 @@
 import cirq
-import mathematics.thaplyal1706.qim_multiplier as mt
 import numpy as np
+
+import mathematics.thaplyal1706.qim_multiplier as mt
 
 
 def test_multiplier():
@@ -8,8 +9,8 @@ def test_multiplier():
     n = 3
 
     # A and B are the numbers to be multiplied
-    A = [cirq.NamedQubit('a' + str(i)) for i in range(n)]
-    B = [cirq.NamedQubit('b' + str(i)) for i in range(n)]
+    A = [cirq.NamedQubit("a" + str(i)) for i in range(n)]
+    B = [cirq.NamedQubit("b" + str(i)) for i in range(n)]
 
     # instanciate the multiplier class and invoke the multiply method
     # the result is the corresponding circuit
@@ -30,15 +31,17 @@ def test_multiplier():
     """the list of all possible integers is exactly the range(2^(2n)) but we need to shift it 
         in order to initialize the qubits of P to 0
     """
-    shift = 2 ** n - 1
+    shift = 2**n - 1
     list_of_possible_integers = [i << shift for i in range(2 ** (2 * n))]
     print(list_of_possible_integers)
     for i in list_of_possible_integers:
         intial_state[i] = 1
         # state[1920]=1
         intial_state = np.array(intial_state, dtype=np.complex64)
-        result = simulator.simulate(circuit, qubit_order=qubits, initial_state=intial_state)
+        result = simulator.simulate(
+            circuit, qubit_order=qubits, initial_state=intial_state
+        )
         BA = i >> shift
-        B_times_A = BA % (2 ** 3) * (BA >> n)
-        assert (np.where(result.final_state == 1)[0][0] == i + B_times_A)
+        B_times_A = BA % (2**3) * (BA >> n)
+        assert np.where(result.final_state_vector == 1)[0][0] == i + B_times_A
         intial_state[i] = 0

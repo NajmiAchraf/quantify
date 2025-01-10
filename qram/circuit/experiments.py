@@ -4,7 +4,6 @@ import psutil
 
 import qramcircuits.bucket_brigade as bb
 from qram.circuit.core import QRAMCircuitCore
-from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
 from qram.simulator.decomposition import create_decomposition_circuit, fan_in_mem_out
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.counting_utils import *

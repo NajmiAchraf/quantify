@@ -5,7 +5,6 @@ from multiprocessing.managers import DictProxy
 from typing import Union
 
 import cirq
-import cirq.optimizers
 import numpy as np
 
 import qramcircuits.bucket_brigade as bb
@@ -63,7 +62,7 @@ class QRAMSimulatorBase:
         _simulate_multiple_shots(i, j, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
             Simulate and compares the results of the simulation.
         _log_results(i, result, result_modded, color): Logs the results of the simulation.
-        _compare_results(i, result, result_modded, measurements, measurements_modded, final_state, final_state_modded):
+        _compare_results(i, result, result_modded, measurements, measurements_modded, final_state_vector, final_state_vector_modded):
             Compares the results of the simulation.
         _print_simulation_results(results, start, stop, step): Prints the simulation results.
     """
@@ -262,8 +261,8 @@ class QRAMSimulatorBase:
             result_modded,
             result.measurements,
             result_modded.measurements,
-            result.final_state[j],
-            result_modded.final_state[i],
+            result.final_state_vector,  # [j]
+            result_modded.final_state_vector,  # [i]
         )
 
     def _run(
@@ -272,7 +271,7 @@ class QRAMSimulatorBase:
         result = self._simulator.simulate(
             circuit, qubit_order=qubit_order, initial_state=initial_state
         )
-        return result.final_state[index], result.measurements
+        return result.final_state_vector[index], result.measurements
 
     def _simulate_circuit(
         self,
@@ -292,7 +291,7 @@ class QRAMSimulatorBase:
             tuple: A tuple containing a list of final states and a dictionary of measurements.
         """
         measurements: "dict[str, list]" = {}
-        final_state: "list[np.ndarray]" = []
+        final_state_vector: "list[np.ndarray]" = []
 
         with multiprocessing.Pool() as pool:
             results = pool.map(
@@ -307,11 +306,11 @@ class QRAMSimulatorBase:
             )
 
         for result in results:
-            final_state.append(result[0])
+            final_state_vector.append(result[0])
             for key, val in result[1].items():
                 measurements.setdefault(key, []).append(val)
 
-        return final_state, measurements
+        return final_state_vector, measurements
 
     def _simulate_multiple_shots(
         self,
@@ -340,27 +339,29 @@ class QRAMSimulatorBase:
         initial_state_modded = i
 
         # Simulate standard circuit
-        final_state, measurements = self._simulate_circuit(
+        final_state_vector, measurements = self._simulate_circuit(
             circuit, qubit_order, initial_state
         )
 
         # Simulate modded circuit
-        final_state_modded, measurements_modded = self._simulate_circuit(
+        final_state_vector_modded, measurements_modded = self._simulate_circuit(
             circuit_modded, qubit_order_modded, initial_state_modded
         )
 
         # Format the results
         str_measurements = self._format_measurements(measurements)
-        str_output_vector = str(np.around(final_state)[0])
-        str_final_state = self._format_final_state(str_output_vector, measurements)
-        result = str_measurements + "\n" + str_final_state
+        str_output_vector = str(np.around(final_state_vector)[0])
+        str_final_state_vector = self._format_final_state_vector(
+            str_output_vector, measurements
+        )
+        result = str_measurements + "\n" + str_final_state_vector
 
         str_measurements_modded = self._format_measurements(measurements_modded)
-        str_output_vector_modded = str(np.around(final_state_modded)[0])
-        str_final_state_modded = self._format_final_state(
+        str_output_vector_modded = str(np.around(final_state_vector_modded)[0])
+        str_final_state_vector_modded = self._format_final_state_vector(
             str_output_vector_modded, measurements_modded
         )
-        result_modded = str_measurements_modded + "\n" + str_final_state_modded
+        result_modded = str_measurements_modded + "\n" + str_final_state_vector_modded
 
         return self._compare_results(
             i,
@@ -368,8 +369,8 @@ class QRAMSimulatorBase:
             result_modded,
             measurements,
             measurements_modded,
-            final_state,
-            final_state_modded,
+            final_state_vector,
+            final_state_vector_modded,
         )
 
     @staticmethod
@@ -398,7 +399,7 @@ class QRAMSimulatorBase:
                 )
         return "measurements: " + " ".join(formatted)
 
-    def _format_final_state(
+    def _format_final_state_vector(
         self, str_output_vector: str, measurements: "dict[str, list]"
     ) -> str:
         """
@@ -436,8 +437,8 @@ class QRAMSimulatorBase:
         result_modded,
         measurements: Union["dict[str, np.ndarray]", "dict[str, list]"],
         measurements_modded: Union["dict[str, np.ndarray]", "dict[str, list]"],
-        final_state: "list[np.ndarray]",
-        final_state_modded: "list[np.ndarray]",
+        final_state_vector: "list[np.ndarray]",
+        final_state_vector_modded: "list[np.ndarray]",
     ) -> "tuple[int, int, int]":
         """
         Compares the results of the simulation.
@@ -448,8 +449,8 @@ class QRAMSimulatorBase:
             result_modded: The result of the modded circuit.
             measurements (Union['dict[str, np.ndarray]', 'dict[str, list]']): The measurements of the circuit.
             measurements_modded (Union['dict[str, np.ndarray]', 'dict[str, list]']): The measurements of the modded circuit.
-            final_state (np.ndarray): The final state of the circuit.
-            final_state_modded (np.ndarray): The final state of the modded circuit.
+            final_state_vector (np.ndarray): The final state of the circuit.
+            final_state_vector_modded (np.ndarray): The final state of the modded circuit.
 
         Returns:
             int: The number of failed tests.
@@ -465,8 +466,8 @@ class QRAMSimulatorBase:
             if self._qubits_number <= 3 or self._simulation_kind == "dec":
                 # Compare rounded final state which is the output vector
                 assert np.array_equal(
-                    np.array(np.around(final_state)),
-                    np.array(np.around(final_state_modded)),
+                    np.array(np.around(final_state_vector)),
+                    np.array(np.around(final_state_vector_modded)),
                 )
             else:
                 raise AssertionError

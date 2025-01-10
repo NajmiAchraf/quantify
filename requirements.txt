@@ -1,6 +1,5 @@
 wheel
-cirq==0.8.2
-cirq-core==0.11.0
+qsimcirq
 fasteners
 pyzx
 pytest

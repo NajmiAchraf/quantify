@@ -125,22 +125,22 @@ error:
 # Run the QRAM locally
 run:
 ifeq ($(LOCAL), bilan)
-	@python3.7 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
+	@python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
 else ifeq ($(LOCAL), experiments)
-	@python3.7 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d --specific=$(SPECIFIC)
+	@python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d --specific=$(SPECIFIC)
 else ifeq ($(LOCAL), stress)
-	@python3.7 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h --specific=$(SPECIFIC)
+	@python3 main_stress.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h --specific=$(SPECIFIC)
 else
 	@$(MAKE) --no-print-directory all
 endif
 
 # Install the Python dependencies
 build:
-	@python3.7 -m venv .venv
+	@python3 -m venv .venv
 	@. .venv/bin/activate
-	@python3.7 -m pip install --upgrade pip
-	@python3.7 -m pip install -r requirements.txt
-	@python3.7 insert_missed_code.py local
+	@python3 -m pip install --upgrade pip
+	@python3 -m pip install -r requirements.txt
+	@python3 insert_missed_code.py local
 
 re:
 	@rm -rf .venv

@@ -4,7 +4,6 @@ import time
 from functools import partial
 
 import cirq
-import cirq.optimizers
 
 import qramcircuits.bucket_brigade as bb
 from qram.simulator.base import QRAMSimulatorBase
@@ -117,7 +116,7 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
                 measurements.append(cirq.measure(qubit))
 
         circuit.append(measurements)
-        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(circuit)
+        circuit = cirq.synchronize_terminal_measurements(circuit)
 
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
             printCircuit(

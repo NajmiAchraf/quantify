@@ -4,7 +4,6 @@ import time
 from datetime import timedelta
 
 import cirq
-import cirq.optimizers
 from cirq.contrib.svg import SVGCircuit, circuit_to_svg
 from IPython.display import HTML, display
 

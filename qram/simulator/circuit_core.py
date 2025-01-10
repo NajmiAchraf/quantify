@@ -262,9 +262,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                         measurements.append(cirq.measure(qubit))
 
         bbcircuit.circuit.append(measurements)
-        cirq.optimizers.SynchronizeTerminalMeasurements().optimize_circuit(
-            bbcircuit.circuit
-        )
+        bbcircuit.circuit = cirq.synchronize_terminal_measurements(bbcircuit.circuit)
 
     def _begin_configurations(self) -> None:
         """

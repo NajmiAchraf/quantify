@@ -1,6 +1,6 @@
+import optimizers as qopt
 from mathematics.thaplyal1706 import QimMultiplier
 from qramcircuits.toffoli_decomposition import *
-import optimizers as qopt
 from utils.counting_utils import *
 
 A = [cirq.NamedQubit('A'+str(i)) for i in range(4)]
@@ -23,7 +23,7 @@ qopt.CancelNghCNOTs(transfer_flag=False) \
             .apply_until_nothing_changes(c, count_cnot_of_circuit)
 qopt.CommuteTGatesToStart().optimize_circuit(c)
 qopt.CommuteTGatesToStart().optimize_circuit(c)
-cirq.optimizers.DropEmptyMoments().optimize_circuit(c)
+cirq.drop_empty_moments(c)
 print(len(c), count_t_depth_of_circuit(c),
 count_cnot_of_circuit(c),
 count_h_of_circuit(c),

@@ -1,5 +1,4 @@
 import cirq
-import cirq.optimizers
 
 import optimizers as cnc
 
@@ -19,8 +18,7 @@ def test_optimise_T_gate():
 
     # print("2", circ)
 
-    dropempty = cirq.optimizers.DropEmptyMoments()
-    dropempty.optimize_circuit(circ)
+    circ = cirq.drop_empty_moments(circ)
 
     # print("3", circ)
 
@@ -44,8 +42,7 @@ def test_optimise_1_T_gate():
 
     # print("2", circ)
 
-    dropempty = cirq.optimizers.DropEmptyMoments()
-    dropempty.optimize_circuit(circ)
+    circ = cirq.drop_empty_moments(circ)
 
     # print("3", circ)
 
@@ -69,8 +66,7 @@ def test_optimise_S_gate():
 
     # print("2", circ)
 
-    dropempty = cirq.optimizers.DropEmptyMoments()
-    dropempty.optimize_circuit(circ)
+    circ = cirq.drop_empty_moments(circ)
 
     # print("3", circ)
 
@@ -93,8 +89,7 @@ def test_optimise_1_S_gate():
 
     # print("2", circ)
 
-    dropempty = cirq.optimizers.DropEmptyMoments()
-    dropempty.optimize_circuit(circ)
+    circ = cirq.drop_empty_moments(circ)
 
     # print("3", circ)
 

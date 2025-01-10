@@ -1,5 +1,4 @@
 import cirq
-import cirq.optimizers
 
 import optimizers.cancel_ngh_cnots as cnc
 
@@ -21,8 +20,7 @@ def test_optimise_cnots():
 
     # print("2", circ)
 
-    dropempty = cirq.optimizers.DropEmptyMoments()
-    dropempty.optimize_circuit(circ)
+    circ = cirq.drop_empty_moments(circ)
 
     # print("3", circ)
 
