@@ -1,17 +1,15 @@
-import cirq
-from qramcircuits.toffoli_decomposition import ToffoliDecompType
+import time
 
-import qramcircuits.bucket_brigade as bb
+import cirq
 
 import optimizers as qopt
-
-import time
+import qramcircuits.bucket_brigade as bb
+from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 
 def main():
 
     print("Hello QRAM circuit experiments!")
-    
 
     for i in range(2, 16):
 
@@ -34,52 +32,55 @@ def main():
 
         decomp_scenario = bb.BucketBrigadeDecompType(
             [
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # fan_in_decomp
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,    # fan_out_decomp
+                ToffoliDecompType.AN0_TD4_TC7_CX6_COMPUTE,  # fan_in_decomp
+                ToffoliDecompType.AN0_TD4_TC7_CX6,  # mem_decomp
+                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,  # fan_out_decomp
             ],
-            False
+            False,
         )
 
         # Simulation without parallelisation optimisation
         start1 = time.time()
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario = decomp_scenario)
+        bbcircuit = bb.BucketBrigade(qubits, decomp_scenario=decomp_scenario)
         stop1 = time.time() - start1
         # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
         #                                         qubit_order = bbcircuit.qubit_order))
 
-
         # Simulation with parallelisation optimisation
         decomp_scenario.parallel_toffolis = True
         start2 = time.time()
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=decomp_scenario)
+        bbcircuit = bb.BucketBrigade(qubits, decomp_scenario=decomp_scenario)
         stop2 = time.time() - start2
         # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
         #                                         qubit_order = bbcircuit.qubit_order))
-
-
-
 
         # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
         #                                         qubit_order = bbcircuit.qubit_order))
 
         # #Verification
         bbcircuit.verify_number_qubits()
-        bbcircuit.verify_depth(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
+        bbcircuit.verify_depth(Alexandru_scenario=decomp_scenario.parallel_toffolis)
 
         bbcircuit.verify_T_count()
-        bbcircuit.verify_T_depth(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
+        bbcircuit.verify_T_depth(Alexandru_scenario=decomp_scenario.parallel_toffolis)
         bbcircuit.verify_hadamard_count(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
+            Alexandru_scenario=decomp_scenario.parallel_toffolis
+        )
         bbcircuit.verify_cnot_count(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
+            Alexandru_scenario=decomp_scenario.parallel_toffolis
+        )
 
         end = time.time()
-        print("--> exp bucket brigade, ", nr_qubits, ",", stop1 , ",", stop2, ",", flush=True)
+        print(
+            "--> exp bucket brigade, ",
+            nr_qubits,
+            ",",
+            stop1,
+            ",",
+            stop2,
+            ",",
+            flush=True,
+        )
 
     # qopt.CommuteTGatesToStart().optimize_circuit(bbcircuit.circuit)
     #
@@ -130,5 +131,3 @@ if __name__ == "__main__":
     # import cProfile
     # cProfile.run("main()")
     main()
-
-

@@ -53,7 +53,7 @@ def is_controlled_parallel_x(operation):
 
     # Check that the sub gate is a ParallelGate with X
     gate = sub_op.gate
-    if isinstance(gate, cirq.ParallelGate) and gate.sub_gate == cirq.X:
+    if isinstance(gate, cirq.ParallelGate) and gate.sub_gate == cirq.ops.X:
         return True
 
     return True

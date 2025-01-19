@@ -33,7 +33,7 @@ class BucketBrigadeDecompType:
         self.dec_fan_out = toffoli_decomp_types[2]
 
         # Should the Toffoli decompositions be parallelized?
-        # In this case it is assumed that the ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4
+        # In this case it is assumed that the ToffoliDecompType.AN0_TD4_TC7_CX6
         # is used (not checked, for the moment)...
         # We are not sure how to design this. Keep it.
         self.parallel_toffolis = parallel_toffolis
@@ -177,8 +177,8 @@ class BucketBrigade:
             in [
                 ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
                 ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+                ToffoliDecompType.AN0_TD4_TC7_CX6,
+                ToffoliDecompType.AN0_TD4_TC7_CX6_INV,
                 ToffoliDecompType.AN0_TD4_TC6_CX6,
                 ToffoliDecompType.AN0_TD4_TC5_CX6,
                 ToffoliDecompType.AN0_TD3_TC4_CX6,
@@ -219,15 +219,10 @@ class BucketBrigade:
             circuit.append(comp_fan_out)
 
         elif self.decomp_scenario.reverse_moments == ReverseMoments.OUT_TO_IN:
-            compute_fanin_moments = ctu.reverse_moments(comp_fan_out)
+            compute_fanin_moments = cirq.Circuit(ctu.reverse_moments(comp_fan_out))
             if self.decomp_scenario.parallel_toffolis:
-                comp_fan_in = BucketBrigade.stratify(
-                    cirq.Circuit(compute_fanin_moments)
-                )
-
-                comp_fan_in = BucketBrigade.parallelize_toffolis(
-                    cirq.Circuit(comp_fan_in.all_operations())
-                )
+                comp_fan_in = BucketBrigade.stratify(compute_fanin_moments)
+                comp_fan_in = BucketBrigade.parallelize_toffolis(comp_fan_in)
 
             self.decomp_scenario.reverse_moments = ReverseMoments.IN_TO_OUT
             circuit = self.reverse_and_link(
@@ -299,11 +294,11 @@ class BucketBrigade:
         return circuit
 
     @staticmethod
-    def optimize_clifford_t_cnot_gates(circuit_1: cirq.Circuit):
+    def optimize_clifford_t_cnot_gates(circuit: cirq.Circuit):
         while True:
             # Allow the optimization of Clifford + T gates
             miscutils.flag_operations(
-                circuit_1,
+                circuit,
                 [
                     cirq.ops.H,
                     cirq.ops.T,
@@ -313,94 +308,90 @@ class BucketBrigade:
                     cirq.ops.Z,
                 ],
             )
-            circuit_before = circuit_1.copy()
+            previous_circuit_state = circuit.copy()
 
             # Cancel the neighboring gates
-            qopt.CancelNghGates(transfer_flag=True).optimize_circuit(circuit_1)
+            qopt.CancelNghGates(transfer_flag=True).optimize_circuit(circuit)
 
             # Transform the neighboring gates
-            qopt.TransformeNghGates(transfer_flag=True).optimize_circuit(circuit_1)
+            qopt.TransformeNghGates(transfer_flag=True).optimize_circuit(circuit)
 
-            if circuit_1 == circuit_before:
+            if previous_circuit_state == circuit:
                 break
 
         # The hope is that the neighboring gates are CNOTs that will transfer
         # optimization flags
+        miscutils.flag_operations(circuit, [cirq.ops.CNOT])
         qopt.CancelNghCNOTs(transfer_flag=True).apply_until_nothing_changes(
-            circuit_1, count_cnot_of_circuit
+            circuit, count_cnot_of_circuit
         )
 
-        # Clean the empty moments
-        circuit_1 = cirq.drop_empty_moments(circuit_1)
+        # Drop the negligible operations and empty moments
+        circuit = cirq.drop_negligible_operations(circuit)
+        circuit = cirq.drop_empty_moments(circuit)
 
         # clean all the flags
-        miscutils.remove_all_flags(circuit_1)
+        miscutils.remove_all_flags(circuit)
 
     @staticmethod
     def parallelize_toffolis(circuit: cirq.Circuit) -> cirq.Circuit:
 
         # Assume that the first and the last moment are only with Hadamards
         # Remove the moments for the optimisation to work
-        transformed_circuit: cirq.Circuit = circuit[1:-1]
+        _circuit_: cirq.Circuit = circuit[1:-1]
 
         while True:
-            previous_transformed_circuit = cirq.Circuit(transformed_circuit)
+            previous_circuit_state = _circuit_.copy()
 
             # Commute the T gates to the start
-            qopt.CommuteTGatesToStart().optimize_circuit(transformed_circuit)
+            qopt.CommuteTGatesToStart().optimize_circuit(_circuit_)
 
-            # Drop empty moments
-            transformed_circuit = cirq.drop_empty_moments(transformed_circuit)
+            # Drop the negligible operations and empty moments
+            _circuit_ = cirq.drop_negligible_operations(_circuit_)
+            _circuit_ = cirq.drop_empty_moments(_circuit_)
 
             # Parallelize the CNOTs to the left
-            qopt.ParallelizeCNOTSToLeft().optimize_circuit(transformed_circuit)
+            qopt.ParallelizeCNOTSToLeft().optimize_circuit(_circuit_)
 
             # Compress the circuit without stratification
-            transformed_circuit = cirq.Circuit(transformed_circuit.all_operations())
+            _circuit_ = cirq.Circuit(_circuit_.all_operations())
 
-            # Drop the negligible operations and eject the phased Paulis
-            transformed_circuit = cirq.drop_negligible_operations(transformed_circuit)
-            transformed_circuit = cirq.eject_phased_paulis(transformed_circuit)
+            # print(_circuit_)
 
-            print(transformed_circuit)
-
-            if previous_transformed_circuit == transformed_circuit:
-                circuit = cirq.Circuit(circuit[0] + transformed_circuit + circuit[-1])
+            if previous_circuit_state == _circuit_:
+                circuit = cirq.Circuit(circuit[0] + _circuit_ + circuit[-1])
                 return BucketBrigade.stratified_circuit(circuit)
 
     @staticmethod
     def stratify(circuit: cirq.Circuit) -> cirq.Circuit:
         # Define the categories for stratification
         categories = [
-            cirq.H,
-            cirq.T,
-            cirq.T**-1,
-            # cirq.CNOT,
-            # Add other gate families as needed
+            cirq.ops.CNOT,
+            cirq.ops.H,
+            cirq.ops.CX,
+            cirq.ops.T,
+            cirq.ops.T**-1,
         ]
-
         # Stratify the circuit
-        return cirq.stratified_circuit(circuit, categories=categories)
+        # return cirq.stratified_circuit(circuit=circuit, categories=categories)
+        return qopt.stratified_circuit(circuit=circuit, categories=categories)
 
     @staticmethod
     def stratified_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
         while True:
-            previous_circuit = cirq.Circuit(circuit)
+            previous_circuit_state = circuit.copy()
 
             # Compress the circuit without stratification
             circuit = cirq.Circuit(circuit.all_operations())
 
-            # Drop empty moments
-            circuit = cirq.drop_empty_moments(circuit)
-
-            # Drop the negligible operations and eject the phased Paulis
+            # Drop the negligible operations and empty moments
             circuit = cirq.drop_negligible_operations(circuit)
-            circuit = cirq.eject_phased_paulis(circuit)
+            circuit = cirq.drop_empty_moments(circuit)
 
             # Stratify the circuit
             circuit = BucketBrigade.stratify(circuit)
 
-            if previous_circuit == circuit:
+            if previous_circuit_state == circuit:
                 return circuit
 
     """

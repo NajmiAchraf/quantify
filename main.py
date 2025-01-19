@@ -1,26 +1,19 @@
-import cirq
-from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
-import qramcircuits.bucket_brigade as bb
-
-import optimizers as qopt
-
 import time
 
 import cirq
-from qramcircuits.toffoli_decomposition import ToffoliDecompType, ToffoliDecomposition
-from mathematics.draper0406142 import CarryLookaheadAdder
-import qramcircuits.bucket_brigade as bb
 
 import optimizers as qopt
+import qramcircuits.bucket_brigade as bb
+from mathematics.draper0406142 import CarryLookaheadAdder
+from qramcircuits.toffoli_decomposition import ToffoliDecomposition, ToffoliDecompType
 
 
 def main():
     """
     print("Hello QRAM circuits!")
-    
+
     #Create the qubis of the circuits
-    
+
     nr_qubits = 5
     qubits = []
     for i in range(nr_qubits):
@@ -35,14 +28,14 @@ def main():
     #
 
     """
-       # Bucket brigade
+    # Bucket brigade
     """
     print("*** Bucket Brigade:")
 
     decomp_scenario = bb.BucketBrigadeDecompType(
         [
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,    # fan_in_decomp
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
+            ToffoliDecompType.AN0_TD4_TC7_CX6_COMPUTE,    # fan_in_decomp
+            ToffoliDecompType.AN0_TD4_TC7_CX6,  # mem_decomp
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,    # fan_out_decomp
         ],
         True
@@ -51,7 +44,7 @@ def main():
     no_decomp = bb.BucketBrigadeDecompType(
         [
             ToffoliDecompType.NO_DECOMP,  # fan_in_decomp
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
+            ToffoliDecompType.AN0_TD4_TC7_CX6,  # mem_decomp
             ToffoliDecompType.NO_DECOMP,  # fan_out_decomp
         ],
         True
@@ -131,35 +124,38 @@ def main():
     # print("Verify T_c:      {}\n".format(sdlwcircuit.verify_T_count()))
     # print("Verify H_c:      {}\n".format(sdlwcircuit.verify_hadamard_count()))
     # print("Verify CNOT_c:   {}\n".format(sdlwcircuit.verify_cnot_count()))
-    
+
     """
         CLA example
     """
     # Size of the operand; At this stage always gives the even number >= to the wanted size
     n = 10
-    A = [cirq.NamedQubit("A"+str(i)) for i in range(n)]
-        
-        # Second operand
-    B = [cirq.NamedQubit("B"+str(i)) for i in range(n)]
-    
+    A = [cirq.NamedQubit("A" + str(i)) for i in range(n)]
+
+    # Second operand
+    B = [cirq.NamedQubit("B" + str(i)) for i in range(n)]
+
     # CLA class with the default decomposition strategy (NO_DECOMP)
-    decompositon_strategy = [(ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)]*2
+    decompositon_strategy = [
+        (ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)
+    ] * 2
     cl = CarryLookaheadAdder(A, B, decompositon_strategy=decompositon_strategy)
     # Printing the CLA circuit
     # print(cl.circuit)
 
-
     results = []
     for n in range(8, 32, 2):
-        
+
         # First operand
-        A = [cirq.NamedQubit("A"+str(i)) for i in range(n)]
-        
+        A = [cirq.NamedQubit("A" + str(i)) for i in range(n)]
+
         # Second operand
-        B = [cirq.NamedQubit("B"+str(i)) for i in range(n)]
-        
+        B = [cirq.NamedQubit("B" + str(i)) for i in range(n)]
+
         # CLA class with the default decomposition strategy (NO_DECOMP)
-        decompositon_strategy = [(ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)]*2
+        decompositon_strategy = [
+            (ToffoliDecompType.NO_DECOMP, ToffoliDecompType.NO_DECOMP)
+        ] * 2
         cl = CarryLookaheadAdder(A, B, decompositon_strategy=decompositon_strategy)
         # Printing the CLA circuit
         results.append(len(cl.circuit))
@@ -196,13 +192,13 @@ def main_linz():
         decomp_scenario = bb.BucketBrigadeDecompType(
             [
                 # fan_in_decomp
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                ToffoliDecompType.AN0_TD4_TC7_CX6_COMPUTE,
                 # mem_decomp
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
+                ToffoliDecompType.AN0_TD4_TC7_CX6,
                 # fan_out_decomp
                 ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
             ],
-            parallel_toffolis = False
+            parallel_toffolis=False,
         )
 
         # *************************************************************************** #
@@ -210,8 +206,7 @@ def main_linz():
         # *************************************************************************** #
 
         start1 = time.time()
-        bbcircuitoff = bb.BucketBrigade(qubits,
-                                     decomp_scenario=decomp_scenario)
+        bbcircuitoff = bb.BucketBrigade(qubits, decomp_scenario=decomp_scenario)
 
         stop1 = time.time() - start1
 
@@ -229,9 +224,7 @@ def main_linz():
 
         # run simulation without parallelization optimization
         bbcircuitoff.verify_number_qubits()
-        bbcircuitoff.verify_depth(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
-
+        bbcircuitoff.verify_depth(Alexandru_scenario=decomp_scenario.parallel_toffolis)
 
         # *************************************************************************** #
         # Simulation with parallelization optimization                                #
@@ -239,8 +232,7 @@ def main_linz():
 
         decomp_scenario.parallel_toffolis = True
         start2 = time.time()
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=decomp_scenario)
+        bbcircuit = bb.BucketBrigade(qubits, decomp_scenario=decomp_scenario)
         stop2 = time.time() - start2
 
         # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
@@ -248,8 +240,7 @@ def main_linz():
 
         # # Verification
         bbcircuit.verify_number_qubits()
-        bbcircuit.verify_depth(
-            Alexandru_scenario=decomp_scenario.parallel_toffolis)
+        bbcircuit.verify_depth(Alexandru_scenario=decomp_scenario.parallel_toffolis)
 
         # bbcircuit.verify_T_count()
         # bbcircuit.verify_T_depth(
@@ -260,11 +251,16 @@ def main_linz():
         #     Alexandru_scenario=decomp_scenario.parallel_toffolis)
 
         # end = time.time()
-        print("--> exp bucket brigade, ", nr_qubits,
-              ",", stop1,
-              ",", stop2, 
-              ",", flush=True)
-        
+        print(
+            "--> exp bucket brigade, ",
+            nr_qubits,
+            ",",
+            stop1,
+            ",",
+            stop2,
+            ",",
+            flush=True,
+        )
 
     # qopt.CommuteTGatesToStart().optimize_circuit(bbcircuit.circuit)
     #

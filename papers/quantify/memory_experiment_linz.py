@@ -1,15 +1,13 @@
-import cirq
-from qramcircuits.toffoli_decomposition import ToffoliDecompType
-
-import qramcircuits.bucket_brigade as bb
-
-import optimizers as qopt
-
+import os
+import sys
 import time
 
-import os
+import cirq
 import psutil
-import sys
+
+import optimizers as qopt
+import qramcircuits.bucket_brigade as bb
+from qramcircuits.toffoli_decomposition import ToffoliDecompType
 
 
 def main(argv_param, nr):
@@ -18,21 +16,21 @@ def main(argv_param, nr):
 
     if argv_param == "decomp":
         """
-            Bucket brigade - DECOMP
+        Bucket brigade - DECOMP
         """
         decomp_scenario = bb.BucketBrigadeDecompType(
             [
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,
+                ToffoliDecompType.AN0_TD4_TC7_CX6_COMPUTE,
                 # fan_in_decomp
-                ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
+                ToffoliDecompType.AN0_TD4_TC7_CX6,  # mem_decomp
                 ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
                 # fan_out_decomp
             ],
-            False
+            False,
         )
     else:
         """
-           Bucket brigade - NO DECOMP
+        Bucket brigade - NO DECOMP
         """
         decomp_scenario = bb.BucketBrigadeDecompType(
             [
@@ -40,7 +38,7 @@ def main(argv_param, nr):
                 ToffoliDecompType.NO_DECOMP,  # mem_decomp
                 ToffoliDecompType.NO_DECOMP,  # fan_out_decomp
             ],
-            False
+            False,
         )
 
     for i in range(nr, nr + 1):
@@ -50,10 +48,8 @@ def main(argv_param, nr):
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
-
         start = time.time()
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=decomp_scenario)
+        bbcircuit = bb.BucketBrigade(qubits, decomp_scenario=decomp_scenario)
         # print(bbcircuit.circuit.to_text_diagram(use_unicode_characters=False,
         #                                         qubit_order = bbcircuit.qubit_order))
         stop = time.time() - start
@@ -66,19 +62,29 @@ def main(argv_param, nr):
         memory used by the process. On UNIX it matches “top“‘s VIRT column. 
         """
 
-        print("--> mem bucket brigade, ", argv_param, ",", nr_qubits,
-              ",", stop,
-              ",", process.memory_info().rss ,
-              ",", process.memory_info().vms , flush=True)
+        print(
+            "--> mem bucket brigade, ",
+            argv_param,
+            ",",
+            nr_qubits,
+            ",",
+            stop,
+            ",",
+            process.memory_info().rss,
+            ",",
+            process.memory_info().vms,
+            flush=True,
+        )
+
 
 if __name__ == "__main__":
 
     # If param is decomp - decomposition
     # Otherwise no_decomp
     if len(sys.argv) == 1:
-        print("If param is decomp runs experiment with decomposition. "
-              "Any other string no decomposition.")
+        print(
+            "If param is decomp runs experiment with decomposition. "
+            "Any other string no decomposition."
+        )
     else:
         main(sys.argv[1], int(sys.argv[2]))
-
-

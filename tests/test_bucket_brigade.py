@@ -1,7 +1,8 @@
 import cirq
 
-from qramcircuits.toffoli_decomposition import ToffoliDecompType
 import qramcircuits.bucket_brigade as bb
+from qramcircuits.toffoli_decomposition import ToffoliDecompType
+
 
 def test_decomp_one():
 
@@ -11,18 +12,26 @@ def test_decomp_one():
             qubits.append(cirq.NamedQubit("a" + str(i)))
         # bbcircuit = bb.BucketBrigade(qubits,
         #                              decomp_scenario=decomp_scenario)
-        bbcircuit = bb.BucketBrigade(qubits, decomp_scenario=bb.BucketBrigadeDecompType(
-                                         [ToffoliDecompType.NO_DECOMP,  # fan_in_decom
-                                          ToffoliDecompType.NO_DECOMP,  # fan_out_decom
-                                          ToffoliDecompType.NO_DECOMP], False))
+        bbcircuit = bb.BucketBrigade(
+            qubits,
+            decomp_scenario=bb.BucketBrigadeDecompType(
+                [
+                    ToffoliDecompType.NO_DECOMP,  # fan_in_decom
+                    ToffoliDecompType.NO_DECOMP,  # fan_out_decom
+                    ToffoliDecompType.NO_DECOMP,
+                ],
+                False,
+            ),
+        )
 
         # #Verification
-        assert (bbcircuit.verify_number_qubits() == True)
-        assert (bbcircuit.verify_depth() == True)
-        assert (bbcircuit.verify_T_count() == True)
-        assert (bbcircuit.verify_T_depth() == True)
-        assert (bbcircuit.verify_hadamard_count() == True)
-        assert (bbcircuit.verify_cnot_count() == True)
+        assert bbcircuit.verify_number_qubits() == True
+        assert bbcircuit.verify_depth() == True
+        assert bbcircuit.verify_T_count() == True
+        assert bbcircuit.verify_T_depth() == True
+        assert bbcircuit.verify_hadamard_count() == True
+        assert bbcircuit.verify_cnot_count() == True
+
 
 def test_decomp_two():
 
@@ -31,22 +40,26 @@ def test_decomp_two():
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=bb.BucketBrigadeDecompType(
-        [
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # fan_in_decomp
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # mem_decomp
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,    # fan_out_decomp
-        ],
-        False))
+        bbcircuit = bb.BucketBrigade(
+            qubits,
+            decomp_scenario=bb.BucketBrigadeDecompType(
+                [
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,  # fan_in_decomp
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,  # mem_decomp
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,  # fan_out_decomp
+                ],
+                False,
+            ),
+        )
 
         # #Verification
-        assert (bbcircuit.verify_number_qubits() == True)
-        assert (bbcircuit.verify_depth() == True)
-        assert (bbcircuit.verify_T_count() == True)
-        assert (bbcircuit.verify_T_depth() == True)
-        assert (bbcircuit.verify_hadamard_count() == True)
-        assert (bbcircuit.verify_cnot_count() == True)
+        assert bbcircuit.verify_number_qubits() == True
+        assert bbcircuit.verify_depth() == True
+        assert bbcircuit.verify_T_count() == True
+        assert bbcircuit.verify_T_depth() == True
+        assert bbcircuit.verify_hadamard_count() == True
+        assert bbcircuit.verify_cnot_count() == True
+
 
 #
 def test_decomp_three():
@@ -56,22 +69,26 @@ def test_decomp_three():
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=bb.BucketBrigadeDecompType(
-                                         [
-                                             ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # fan_in_decomp
-                                             ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # mem_decomp
-                                             ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # fan_out_decomp
-                                         ],
-                                         False))
+        bbcircuit = bb.BucketBrigade(
+            qubits,
+            decomp_scenario=bb.BucketBrigadeDecompType(
+                [
+                    ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # fan_in_decomp
+                    ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # mem_decomp
+                    ToffoliDecompType.ONE_ANCILLA_TDEPTH_2,  # fan_out_decomp
+                ],
+                False,
+            ),
+        )
 
         # #Verification
-        assert (bbcircuit.verify_number_qubits() == True)
-        assert (bbcircuit.verify_depth() == True)
-        assert (bbcircuit.verify_T_count() == True)
-        assert (bbcircuit.verify_T_depth() == True)
-        assert (bbcircuit.verify_hadamard_count() == True)
-        assert (bbcircuit.verify_cnot_count() == True)
+        assert bbcircuit.verify_number_qubits() == True
+        assert bbcircuit.verify_depth() == True
+        assert bbcircuit.verify_T_count() == True
+        assert bbcircuit.verify_T_depth() == True
+        assert bbcircuit.verify_hadamard_count() == True
+        assert bbcircuit.verify_cnot_count() == True
+
 
 def test_decomp_five():
 
@@ -80,22 +97,25 @@ def test_decomp_five():
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=bb.BucketBrigadeDecompType(
-                                         [
-                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # fan_in_decomp
-                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # mem_decomp
-                                             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # fan_out_decomp
-                                         ],
-                                         False))
+        bbcircuit = bb.BucketBrigade(
+            qubits,
+            decomp_scenario=bb.BucketBrigadeDecompType(
+                [
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # fan_in_decomp
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # mem_decomp
+                    ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,  # fan_out_decomp
+                ],
+                False,
+            ),
+        )
 
         # #Verification
-        assert (bbcircuit.verify_number_qubits() == True)
-        assert (bbcircuit.verify_depth() == True)
-        assert (bbcircuit.verify_T_count() == True)
-        assert (bbcircuit.verify_T_depth() == True)
-        assert (bbcircuit.verify_hadamard_count() == True)
-        assert (bbcircuit.verify_cnot_count() == True)
+        assert bbcircuit.verify_number_qubits() == True
+        assert bbcircuit.verify_depth() == True
+        assert bbcircuit.verify_T_count() == True
+        assert bbcircuit.verify_T_depth() == True
+        assert bbcircuit.verify_hadamard_count() == True
+        assert bbcircuit.verify_cnot_count() == True
 
 
 def test_decomp_six():
@@ -105,22 +125,26 @@ def test_decomp_six():
         for i in range(nr_qubits):
             qubits.append(cirq.NamedQubit("a" + str(i)))
 
-        bbcircuit = bb.BucketBrigade(qubits,
-                                     decomp_scenario=bb.BucketBrigadeDecompType(
-                                         [
-                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # fan_in_decomp
-                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # mem_decomp
-                                             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # fan_out_decomp
-                                         ],
-                                         False))
+        bbcircuit = bb.BucketBrigade(
+            qubits,
+            decomp_scenario=bb.BucketBrigadeDecompType(
+                [
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # fan_in_decomp
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # mem_decomp
+                    ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,  # fan_out_decomp
+                ],
+                False,
+            ),
+        )
 
         # #Verification
-        assert (bbcircuit.verify_number_qubits() == True)
-        assert (bbcircuit.verify_depth() == True)
-        assert (bbcircuit.verify_T_count() == True)
-        assert (bbcircuit.verify_T_depth() == True)
-        assert (bbcircuit.verify_hadamard_count() == True)
-        assert (bbcircuit.verify_cnot_count() == True)
+        assert bbcircuit.verify_number_qubits() == True
+        assert bbcircuit.verify_depth() == True
+        assert bbcircuit.verify_T_count() == True
+        assert bbcircuit.verify_T_depth() == True
+        assert bbcircuit.verify_hadamard_count() == True
+        assert bbcircuit.verify_cnot_count() == True
+
 
 #
 # def test_decomp_six():
@@ -132,8 +156,8 @@ def test_decomp_six():
 #
 #         bbcircuit = bb.BucketBrigade(qubits,decomp_scenario=bb.BucketBrigadeDecompType(
 #                                      [
-#                                          ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_COMPUTE,  # fan_in_decomp
-#                                          ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,  # mem_decomp
+#                                          ToffoliDecompType.AN0_TD4_TC7_CX6_COMPUTE,  # fan_in_decomp
+#                                          ToffoliDecompType.AN0_TD4_TC7_CX6,  # mem_decomp
 #                                          ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,  # fan_out_decomp
 #                                      ],
 #                                      True

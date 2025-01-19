@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
-from utils.counting_utils import *
 import utils.clifford_t_utils as ctu
+from utils.counting_utils import *
 
 
 class ToffoliDecompType(Enum):
@@ -45,7 +45,7 @@ class ToffoliDecompType(Enum):
     RELATIVE_PHASE_CXD_4_TD_4 = auto()
     RELATIVE_PHASE_TD_4_CXD_4 = auto()
 
-    RELATIVE_PHASE_TD_0_CXD_3 = auto() #! test
+    RELATIVE_PHASE_TD_0_CXD_3 = auto()  #! test
 
     # from arXiv:2102.08451v1 _ figure 4
     # (Figure 5: topologies of near-term quantum devices : (b) 2D Grid)
@@ -58,19 +58,17 @@ class ToffoliDecompType(Enum):
     # experimental
     ONE_ANCILLA_TDEPTH_4 = auto()
 
-    ZERO_ANCILLA_TDEPTH_4 = auto()
+    AN0_TD4_TC7_CX6 = auto()
     AN0_TD4_TC6_CX6 = auto()
     AN0_TD4_TC5_CX6 = auto()
     AN0_TD3_TC4_CX6 = auto()
 
-    ZERO_ANCILLA_TDEPTH_4_INV = auto()
+    AN0_TD4_TC7_CX6_INV = auto()
 
 
-class ToffoliDecomposition():
+class ToffoliDecomposition:
 
-    def __init__(self, decomposition_type,
-                 qubits=None,
-                 target_qubit=None):
+    def __init__(self, decomposition_type, qubits=None, target_qubit=None):
 
         self.decomp_type = decomposition_type
 
@@ -81,14 +79,14 @@ class ToffoliDecomposition():
             self.qubits = [
                 cirq.NamedQubit("fake_0"),
                 cirq.NamedQubit("fake_1"),
-                cirq.NamedQubit("fake_2")
+                cirq.NamedQubit("fake_2"),
             ]
 
         self._ancilla = [
             cirq.NamedQubit("toff_a0"),
             cirq.NamedQubit("toff_a1"),
             cirq.NamedQubit("toff_a2"),
-            cirq.NamedQubit("toff_a3")
+            cirq.NamedQubit("toff_a3"),
         ]
 
         self.target_qubit = target_qubit
@@ -102,9 +100,9 @@ class ToffoliDecomposition():
         return self._ancilla
 
     @staticmethod
-    def construct_decomposed_moments(subcircuit,
-                                     toff_decomp,
-                                     qubit_permutation=[0, 1, 2]):
+    def construct_decomposed_moments(
+        subcircuit, toff_decomp, qubit_permutation=[0, 1, 2]
+    ):
         decomp_moments = []
 
         for moment in subcircuit:
@@ -120,13 +118,15 @@ class ToffoliDecomposition():
 
             moments_toffoli_decomps = []
             for toff in moment_w_toffolis:
-                moments_toffoli_decomps += \
-                    ToffoliDecomposition(toff_decomp, [
+                moments_toffoli_decomps += ToffoliDecomposition(
+                    toff_decomp,
+                    [
                         toff.qubits[qubit_permutation[0]],
                         toff.qubits[qubit_permutation[1]],
-                        toff.qubits[qubit_permutation[2]]
+                        toff.qubits[qubit_permutation[2]],
                     ],
-                        target_qubit=toff.qubits[2]).decomposition()
+                    target_qubit=toff.qubits[2],
+                ).decomposition()
 
             # Add the moment without Toffolis
             if len(moment_wo_toffolis) > 0:
@@ -144,31 +144,49 @@ class ToffoliDecomposition():
 
             # No decomposition at all
 
-            moments.append(
-                cirq.TOFFOLI.on(*self.qubits)
-            )
+            moments.append(cirq.TOFFOLI.on(*self.qubits))
 
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3:
             # Equation 3 from arxiv:1210.0974v2
             # No ancilla, T-depth 3
             moments += [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-                cirq.Moment([cirq.T.on(self.qubits[0])**-1,
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[2])]),
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
-                cirq.Moment([(cirq.T**-1).on(self.qubits[0]),
-                             cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
+                cirq.Moment(
+                    [
+                        (cirq.T**-1).on(self.qubits[0]),
+                        cirq.CNOT.on(self.qubits[1], self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[0])]),
-                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1,
-                             cirq.T.on(self.qubits[1]) ** -1,
-                             cirq.T.on(self.qubits[2])]),
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
-                cirq.Moment([cirq.S.on(self.qubits[0]),
-                             cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                             cirq.H.on(self.target_qubit)])
+                cirq.Moment(
+                    [
+                        cirq.S.on(self.qubits[0]),
+                        cirq.CNOT.on(self.qubits[1], self.qubits[2]),
+                    ]
+                ),
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.qubits[1]),
+                        cirq.H.on(self.target_qubit),
+                    ]
+                ),
             ]
             # strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
 
@@ -179,37 +197,60 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[0])]),
-                cirq.Moment([cirq.T.on(self.ancilla[0])**-1,
-                             cirq.T.on(self.qubits[2]),
-                             cirq.T.on(self.qubits[1]) ** -1,
-                             cirq.T.on(self.qubits[0]) ** -1]),
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.ancilla[0]) ** -1,
+                        cirq.T.on(self.qubits[2]),
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.qubits[0]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[1])]),
-                cirq.Moment([cirq.T.on(self.qubits[2]) ** -1,
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[0])]),
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[2]) ** -1,
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[0]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[1])]),
-                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[0]),
-                             cirq.H.on(self.target_qubit)])
-
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[1], self.qubits[0]),
+                        cirq.H.on(self.target_qubit),
+                    ]
+                ),
             ]  # strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
 
         elif self.decomp_type == ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A:
             # Figure 1 from from arxiv:1210.0974v2
             # Four ancilla, T-depth 1
             encoder = [
-                cirq.Moment([cirq.H.on(self.target_qubit),
-                             cirq.CNOT.on(self.qubits[1], self.ancilla[2]),
-                             cirq.CNOT.on(self.qubits[0], self.ancilla[0])]),
-                cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1]),
-                             cirq.CNOT.on(self.qubits[2], self.ancilla[2]),
-                             cirq.CNOT.on(self.ancilla[0], self.ancilla[3])]),
-                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1]),
-                             cirq.CNOT.on(self.qubits[2], self.ancilla[3]),
-                             cirq.CNOT.on(self.ancilla[2], self.ancilla[0])])
+                cirq.Moment(
+                    [
+                        cirq.H.on(self.target_qubit),
+                        cirq.CNOT.on(self.qubits[1], self.ancilla[2]),
+                        cirq.CNOT.on(self.qubits[0], self.ancilla[0]),
+                    ]
+                ),
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[1], self.ancilla[1]),
+                        cirq.CNOT.on(self.qubits[2], self.ancilla[2]),
+                        cirq.CNOT.on(self.ancilla[0], self.ancilla[3]),
+                    ]
+                ),
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.ancilla[1]),
+                        cirq.CNOT.on(self.qubits[2], self.ancilla[3]),
+                        cirq.CNOT.on(self.ancilla[2], self.ancilla[0]),
+                    ]
+                ),
             ]
             # in order to have parallel CNOTs
             moments += encoder
@@ -217,13 +258,17 @@ class ToffoliDecomposition():
             # self.decomposition.append(encoder, strategy=cirq.InsertStrategy.NEW)
 
             moments += [
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[2]),
-                             cirq.T.on(self.ancilla[0]),
-                             cirq.T.on(self.ancilla[1])**-1,
-                             cirq.T.on(self.ancilla[2])**-1,
-                             cirq.T.on(self.ancilla[3])**-1])
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                        cirq.T.on(self.ancilla[0]),
+                        cirq.T.on(self.ancilla[1]) ** -1,
+                        cirq.T.on(self.ancilla[2]) ** -1,
+                        cirq.T.on(self.ancilla[3]) ** -1,
+                    ]
+                )
             ]
 
             # in order to have parallel CNOTs
@@ -245,7 +290,7 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1])]),
-                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])])
+                cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
             ]
             # in order to have parallel CNOTs
             moments += encoder
@@ -253,13 +298,17 @@ class ToffoliDecomposition():
             # self.decomposition.append(encoder, strategy=cirq.InsertStrategy.NEW)
 
             moments += [
-                cirq.Moment([cirq.T.on(self.qubits[0])**-1,
-                             cirq.T.on(self.qubits[1])**-1,
-                             cirq.T.on(self.qubits[2]),
-                             cirq.T.on(self.ancilla[0]),
-                             cirq.T.on(self.ancilla[1])**-1,
-                             cirq.T.on(self.ancilla[2]),
-                             cirq.T.on(self.ancilla[3])**-1])
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.qubits[2]),
+                        cirq.T.on(self.ancilla[0]),
+                        cirq.T.on(self.ancilla[1]) ** -1,
+                        cirq.T.on(self.ancilla[2]),
+                        cirq.T.on(self.ancilla[3]) ** -1,
+                    ]
+                )
             ]
 
             # in order to have parallel CNOTs
@@ -273,37 +322,33 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[3])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1,
-                             cirq.T.on(self.qubits[1]) ** -1,
-                             cirq.T.on(self.ancilla[3]) ** -1]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.ancilla[3]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[0])]),
                 cirq.Moment([cirq.T.on(self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[0])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1])]),
-                cirq.Moment([cirq.T.on(self.ancilla[1])**-1]),
+                cirq.Moment([cirq.T.on(self.ancilla[1]) ** -1]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[2])]),
                 cirq.Moment([cirq.T.on(self.ancilla[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
                 cirq.Moment([cirq.T.on(self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[3])]),
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             moments = encoder
@@ -317,37 +362,33 @@ class ToffoliDecomposition():
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[3])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]) ** -1,
-                             cirq.T.on(self.qubits[1]) ** -1,
-                             cirq.T.on(self.ancilla[3]) ** -1]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.ancilla[3]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[1])]),
                 cirq.Moment([cirq.T.on(self.qubits[1])]),
                 cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.ancilla[1], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
                 cirq.Moment([cirq.CNOT.on(self.ancilla[1], self.qubits[0])]),
-
                 cirq.Moment([cirq.CNOT.on(self.ancilla[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.ancilla[2], self.qubits[0])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.ancilla[3])]),
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             moments = encoder
@@ -355,20 +396,34 @@ class ToffoliDecomposition():
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3_DEPTH_10:
             moments = [
                 cirq.Moment([cirq.H(self.qubits[2])]),
-                cirq.Moment([cirq.T(self.qubits[0]), cirq.T(
-                    self.qubits[1]), cirq.T(self.qubits[2])]),
+                cirq.Moment(
+                    [
+                        cirq.T(self.qubits[0]),
+                        cirq.T(self.qubits[1]),
+                        cirq.T(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[1])]),
                 cirq.Moment(
-                    [cirq.CNOT(self.qubits[0], self.qubits[2]), cirq.T(self.qubits[1])**-1]),
+                    [
+                        cirq.CNOT(self.qubits[0], self.qubits[2]),
+                        cirq.T(self.qubits[1]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[1])]),
-                cirq.Moment([cirq.T(self.qubits[0])**-1,
-                            cirq.T(self.qubits[1])**-1, cirq.T(self.qubits[2])**-1]),
+                cirq.Moment(
+                    [
+                        cirq.T(self.qubits[0]) ** -1,
+                        cirq.T(self.qubits[1]) ** -1,
+                        cirq.T(self.qubits[2]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[1])]),
                 cirq.Moment([cirq.CNOT(self.qubits[0], self.qubits[2])]),
                 cirq.Moment(
-                    [cirq.CNOT(self.qubits[1], self.qubits[0]), cirq.H(self.qubits[2])])
-
+                    [cirq.CNOT(self.qubits[1], self.qubits[0]), cirq.H(self.qubits[2])]
+                ),
             ]
 
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE:
@@ -383,17 +438,18 @@ class ToffoliDecomposition():
                 # TODO: Replace following two with single control -multiple target CNOT
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[1])]),
-                cirq.Moment([
-                    cirq.ops.T.on(self.qubits[0])**-1,
-                    cirq.ops.T.on(self.qubits[1])**-1,
-                    cirq.ops.T.on(self.qubits[2])
-                ]),
+                cirq.Moment(
+                    [
+                        cirq.ops.T.on(self.qubits[0]) ** -1,
+                        cirq.ops.T.on(self.qubits[1]) ** -1,
+                        cirq.ops.T.on(self.qubits[2]),
+                    ]
+                ),
                 # TODO: Replace following two with single control -multiple target CNOT
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[2], self.qubits[1])]),
-
                 cirq.Moment([cirq.H.on(self.qubits[2])]),
-                cirq.Moment([cirq.S.on(self.qubits[2])])
+                cirq.Moment([cirq.S.on(self.qubits[2])]),
             ]
 
         elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE:
@@ -401,8 +457,7 @@ class ToffoliDecomposition():
             # Measurements are implicit, and we assume worst case where all
             # the CZ have to be implemented
             moments = [
-                cirq.Moment([cirq.H.on(self.qubits[2]),
-                            cirq.H.on(self.qubits[0])]),
+                cirq.Moment([cirq.H.on(self.qubits[2]), cirq.H.on(self.qubits[0])]),
                 cirq.Moment([cirq.CX.on(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.H.on(self.qubits[0])]),
             ]
@@ -426,10 +481,14 @@ class ToffoliDecomposition():
             moments += encoder
 
             moments += [
-                cirq.Moment([cirq.T.on(self.ancilla[0]) ** -1,
-                             cirq.T.on(self.ancilla[1]) ** -1,
-                             cirq.T.on(self.ancilla[2]),
-                             cirq.T.on(self.ancilla[3])])
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.ancilla[0]) ** -1,
+                        cirq.T.on(self.ancilla[1]) ** -1,
+                        cirq.T.on(self.ancilla[2]),
+                        cirq.T.on(self.ancilla[3]),
+                    ]
+                )
             ]
 
             # in order to have parallel CNOTs
@@ -444,27 +503,26 @@ class ToffoliDecomposition():
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.ancilla[0])]),
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.ancilla[0]) ** -1]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.ancilla[0]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.ancilla[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.ancilla[0])]),
-
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
@@ -473,32 +531,22 @@ class ToffoliDecomposition():
         elif self.decomp_type == ToffoliDecompType.TD_5_CXD_6:
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[1]),
-                    cirq.T.on(self.qubits[2])]),
-                
+                cirq.Moment([cirq.T.on(self.qubits[1]), cirq.T.on(self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-                
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[1]) ** -1,
-                    cirq.H.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.H.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
             ]
 
@@ -507,33 +555,23 @@ class ToffoliDecomposition():
         elif self.decomp_type == ToffoliDecompType.TD_5_CXD_6_INV:
             moments = [
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[1]) ** -1,
-                    cirq.H.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.H.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[1]),
-                    cirq.T.on(self.qubits[2])]),
-                
+                cirq.Moment([cirq.T.on(self.qubits[1]), cirq.T.on(self.qubits[2])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
@@ -550,7 +588,7 @@ class ToffoliDecomposition():
                 cirq.T(self.target_qubit) ** -1,
                 cirq.CNOT(self.qubits[0], self.target_qubit),
                 cirq.T(self.target_qubit),
-                cirq.H(self.target_qubit)
+                cirq.H(self.target_qubit),
             ]
 
         elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_4:
@@ -565,7 +603,7 @@ class ToffoliDecomposition():
                 cirq.CNOT(self.qubits[0], self.target_qubit),
                 cirq.T(self.target_qubit),
                 cirq.CNOT(self.qubits[1], self.target_qubit),
-                cirq.H(self.target_qubit)
+                cirq.H(self.target_qubit),
             ]
 
         elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3:
@@ -579,111 +617,91 @@ class ToffoliDecomposition():
                 cirq.T(self.target_qubit),
                 cirq.CNOT(self.qubits[1], self.target_qubit),
                 cirq.T(self.target_qubit) ** -1,
-                cirq.H(self.target_qubit)
+                cirq.H(self.target_qubit),
             ]
 
         elif self.decomp_type == ToffoliDecompType.RELATIVE_PHASE_TD_0_CXD_3:
             # 10.1109/TQE.2021.3136195 _ Figure 17
 
             moments = [
-
                 cirq.Moment([cirq.H.on(self.qubits[2])]),
-
                 # cirq.Moment([cirq.T.on(self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 # cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[2])]),
-
                 # cirq.Moment([cirq.T.on(self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 # cirq.Moment([cirq.T.on(self.qubits[2]) ** -1]), #! sometimes works without this
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
         elif self.decomp_type == ToffoliDecompType.TD_4_CXD_8:
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[1]),
-                    cirq.T.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                    cirq.T.on(self.qubits[2])
-                ]),
-
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
-                cirq.Moment([
-                    cirq.T(self.qubits[1]) ** -1,
-                    cirq.T(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [cirq.T(self.qubits[1]) ** -1, cirq.T(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                    cirq.T.on(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.qubits[1]),
+                        cirq.T.on(self.qubits[2]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
 
         elif self.decomp_type == ToffoliDecompType.TD_4_CXD_8_INV:
             moments = [
-
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                    cirq.T.on(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.qubits[1]),
+                        cirq.T.on(self.qubits[2]) ** -1,
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.T(self.qubits[1]) ** -1,
-                    cirq.T(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [cirq.T(self.qubits[1]) ** -1, cirq.T(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.qubits[0], self.qubits[1]),
-                    cirq.T.on(self.qubits[2])
-                ]),
-
+                cirq.Moment(
+                    [
+                        cirq.CNOT.on(self.qubits[0], self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.qubits[1])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[1]),
-                    cirq.T.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
@@ -692,79 +710,56 @@ class ToffoliDecomposition():
         elif self.decomp_type == ToffoliDecompType.TWO_ANCILLA_TD_1_CXD_8:
             moments = [
                 cirq.Moment([cirq.H.on(self.ancilla[0])]),
-
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.ancilla[0], self.qubits[1])
-                ]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.ancilla[0], self.qubits[0])
-                ]),
-
+                cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[1])]),
+                cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]) ** -1,
-                    cirq.T.on(self.qubits[1]) ** -1,
-                    cirq.T.on(self.ancilla[0]),
-                    cirq.T.on(self.ancilla[1]),
-                ]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]) ** -1,
+                        cirq.T.on(self.qubits[1]) ** -1,
+                        cirq.T.on(self.ancilla[0]),
+                        cirq.T.on(self.ancilla[1]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT.on(self.qubits[1], self.ancilla[1])]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.ancilla[0], self.qubits[0])
-                ]),
-
-                cirq.Moment([
-                    cirq.CNOT.on(self.ancilla[0], self.qubits[1])
-                ]),
-
+                cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[0])]),
+                cirq.Moment([cirq.CNOT.on(self.ancilla[0], self.qubits[1])]),
                 cirq.Moment([cirq.CNOT.on(self.qubits[0], self.ancilla[1])]),
-
                 cirq.Moment([cirq.H.on(self.ancilla[0])]),
-
-
                 cirq.Moment([cirq.S.on(self.ancilla[0])]),
-
                 cirq.Moment([cirq.CNOT(self.ancilla[0], self.qubits[2])]),
-
                 cirq.Moment([cirq.H.on(self.ancilla[0])]),
-
                 cirq.Moment([cirq.CZ(self.qubits[0], self.qubits[1])]),
             ]
 
             return moments
 
-        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4:
+        elif self.decomp_type == ToffoliDecompType.AN0_TD4_TC7_CX6:
             # This is a CCZ, and the Hadamard can be placed anywhere,
             # but by Cirq definition, the last qubit is the target
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[2]) ** -1]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
@@ -775,34 +770,27 @@ class ToffoliDecomposition():
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[1]),
-                    ]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
-
 
         elif self.decomp_type == ToffoliDecompType.AN0_TD4_TC5_CX6:
             # This is a CCZ, and the Hadamard can be placed anywhere,
@@ -810,33 +798,26 @@ class ToffoliDecomposition():
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
-                cirq.Moment([
-                    cirq.T.on(self.qubits[1]),
-                    ]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[1]),
+                    ]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
-
 
         elif self.decomp_type == ToffoliDecompType.AN0_TD3_TC4_CX6:
             # This is a CCZ, and the Hadamard can be placed anywhere,
@@ -844,66 +825,51 @@ class ToffoliDecomposition():
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-
                 cirq.Moment([cirq.T.on(self.qubits[1])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-                cirq.Moment([
-                    cirq.T.on(self.qubits[0]),
-                    cirq.T.on(self.qubits[2]) ** -1
-                ]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
-                cirq.Moment([cirq.H.on(self.target_qubit)])
+                cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
 
-        elif self.decomp_type == ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV:
+        elif self.decomp_type == ToffoliDecompType.AN0_TD4_TC7_CX6_INV:
             # This is a CCZ, and the Hadamard can be placed anywhere,
             # but by Cirq definition, the last qubit is the target
 
             moments = [
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
-                
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[2]) ** -1]),
-
+                cirq.Moment(
+                    [cirq.T.on(self.qubits[0]), cirq.T.on(self.qubits[2]) ** -1]
+                ),
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[2])]),
-
-
                 cirq.Moment([cirq.CNOT(self.qubits[1], self.qubits[0])]),
-
                 cirq.Moment([cirq.T.on(self.qubits[0]) ** -1]),
-
                 cirq.Moment([cirq.CNOT(self.qubits[2], self.qubits[0])]),
-
-                cirq.Moment([cirq.T.on(self.qubits[0]),
-                             cirq.T.on(self.qubits[1]),
-                             cirq.T.on(self.qubits[2])]),
-
+                cirq.Moment(
+                    [
+                        cirq.T.on(self.qubits[0]),
+                        cirq.T.on(self.qubits[1]),
+                        cirq.T.on(self.qubits[2]),
+                    ]
+                ),
                 cirq.Moment([cirq.H.on(self.target_qubit)]),
             ]
 
             return moments
-        
+
         else:
             print("decomposition type must be a valid ToffoliDecompType")
 
@@ -948,8 +914,8 @@ class ToffoliDecomposition():
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_3,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_2_COMPUTE,
             ToffoliDecompType.ZERO_ANCILLA_TDEPTH_0_UNCOMPUTE,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4,
-            ToffoliDecompType.ZERO_ANCILLA_TDEPTH_4_INV,
+            ToffoliDecompType.AN0_TD4_TC7_CX6,
+            ToffoliDecompType.AN0_TD4_TC7_CX6_INV,
             ToffoliDecompType.AN0_TD4_TC6_CX6,
             ToffoliDecompType.AN0_TD4_TC5_CX6,
             ToffoliDecompType.AN0_TD3_TC4_CX6,
@@ -963,7 +929,7 @@ class ToffoliDecomposition():
             ToffoliDecompType.ONE_ANCILLA_TDEPTH_4,
         ]:
             return 1
-        
+
         elif decomp_type in [
             ToffoliDecompType.TWO_ANCILLA_TD_1_CXD_8,
         ]:
@@ -974,7 +940,7 @@ class ToffoliDecomposition():
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B_P,
             ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B_PP,
-            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE
+            ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_COMPUTE,
         ]:
             return 4
 

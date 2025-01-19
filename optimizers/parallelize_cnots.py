@@ -20,7 +20,7 @@ class ParallelizeCNOTSToLeft(InvariantCheckOptimizer):
 
         # print("start from 1", index, circuit[index], op)
 
-        if op.gate == cirq.ops.CNOT:
+        if op.gate == cirq.ops.CNOT or op.gate == cirq.ops.CX:
             op = self.cnot_to_controlled_parallel_x(circuit, index, op)
 
         p_idx_control = index
