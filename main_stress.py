@@ -36,8 +36,9 @@ def main() -> int:
 
     T_Count = args.t_count
     T_Cancel = args.t_cancel
+    T_Depth = 3 if T_Count == 4 else 4
 
-    Stress(eval(f"ToffoliDecompType.AN0_TD4_TC{T_Count}_CX6"), T_Cancel)
+    Stress(eval(f"ToffoliDecompType.AN0_TD{T_Depth}_TC{T_Count}_CX6"), T_Cancel)
 
     return 0
 

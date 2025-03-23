@@ -1,18 +1,19 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 import sys
-import matplotlib
 
-matplotlib.use('TkAgg')
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from mpl_toolkits.mplot3d import Axes3D
+
+matplotlib.use("TkAgg")
 
 if len(sys.argv) < 2:
     print("Usage: python parse.py <file_path>")
     sys.exit(1)
 # Step 1: Read the data from the file
 file_path = sys.argv[1]  # Get the file path from the command line
-data = pd.read_csv(file_path, delimiter=',')  # Adjust delimiter and skip the first row
+data = pd.read_csv(file_path, delimiter=",")  # Adjust delimiter and skip the first row
 
 # Step 2: Parse the data to extract T index, T indey, and categories
 # Assuming the columns are named 'T_index', 'T_indey', and 'category'
@@ -30,7 +31,7 @@ for i in range(len(data)):
     t_idx = t_index[i]
     t_idy = t_indey[i]
     category = categories[i]
-    
+
     if t_idx not in failed_dict:
         failed_dict[t_idx] = {}
     failed_dict[t_idx][t_idy] = category
@@ -38,7 +39,7 @@ for i in range(len(data)):
     # Add more conditions for other categories
 
 # Step 5: Convert the dictionaries to DataFrames
-failed_df = pd.DataFrame.from_dict(failed_dict, orient='index')
+failed_df = pd.DataFrame.from_dict(failed_dict, orient="index")
 # Add more DataFrames for other categories
 
 # Sort the DataFrames by index and columns and rows
@@ -54,10 +55,11 @@ print(failed_df)
 # failed_df.to_csv('stress_bilan_756_output_vector.csv')
 # failed_df.to_csv('stress_bilan_1560_failed.csv')
 
+
 def plot3D(data, title, color):
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    
+    ax = fig.add_subplot(111, projection="3d")
+
     # Flatten the DataFrame
     x = np.repeat(data.index, data.shape[1])
     y = np.tile(data.columns, data.shape[0])
@@ -71,7 +73,8 @@ def plot3D(data, title, color):
 
     plt.show()
 
+
 # Example usage
 # plot3D(failed_df, 'Failed', 'red')
 # plot3D(failed_df, 'Succeed', 'yellow')
-plot3D(failed_df, 'Measurement', 'blue')
+plot3D(failed_df, "Measurement", "blue")

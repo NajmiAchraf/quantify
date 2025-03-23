@@ -33,8 +33,9 @@ def main() -> int:
     """
 
     T_Count = parser_args("experiments").parse_args().t_count
+    T_Depth = 3 if T_Count == 4 else 4
 
-    Experiment(eval(f"ToffoliDecompType.AN0_TD4_TC{T_Count}_CX6"))
+    Experiment(eval(f"ToffoliDecompType.AN0_TD{T_Depth}_TC{T_Count}_CX6"))
 
     return 0
 

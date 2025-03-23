@@ -49,12 +49,12 @@ def parse_print_circuit(value: str) -> str:
     Parse the print circuit option.
     """
 
-    if value not in ["p", "d", "h"]:
+    if value not in ["p", "d", "e", "h"]:
         raise argparse.ArgumentTypeError(
-            "The print circuit option should be one of (p, d, h)."
+            "The print circuit option should be one of (p, d, e, h)."
         )
 
-    circuit_options = {"p": "Print", "d": "Display", "h": "Hide"}
+    circuit_options = {"p": "Print", "d": "Display", "e": "Export", "h": "Hide"}
     return circuit_options[value]
 
 
@@ -176,7 +176,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             type=parse_print_circuit,
             nargs="?",
             default="h",
-            help="(p) print or (d) display or (h) hide circuits, by default it is hide",
+            help="(p) print or (d) display or (e) export or (h) hide circuits, by default it is hide",
         )
         parser.add_argument(
             "--print-simulation",

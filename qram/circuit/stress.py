@@ -240,6 +240,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self._bbcircuit_modded.circuit = qopt.CancelTGate(
             self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order
         ).optimize_circuit(indices)
+        exit(0)
 
         self._simulated = False
         self._results()

@@ -115,15 +115,14 @@ def message(message: str) -> str:
     return "<" + "=" * 20 + " " + message + " " + "=" * 20 + ">\n"
 
 
-_html_template = '<img width="{}" style="background-color:white;" src="data:image/svg+xml;base64,{}" >'
-
-
-def display_rescaled_svg(tdd: "cirq.TextDiagramDrawer") -> None:
+def svg_format(circuit: cirq.Circuit, qubits: "list[cirq.NamedQubit]") -> str:
     """
-    Display the circuit as a rescaled SVG.
-
+    Convert the circuit to SVG format.
     Args:
-        tdd ('cirq.TextDiagramDrawer'): The text diagram drawer of the circuit.
+        circuit (cirq.Circuit): The circuit to be converted.
+        qubits ('list[cirq.NamedQubit]'): The qubits of the circuit.
+    Returns:
+        str: The SVG format of the circuit.
     """
 
     try:
@@ -132,12 +131,53 @@ def display_rescaled_svg(tdd: "cirq.TextDiagramDrawer") -> None:
         raise ImportError(
             "Please modify manually the cirq/contrib/svg/__init__.py by add the import tdd_to_svg"
         )
+
+    tdd = circuit.to_text_diagram_drawer(transpose=False, qubit_order=qubits)
     svg = tdd_to_svg(tdd)
+
+    return svg
+
+
+_html_template = '<img width="{}" style="background-color:white;" src="data:image/svg+xml;base64,{}" >'
+
+
+def display_rescaled_svg(
+    circuit: cirq.Circuit, qubits: "list[cirq.NamedQubit]"
+) -> None:
+    """
+    Display the circuit as a rescaled SVG.
+
+    Args:
+        tdd ('cirq.TextDiagramDrawer'): The text diagram drawer of the circuit.
+    """
+
+    svg = svg_format(circuit, qubits)
+
     # Encode the SVG data to base64
     svg_base64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+
     # Display the SVG with a fixed width to avoid horizontal scrolling
     html = _html_template.format("100%", svg_base64)
+
     display(HTML(html))
+
+
+def export_circuit(
+    circuit: cirq.Circuit,
+    qubits: "list[cirq.NamedQubit]",
+    name: str = "bucket brigade",
+) -> None:
+    """
+    Export the circuit as an SVG file.
+    Args:
+        circuit (cirq.Circuit): The circuit to be exported.
+        qubits ('list[cirq.NamedQubit]'): The qubits of the circuit.
+        name (str): The name of the circuit.
+    """
+
+    svg = svg_format(circuit, qubits)
+    with open(f"images/{name}_circuit.svg", "w") as f:
+        f.write(svg)
 
 
 def printCircuit(
@@ -181,16 +221,14 @@ def printCircuit(
         if "ToffoliDecompType" in name:
             display(SVGCircuit(circuit))
         else:
-            tdd = circuit.to_text_diagram_drawer(transpose=False, qubit_order=qubits)
-            display_rescaled_svg(tdd)
+            display_rescaled_svg(circuit, qubits)
 
         stop = elapsed_time(start)
         colpr("w", "Time elapsed on displaying the circuit: ", end=" ")
         colpr("r", stop, end="\n\n")
 
-    # # Save the circuit as an SVG file
-    # with open(f"images/{self.__start_range_qubits}_{name}_circuit.svg", "w") as f:
-    #     f.write(sv.circuit_to_svg(circuit))
+    elif print_circuit == "Export":
+        export_circuit(circuit, qubits, name)
 
 
 def printRange(start: int, stop: int, step: int) -> None:
