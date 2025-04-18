@@ -15,7 +15,7 @@ class QRAMCircuitSimulatorManager:
 
     Methods:
         __init__(*args, **kwargs): Constructor of the QRAMCircuitSimulatorManager class.
-        get_simulation_bilan(): Returns the simulation bilan.
+        get_simulation_assessment(): Returns the simulation assessment.
         _run_simulation(is_stress: bool = False): Runs the simulation.
     """
 
@@ -33,8 +33,8 @@ class QRAMCircuitSimulatorManager:
         self.args = args
         self.kwargs = kwargs
 
-    def get_simulation_bilan(self) -> "list[str]":
-        return self._simulator.get_simulation_bilan()
+    def get_simulation_assessment(self) -> "list[str]":
+        return self._simulator.get_simulation_assessment()
 
     def _run_simulation(self, is_stress: bool = False) -> None:
         """

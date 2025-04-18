@@ -8,23 +8,23 @@ from utils.counting_utils import *
 from utils.print_utils import *
 
 #######################################
-# QRAM Circuit Bilan
+# QRAM Circuit Assessment
 #######################################
 
 
-class QRAMCircuitBilan(QRAMCircuitCore):
+class QRAMCircuitAssessment(QRAMCircuitCore):
     """
-    A class used to represent the QRAM circuit bilan.
+    A class used to represent the QRAM circuit assessment.
 
     Attributes:
-        _data (dict): Stores the bilan data for the reference circuit.
-        _data_modded (dict): Stores the bilan data for the modded circuit.
+        _data (dict): Stores the assessment data for the reference circuit.
+        _data_modded (dict): Stores the assessment data for the modded circuit.
 
     Methods:
-        _run(): Runs the bilan for a range of qubits.
+        _run(): Runs the assessment for a range of qubits.
         _core(nr_qubits: int): Core function of the experiment.
-        __bilan(nr_qubits: int): Collects the bilan of the experiment.
-        __print_bilan(): Prints the bilan of the experiment.
+        __assessment(nr_qubits: int): Collects the assessment of the experiment.
+        __print_assessment(): Prints the assessment of the experiment.
     """
 
     _data: dict = {}
@@ -36,16 +36,16 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
     def _run(self) -> None:
         """
-        Run the bilan for a range of qubits.
+        Run the assessment for a range of qubits.
         """
 
         # Reset data for multiple tests on series
         self._data.clear()
         self._data_modded.clear()
 
-        super()._run("bilan")
+        super()._run("assessment")
 
-        self.__print_bilan()
+        self.__print_assessment()
 
     def _core(self, nr_qubits: int) -> None:
         """
@@ -54,15 +54,15 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
         super()._core(nr_qubits=nr_qubits)
 
-        self.__bilan(nr_qubits=nr_qubits)
+        self.__assessment(nr_qubits=nr_qubits)
 
     #######################################
-    # bilan functions
+    # assessment functions
     #######################################
 
-    def __bilan(self, nr_qubits: int) -> None:
+    def __assessment(self, nr_qubits: int) -> None:
         """
-        Collect the bilan of the experiment
+        Collect the assessment of the experiment
         """
 
         process = psutil.Process(os.getpid())
@@ -107,14 +107,14 @@ class QRAMCircuitBilan(QRAMCircuitCore):
             vms,
         ]
 
-    def __print_bilan(self) -> None:
+    def __print_assessment(self) -> None:
         """
-        Prints the bilan of the experiment.
+        Prints the assessment of the experiment.
         """
 
-        colpr("y", "\n\nBilan of the experiment:", end="\n\n")
+        colpr("y", "\n\nAssessment of the experiment:", end="\n\n")
 
-        # Bilan of essential checks
+        # Assessment of essential checks
         colpr("b", "Creation of the Bucket Brigade Circuits:", end="\n\n")
         table = "| Qubits Range     | Elapsed Time               | RSS (Memory Usage)     | VMS (Memory Usage)     |\n"
         table += "|------------------|----------------------------|------------------------|------------------------|\n"
@@ -124,9 +124,9 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
         print(table, end="\n\n")
 
-        # Bilan of the reference circuit
+        # Assessment of the reference circuit
         if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
-            colpr("b", "Reference circuit bilan:", end="\n\n")
+            colpr("b", "Reference circuit assessment:", end="\n\n")
 
             table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
             table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
@@ -136,8 +136,8 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
             print(table, end="\n\n")
 
-        # Bilan of the modded circuit
-        colpr("b", "Modded circuit bilan:", end="\n\n")
+        # Assessment of the modded circuit
+        colpr("b", "Modded circuit assessment:", end="\n\n")
         table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
@@ -146,7 +146,7 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
         print(table, end="\n\n")
 
-        # Comparing bilans
+        # Comparing assessments
         if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
 
             def calculate(i: int, j: int) -> "tuple[str, str]":
@@ -163,7 +163,7 @@ class QRAMCircuitBilan(QRAMCircuitCore):
 
                 return modded, cancelled
 
-            colpr("y", "Comparing bilans", end="\n\n")
+            colpr("y", "Comparing assessments", end="\n\n")
 
             colpr("b", "T count comparison:", end="\n\n")
             table = "| Qubits Range     | T Count Reference  | T Count Modded (%) | T Count Cancelled (%)  |\n"

@@ -25,7 +25,7 @@ else ifeq ($(QOS), long-cpu)
 endif
 
 # SLURM Job Configuration
-ifeq ($(SLURM), bilan)
+ifeq ($(SLURM), assessment)
 	NP = 1
 	JOB_NAME = "${QUBITS}Q_QD${T_COUNT}T"
 	QRAM_CMD = "python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)"
@@ -51,7 +51,7 @@ SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-no
 all:
 	@echo "To execute the program on HPC, please use the following command:"
 	@echo "	Please specify variables:"
-	@echo "		SLURM: bilan, experiments or stress"
+	@echo "		SLURM: assessment, experiments or stress"
 	@echo "		QUBITS: Must be at least 2"
 	@echo "		T_COUNT: Should be between 4 and 7"
 	@echo "		T_CANCEL: Must be greater than 1"
@@ -63,25 +63,25 @@ all:
 	@echo "		error: To show the error log"
 	@echo ""
 	@echo "	Example of usage:"
-	@echo "		make SLURM=bilan QUBITS=2-7 T_COUNT=4 submit"
+	@echo "		make SLURM=assessment QUBITS=2-7 T_COUNT=4 submit"
 	@echo "		make SLURM=experiments QUBITS=2 T_COUNT=4 submit"
 	@echo "		make SLURM=stress QUBITS=2 T_COUNT=4 T_CANCEL=2 submit"
-	@echo "		make SLURM=bilan QUBITS=2-7 T_COUNT=4 output"
+	@echo "		make SLURM=assessment QUBITS=2-7 T_COUNT=4 output"
 	@echo "		make SLURM=experiments QUBITS=2 T_COUNT=4 output"
 	@echo "		make SLURM=stress QUBITS=2 T_COUNT=4 T_CANCEL=2 error"
 	@echo ""
 	@echo "To run the program locally, please use the following command:"
 	@echo "	Please specify variables:"
-	@echo "		LOCAL: bilan, experiments or stress"
+	@echo "		LOCAL: assessment, experiments or stress"
 	@echo "		QUBITS: Must be at least 2"
-	@echo "		T_COUNT: Should be between 4 and 7 (for bilan, it should be between 4 and 6)"
+	@echo "		T_COUNT: Should be between 4 and 7 (for assessment, it should be between 4 and 6)"
 	@echo "		T_CANCEL: Must be greater than 0"
 	@echo ""
 	@echo "	Also, specify a target:"
 	@echo "		run: To run the program"
 	@echo ""
 	@echo "	Example of usage:"
-	@echo "		make LOCAL=bilan QUBITS=2-7 T_COUNT=4 run"
+	@echo "		make LOCAL=assessment QUBITS=2-7 T_COUNT=4 run"
 	@echo "		make LOCAL=experiments QUBITS=2 T_COUNT=4 run"
 	@echo "		make LOCAL=stress QUBITS=2 T_COUNT=4 T_CANCEL=2 run"
 
@@ -98,7 +98,7 @@ script:
 submit: script
 	@mkdir -p output
 	@echo $(HPC_CMD) >> $(NAME)
-ifeq ($(SLURM), bilan)
+ifeq ($(SLURM), assessment)
 	@sbatch $(SBATCH_FLAGS) $(NAME)
 else ifeq ($(SLURM), experiments)
 	@sbatch $(SBATCH_FLAGS) $(NAME)
@@ -124,7 +124,7 @@ error:
 
 # Run the QRAM locally
 run:
-ifeq ($(LOCAL), bilan)
+ifeq ($(LOCAL), assessment)
 	@python3 main_bilan.py --qubit-range=$(QUBITS) --t-count=$(T_COUNT)
 else ifeq ($(LOCAL), experiments)
 	@python3 main_experiments.py --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d --specific=$(SPECIFIC)

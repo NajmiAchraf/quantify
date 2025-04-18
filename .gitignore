@@ -4,6 +4,7 @@
 __pycache__
 data/
 output/
+images/
 experimental
 .message*
 **/*.out

@@ -21,7 +21,6 @@ class CancelTGate:
                 if op.gate == cirq.T or op.gate == cirq.T**-1:
                     count += 1
                     self[count] = [op.qubits, mi]
-                    print(self[count])
 
     def __len__(self):
         return len(self.T_Gate)

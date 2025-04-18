@@ -39,7 +39,7 @@ class QRAMSimulatorBase:
         _lock (multiprocessing.Lock): The multiprocessing lock.
 
         _simulation_results (Union[DictProxy, dict]): The simulation results.
-        _simulation_bilan (list[str]): The simulation bilan.
+        _simulation_assessment (list[str]): The simulation assessment.
 
         _bbcircuit (bb.BucketBrigade): The bucket brigade circuit.
         _bbcircuit_modded (bb.BucketBrigade): The modded circuit.
@@ -48,7 +48,7 @@ class QRAMSimulatorBase:
         _simulator (cirq.Simulator): The Cirq simulator.
 
     Methods:
-        get_simulation_bilan(): Returns the simulation bilan.
+        get_simulation_assessment(): Returns the simulation assessment.
         __init__(bbcircuit, bbcircuit_modded, specific_simulation, qubits_number, print_circuit, print_sim, hpc):
             Constructor of the CircuitSimulator class.
 
@@ -79,7 +79,7 @@ class QRAMSimulatorBase:
     _lock = multiprocessing.Lock()
 
     _simulation_results: Union[DictProxy, dict]
-    _simulation_bilan: "list[str]" = []
+    _simulation_assessment: "list[str]" = []
 
     _bbcircuit: bb.BucketBrigade
     _bbcircuit_modded: bb.BucketBrigade
@@ -91,18 +91,18 @@ class QRAMSimulatorBase:
     _start_time: float
     _stop_time: str
 
-    def get_simulation_bilan(self) -> "list[str]":
+    def get_simulation_assessment(self) -> "list[str]":
         """
-        Returns the simulation bilan.
+        Returns the simulation assessment.
 
         Args:
             None
 
         Returns:
-            'list[str]': The simulation bilan.
+            'list[str]': The simulation assessment.
         """
 
-        return self._simulation_bilan
+        return self._simulation_assessment
 
     def __init__(
         self,
@@ -529,7 +529,7 @@ class QRAMSimulatorBase:
             (((success_measurements + success_vector) * 100) / total_tests), ",.2f"
         )
 
-        self._simulation_bilan = [f, ts, sm, sv]
+        self._simulation_assessment = [f, ts, sm, sv]
 
         if not self._is_stress:
             print("\n\nResults of the simulation:\n")

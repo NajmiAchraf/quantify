@@ -18,13 +18,13 @@ data = pd.read_csv(file_path, delimiter=",")  # Adjust delimiter if needed
 def plot2D(data):
     plt.figure()
     x = data["Qubits"]
-    plt.plot(x, data["T Count 7"], marker="o", label="T Count 7")
-    plt.plot(x, data["T Count 6"], marker="o", label="T Count 6")
-    plt.plot(x, data["T Count 5"], marker="o", label="T Count 5")
-    plt.plot(x, data["T Count 4"], marker="o", label="T Count 4")
-    plt.xlabel("QRAM Qubits")
-    plt.ylabel("T Count Removed")
-    plt.title("T Count Removed (Higher is Better)")
+    plt.plot(x, data["T-gate Count 7"], marker="o", label="AN0_TD4_TC7_CX6")
+    plt.plot(x, data["T-gate Count 6"], marker="o", label="AN0_TD4_TC6_CX6")
+    plt.plot(x, data["T-gate Count 5"], marker="o", label="AN0_TD4_TC5_CX6")
+    plt.plot(x, data["T-gate Count 4"], marker="o", label="AN0_TD3_TC4_CX6")
+    plt.xlabel("Qubits QRAM")
+    plt.ylabel("T-gate Reduction")
+    plt.title("T-gate Reduction vs Qubits QRAM\n(higher is better)")
     plt.legend()
     plt.show()
 

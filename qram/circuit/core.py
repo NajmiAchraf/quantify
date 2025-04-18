@@ -263,7 +263,7 @@ class QRAMCircuitCore:
             return
 
         animate = False
-        if title == "bilan" and not self._hpc:
+        if title == "assessment" and not self._hpc:
             animate = True
 
         if animate:

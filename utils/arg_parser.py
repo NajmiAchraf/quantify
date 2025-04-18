@@ -134,7 +134,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             required=True,
             help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
         )
-    elif qram_type == "bilan":
+    elif qram_type == "assessment":
         parser.add_argument(
             "--t-count",
             type=parse_t_count_bilan,
@@ -153,7 +153,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             help="The T cancel for the combinations it should be greater than 0, by default it is 1.",
         )
 
-    if qram_type != "bilan":
+    if qram_type != "assessment":
         parser.add_argument(
             "--shots",
             type=parse_shots,

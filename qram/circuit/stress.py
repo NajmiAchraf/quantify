@@ -24,7 +24,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
     QRAM circuit stress experiment.
 
     Attributes:
-        _stress_bilan (DictProxy): The stress bilan.
+        _stress_assessment (DictProxy): The stress assessment.
         _combinations (itertools.combinations[tuple[int, ...]]): The combinations.
         __circuit_save (cirq.Circuit): The circuit save.
         __circuit_modded_save (cirq.Circuit): The modded circuit save.
@@ -48,13 +48,13 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         __run_non_simulation(combinations): Runs the stress experiment without simulation.
         __extract_results(): Extracts and prints the results of the stress experiment.
         _stress_experiment(indices: tuple[int, ...]): Runs a single stress experiment.
-        __print_bilan(): Prints the bilan of the stress experiment.
-        __export_bilan(): Exports the bilan of the stress experiment.
+        __print_assessment(): Prints the assessment of the stress experiment.
+        __export_assessment(): Exports the assessment of the stress experiment.
 
         _simulate_circuit(): Simulates the circuit.
     """
 
-    _stress_bilan: "DictProxy[str, list[str]]" = multiprocessing.Manager().dict()
+    _stress_assessment: "DictProxy[str, list[str]]" = multiprocessing.Manager().dict()
 
     _combinations: "itertools.combinations[tuple[int, ...]]"
 
@@ -179,7 +179,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
                 for map_name, value in item.items():
                     # print(f"map_name, value : {map_name}, {value}")
                     if len(value) != 0:
-                        self._stress_bilan[map_name] = value
+                        self._stress_assessment[map_name] = value
 
             self.__extract_results()
 
@@ -197,8 +197,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         self._stop_time = elapsed_time(self._start_time)
         if self._simulate:
-            self.__print_bilan()
-            self.__export_bilan()
+            self.__print_assessment()
+            self.__export_assessment()
         print(
             f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {self._stop_time}",
             end="\n\n",
@@ -240,14 +240,13 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         self._bbcircuit_modded.circuit = qopt.CancelTGate(
             self._bbcircuit_modded.circuit, self._bbcircuit_modded.qubit_order
         ).optimize_circuit(indices)
-        exit(0)
 
         self._simulated = False
         self._results()
 
         if self._simulate:
-            self._stress_bilan[",".join(map(str, indices))] = (
-                self._simulator_manager.get_simulation_bilan()
+            self._stress_assessment[",".join(map(str, indices))] = (
+                self._simulator_manager.get_simulation_assessment()
             )
 
         elapsed = elapsed_time(start)
@@ -269,21 +268,21 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             colpr("w", "Time elapsed:", end=" ")
             colpr("r", elapsed, end="\n\n")
 
-        return self._stress_bilan
+        return self._stress_assessment
 
     #######################################
-    # print and export bilan methods
+    # print and export assessment methods
     #######################################
 
-    def __print_bilan(self) -> None:
+    def __print_assessment(self) -> None:
         """
-        Print the bilan of the stress experiment.
+        Print the assessment of the stress experiment.
         """
 
-        colpr("y", "\n\nBilan of the stress experiment:", end="\n\n")
+        colpr("y", "\n\nAssessment of the stress experiment:", end="\n\n")
 
-        # Bilan of the stress experiment
-        colpr("b", "Stress experiment bilan:", end="\n\n")
+        # Assessment of the stress experiment
+        colpr("b", "Stress experiment assessment:", end="\n\n")
 
         # Calculate the required width for the "T Gate Index" column
         t_gate_index_width = self.__nbr_combinations * 3 + 13
@@ -295,17 +294,17 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         copied_combinations = copy.deepcopy(self._combinations)
 
         # sort depend in the high success rate
-        # for bil in sorted(self._stress_bilan, key=lambda x: float(self._stress_bilan[x][1]), reverse=False):
+        # for bil in sorted(self._stress_assessment, key=lambda x: float(self._stress_assessment[x][1]), reverse=False):
 
         for indices in copied_combinations:
             bil = ",".join(map(str, indices))
-            table += f"| {bil:<{t_gate_index_width}} | {self._stress_bilan[bil][0]:<17} | {self._stress_bilan[bil][1]:<17} | {self._stress_bilan[bil][2]:<17} | {self._stress_bilan[bil][3]:<17} |\n"
+            table += f"| {bil:<{t_gate_index_width}} | {self._stress_assessment[bil][0]:<17} | {self._stress_assessment[bil][1]:<17} | {self._stress_assessment[bil][2]:<17} | {self._stress_assessment[bil][3]:<17} |\n"
 
         print(table, end="\n\n")
 
-    def __export_bilan(self) -> None:
+    def __export_assessment(self) -> None:
         """
-        Export the bilan of the stress experiment.
+        Export the assessment of the stress experiment.
         """
 
         csv = "T Gate Index 0"
@@ -315,7 +314,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         csv += ",Failed (%),Succeed (%),Measurements (%),Output Vector (%)\n"
         for indices in self._combinations:
             bil = ",".join(map(str, indices))
-            csv += f"{bil},{self._stress_bilan[bil][0]},{self._stress_bilan[bil][1]},{self._stress_bilan[bil][2]},{self._stress_bilan[bil][3]}\n"
+            csv += f"{bil},{self._stress_assessment[bil][0]},{self._stress_assessment[bil][1]},{self._stress_assessment[bil][2]},{self._stress_assessment[bil][3]}\n"
 
         directory = f"data/{self._decomp_scenario_modded.dec_mem}"
         if not os.path.exists(directory):
