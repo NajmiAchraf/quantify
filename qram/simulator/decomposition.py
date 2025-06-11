@@ -5,9 +5,12 @@ from functools import partial
 
 import cirq
 
-import qramcircuits.bucket_brigade as bb
+import qram.bucket_brigade.main as bb
 from qram.simulator.base import QRAMSimulatorBase
-from qramcircuits.toffoli_decomposition import ToffoliDecomposition, ToffoliDecompType
+from qramcircuits.toffoli_decomposition import (
+    ToffoliDecomposition,
+    ToffoliDecompType,
+)
 from utils.print_utils import (
     colpr,
     loading_animation,
@@ -50,10 +53,14 @@ def create_decomposition_circuit(
 
     qubits = [cirq.NamedQubit("q" + str(i)) for i in range(3)]
 
-    decomp = ToffoliDecomposition(decomposition_type=decomposition_type, qubits=qubits)
+    decomp = ToffoliDecomposition(
+        decomposition_type=decomposition_type, qubits=qubits
+    )
 
     if decomp.number_of_ancilla() > 0:
-        qubits += [decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))]
+        qubits += [
+            decomp.ancilla[i] for i in range(int(decomp.number_of_ancilla()))
+        ]
 
     circuit.append(decomp.decomposition())
 
@@ -140,13 +147,18 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         )
         colpr("y", f"\n{msg}", end="\n\n")
 
-        for decomp_scenario in [self._decomp_scenario, self._decomp_scenario_modded]:
+        for decomp_scenario in [
+            self._decomp_scenario,
+            self._decomp_scenario_modded,
+        ]:
             for decomposition_type in fan_in_mem_out(decomp_scenario):
                 if decomposition_type == ToffoliDecompType.NO_DECOMP:
                     continue
                 self._simulate_decomposition(decomposition_type)
 
-    def _simulate_decomposition(self, decomposition_type: ToffoliDecompType) -> None:
+    def _simulate_decomposition(
+        self, decomposition_type: ToffoliDecompType
+    ) -> None:
         """
         Simulates a Toffoli decomposition.
 
@@ -160,7 +172,9 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         self._start_time = time.time()
 
         circuit, qubits = self._decomposed_circuit(ToffoliDecompType.NO_DECOMP)
-        circuit_modded, qubits_modded = self._decomposed_circuit(decomposition_type)
+        circuit_modded, qubits_modded = self._decomposed_circuit(
+            decomposition_type
+        )
 
         nbr_anc = ToffoliDecomposition.numbers_of_ancilla(decomposition_type)
 
@@ -227,4 +241,6 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
                 stop_event.set()
                 loading_thread.join()
 
-        self._print_simulation_results(results, list(range(start, stop, step)), step)
+        self._print_simulation_results(
+            results, list(range(start, stop, step)), step
+        )

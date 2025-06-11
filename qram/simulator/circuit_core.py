@@ -4,43 +4,10 @@ from functools import partial
 
 import cirq
 
-import qramcircuits.bucket_brigade as bb
+import qram.bucket_brigade.main as bb
 from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, message, printCircuit, printRange
-
-
-def generate_qram_patterns(qubits_number: int) -> "list[int]":
-    """2
-    00 1000 0001 0 -> 258 : start
-    01 0100 0010 0 -> 644
-    10 0010 0100 0 -> 1096
-    11 0001 1000 0 -> 1584
-    """
-
-    """3
-    000 10000000 00000001 0 -> 65538 : start
-    001 01000000 00000010 0 -> 163844
-    010 00100000 00000100 0 -> 278536
-    011 00010000 00001000 0 -> 401424
-    100 00001000 00010000 0 -> 528416
-    101 00000100 00100000 0 -> 657472
-    110 00000010 01000000 0 -> 787584
-    111 00000001 10000000 0 -> 918272
-    """
-
-    lines = []
-    num_ids = 2**qubits_number
-    control_length = 2**qubits_number
-    # Generate active lines
-    for i in range(num_ids):
-        address = format(i, f"0{qubits_number}b")
-        bytes = format(1 << (control_length - 1 - i), f"0{control_length}b")
-        memory = format(1 << i, f"0{control_length}b")
-        target = "0"
-        decimal_value = int(f"{address}{bytes}{memory}{target}", 2)
-        lines.append(decimal_value)
-    return lines
 
 
 #######################################
@@ -155,73 +122,19 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
         self._simulation_kind = "bb"
 
         simulation_configs = {
-            "a": {
-                "step": 2 ** (2 * (2**self._qubits_number) + 1),
-                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
-                "stop_multiplier": 2**self._qubits_number,
-                "message": message(
-                    "Simulating the circuit ... Checking the addressing of the a qubits"
-                ),
-            },
-            "b": {
-                "step": 2 ** (2**self._qubits_number + 1),
-                "step_multiplier": 2 ** (2**self._qubits_number + 1),
-                "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": message(
-                    "Simulating the circuit ... Checking the uncomputation of FANOUT ... were the b qubits are returned to their initial state"
-                ),
-            },
-            "m": {
-                "step": 2,
-                "step_multiplier": 2,
-                "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": message(
-                    "Simulating the circuit ... Checking the computation of MEM ... were the m qubits are getting the result of the computation"
-                ),
-            },
-            "ab": {
-                "step": 2 ** (2**self._qubits_number + 1),
-                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
-                "stop_multiplier": 2**self._qubits_number,
-                "message": message(
-                    "Simulating the circuit ... Checking the addressing and uncomputation of the a and b qubits"
-                ),
-            },
-            "bm": {
-                "step": 2,
-                "step_multiplier": 2 ** (2**self._qubits_number + 1),
-                "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": message(
-                    "Simulating the circuit ... Checking the addressing and uncomputation of the b and m qubits"
-                ),
-            },
-            "abm": {
-                "step": 2,
-                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
-                "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": message(
-                    "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits"
-                ),
-            },
-            "t": {
-                "step": 2,
-                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 1),
-                "stop_multiplier": 2 ** (2**self._qubits_number),
-                "message": message(
-                    "Simulating the circuit ... Checking the addressing and uncomputation of the a, b, and m qubits and measure only the target qubit"
-                ),
-            },
             "full": {
                 "step": 1,
                 "step_multiplier": 1,
                 "stop_multiplier": 2
-                ** (2 * (2**self._qubits_number) + self._qubits_number + 1),
-                "message": message("Simulating the circuit ... Checking all qubits"),
+                ** (2 * (2**self._qubits_number) + self._qubits_number + 2),
+                "message": message(
+                    "Simulating the circuit ... Checking all qubits"
+                ),
             },
             "qram": {
-                "step": 1,
-                "step_multiplier": None,
-                "stop_multiplier": None,
+                "step": 2 ** (2 * (2**self._qubits_number) + 2),
+                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 2),
+                "stop_multiplier": 2**self._qubits_number,
                 "message": message(
                     "Simulating the circuit ... Checking the QRAM logic and measure all qubits"
                 ),
@@ -230,17 +143,16 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         config = simulation_configs.get(self._specific_simulation)
         if not config:
-            raise ValueError(f"Unknown simulation type: {self._specific_simulation}")
+            raise ValueError(
+                f"Unknown simulation type: {self._specific_simulation}"
+            )
 
         start = 0
         step = config["step"]
-        if self._specific_simulation != "qram":
-            stop = (config.get("step_multiplier", 1)) * (
-                config.get("stop_multiplier", 1)
-            )
-            sim_range = list(range(start, stop, step))
-        else:
-            sim_range = generate_qram_patterns(self._qubits_number)
+        stop = (config.get("step_multiplier", 1)) * (
+            config.get("stop_multiplier", 1)
+        )
+        sim_range = list(range(start, stop, step))
 
         return sim_range, step, config["message"]
 
@@ -254,7 +166,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         measurements = []
         for qubit in bbcircuit.qubit_order:
-            if self._specific_simulation in ["full", "qram"]:
+            if self._specific_simulation in ["full", "qram", "a"]:
                 measurements.append(cirq.measure(qubit))
             else:
                 for _name in self._specific_simulation:
@@ -262,7 +174,9 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                         measurements.append(cirq.measure(qubit))
 
         bbcircuit.circuit.append(measurements)
-        bbcircuit.circuit = cirq.synchronize_terminal_measurements(bbcircuit.circuit)
+        bbcircuit.circuit = cirq.synchronize_terminal_measurements(
+            bbcircuit.circuit
+        )
 
     def _begin_configurations(self) -> None:
         """

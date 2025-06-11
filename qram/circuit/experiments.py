@@ -2,9 +2,13 @@ import os
 
 import psutil
 
-import qramcircuits.bucket_brigade as bb
+from qram.bucket_brigade.decomp_type import BucketBrigadeDecompType
+from qram.bucket_brigade.main import BucketBrigade
 from qram.circuit.core import QRAMCircuitCore
-from qram.simulator.decomposition import create_decomposition_circuit, fan_in_mem_out
+from qram.simulator.decomposition import (
+    create_decomposition_circuit,
+    fan_in_mem_out,
+)
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.counting_utils import *
 from utils.print_utils import *
@@ -22,7 +26,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         _core(nr_qubits: int): Core function of the experiment.
         _results(): Prints the results of the experiment.
         __essential_checks(): Performs essential checks on the experiment.
-        __verify_circuit_depth_count(decomp_scenario: bb.BucketBrigadeDecompType, bbcircuit: bb.BucketBrigade, name: str): Verifies the depth and count of the circuit.
+        __verify_circuit_depth_count(decomp_scenario: BucketBrigadeDecompType, bbcircuit: BucketBrigade, name: str): Verifies the depth and count of the circuit.
         _simulate_circuit(is_stress: bool=False): Simulates the circuit.
     """
 
@@ -96,16 +100,39 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             [self._decomp_scenario, self._bbcircuit, name],
             [self._decomp_scenario_modded, self._bbcircuit_modded, "modded"],
         ]:
-            colpr("y", f"Decomposition scenario of {decirc[2]} circuit:", end="\n\n")
-            print(
-                "\t• fan_in_decomp: \t{}\n"
-                "\t• mem_decomp:    \t{}\n"
-                "\t• fan_out_decomp:\t{}\n\n".format(
-                    decirc[0].dec_fan_in, decirc[0].dec_mem, decirc[0].dec_fan_out
-                )
+            colpr(
+                "y",
+                f"Decomposition scenario of {decirc[2]} circuit:",
+                end="\n\n",
             )
 
-            colpr("y", f"Optimization methods of {decirc[2]} circuit:", end="\n\n")
+            # Get circuit type as a list for consistent checking
+            circuit_types = self._circuit_type
+            if isinstance(circuit_types, str):
+                if circuit_types == "classic":
+                    circuit_types = ["fan_out", "query", "fan_in"]
+                else:
+                    circuit_types = [circuit_types]
+
+            # Check each component type and print its decomposition
+            if "fan_out" in circuit_types:
+                print(f"\t• fan_out_decomp: \t{decirc[0].dec_fan_out}")
+            if "write" in circuit_types:
+                print(f"\t• write_decomp:   \t{decirc[0].dec_mem_write}")
+            if "query" in circuit_types:
+                print(f"\t• query_decomp:   \t{decirc[0].dec_mem_query}")
+            if "fan_in" in circuit_types:
+                print(f"\t• fan_in_decomp:  \t{decirc[0].dec_fan_in}")
+            if "read" in circuit_types:
+                print(f"\t• read_decomp:    \t{decirc[0].dec_mem_read}")
+            if "fan_read" in circuit_types:
+                print(f"\t• fan_read_decomp:\t{decirc[0].dec_mem_read}")
+
+            colpr(
+                "y",
+                f"\nOptimization methods of {decirc[2]} circuit:",
+                end="\n\n",
+            )
             print(
                 "\t• parallel_toffolis:\t{}\n"
                 "\t• reverse_moments:  \t{}\n\n".format(
@@ -117,40 +144,71 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             for decomposition_type in fan_in_mem_out(decirc[0]):
                 if decomposition_type == ToffoliDecompType.NO_DECOMP:
                     continue
-                circuit, qubits = create_decomposition_circuit(decomposition_type)
-                printCircuit(self._print_circuit, circuit, qubits, f"decomposition {str(decomposition_type)}")
+                circuit, qubits = create_decomposition_circuit(
+                    decomposition_type
+                )
+                printCircuit(
+                    self._print_circuit,
+                    circuit,
+                    qubits,
+                    f"decomposition {str(decomposition_type)}",
+                )
 
             self.__verify_circuit_depth_count(decirc[0], decirc[1], decirc[2])
             printCircuit(
-                self._print_circuit, decirc[1].circuit, decirc[1].qubit_order, decirc[2]
+                self._print_circuit,
+                decirc[1].circuit,
+                decirc[1].qubit_order,
+                decirc[2],
             )
 
     def __verify_circuit_depth_count(
         self,
-        decomp_scenario: bb.BucketBrigadeDecompType,
-        bbcircuit: bb.BucketBrigade,
+        decomp_scenario: BucketBrigadeDecompType,
+        bbcircuit: BucketBrigade,
         name: str,
     ) -> None:
         """
         Verifies the depth and count of the circuit.
 
         Args:
-            decomp_scenario (bb.BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
-            bbcircuit (bb.BucketBrigade): Bucket brigade circuit.
+            decomp_scenario (BucketBrigadeDecompType): The decomposition scenario for the bucket brigade.
+            bbcircuit (BucketBrigade): Bucket brigade circuit.
             name (str): The name of the circuit.
         """
 
         # Collect data for multiple qubit configurations
         data = []
 
-        colpr("y", f"Verifying the depth and count of the {name} circuit:", end="\n\n")
+        # Include circuit type in output
+        circuit_type_str = (
+            self._circuit_type
+            if isinstance(self._circuit_type, str)
+            else ", ".join(self._circuit_type)
+        )
+
+        colpr(
+            "y",
+            f"Verifying the depth and count of the {name} circuit (type: {circuit_type_str}):",
+            end="\n\n",
+        )
 
         num_qubits = len(bbcircuit.circuit.all_qubits())
         circuit_depth = len(bbcircuit.circuit)
 
-        if decomp_scenario.get_decomp_types()[0] == ToffoliDecompType.NO_DECOMP:
+        if (
+            decomp_scenario.get_decomp_types()[0]
+            == ToffoliDecompType.NO_DECOMP
+        ):
             data.append(
-                [self._start_range_qubits, num_qubits, circuit_depth, "-", "-", "-"]
+                [
+                    self._start_range_qubits,
+                    num_qubits,
+                    circuit_depth,
+                    "-",
+                    "-",
+                    "-",
+                ]
             )
         else:
             t_depth = count_t_depth_of_circuit(bbcircuit.circuit)

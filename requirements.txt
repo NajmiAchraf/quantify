@@ -3,3 +3,4 @@ qsimcirq
 fasteners
 pyzx
 pytest
+psutil

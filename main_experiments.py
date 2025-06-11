@@ -1,5 +1,5 @@
+from qram.bucket_brigade.decomp_type import ReverseMoments
 from qram.circuit.experiments import QRAMCircuitExperiments
-from qramcircuits.bucket_brigade import ReverseMoments
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.arg_parser import *
 from utils.print_utils import *
@@ -18,9 +18,11 @@ def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
         dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
-            QueryConfiguration,
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # fan_out
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # mem_write
+            QueryConfiguration,  # mem_query
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # fan_in
+            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # mem_read
         ],
         parallel_toffolis_mod=True,
         reverse_moments=ReverseMoments.OUT_TO_IN,

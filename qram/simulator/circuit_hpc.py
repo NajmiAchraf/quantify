@@ -1,10 +1,5 @@
 import itertools
 
-try:
-    from mpi4py import MPI
-except ImportError:
-    pass
-
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, printRange
@@ -30,6 +25,8 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
+
+        from mpi4py import MPI
 
         super().__init__(*args, **kwargs)
 
@@ -85,7 +82,10 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
 
         results: "list[tuple[int, int, int]]" = []
 
-        if self._specific_simulation != "full" and self._simulation_kind == "bb":
+        if (
+            self._specific_simulation != "full"
+            and self._simulation_kind == "bb"
+        ):
             results = self._sequential_execution(local_work_range, step)
         else:
             results = self._parallel_execution(local_work_range, step)

@@ -67,7 +67,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
 
         process = psutil.Process(os.getpid())
 
-        if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+        if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
 
             num_qubits = len(self._bbcircuit.circuit.all_qubits())
             circuit_depth = len(self._bbcircuit.circuit)
@@ -125,13 +125,15 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         print(table, end="\n\n")
 
         # Assessment of the reference circuit
-        if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+        if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
             colpr("b", "Reference circuit assessment:", end="\n\n")
 
             table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
             table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
-            for x in range(self._start_range_qubits, self._end_range_qubits + 1):
+            for x in range(
+                self._start_range_qubits, self._end_range_qubits + 1
+            ):
                 table += f"| {self._data[x][0]:<16} | {self._data[x][1]:<16} | {self._data[x][2]:<20} | {self._data[x][3]:<16} | {self._data[x][4]:<16} | {self._data[x][5]:<17} |\n"
 
             print(table, end="\n\n")
@@ -147,12 +149,17 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         print(table, end="\n\n")
 
         # Comparing assessments
-        if self._decomp_scenario.dec_fan_in != ToffoliDecompType.NO_DECOMP:
+        if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
 
             def calculate(i: int, j: int) -> "tuple[str, str]":
-                modded_percent = (self._data_modded[i][j] / self._data[i][j]) * 100
+                modded_percent = (
+                    self._data_modded[i][j] / self._data[i][j]
+                ) * 100
                 modded_percent_str = format(modded_percent, ",.2f")
-                modded = str(self._data_modded[i][j]) + f"  ( {modded_percent_str} )"
+                modded = (
+                    str(self._data_modded[i][j])
+                    + f"  ( {modded_percent_str} )"
+                )
 
                 cancelled_percent = 100.0 - modded_percent
                 cancelled_percent_str = format(cancelled_percent, ",.2f")
@@ -169,7 +176,9 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             table = "| Qubits Range     | T Count Reference  | T Count Modded (%) | T Count Cancelled (%)  |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(self._start_range_qubits, self._end_range_qubits + 1):
+            for i in range(
+                self._start_range_qubits, self._end_range_qubits + 1
+            ):
                 modded, cancelled = calculate(i, 4)
                 table += f"| {self._data[i][0]:<16} | {self._data[i][4]:<18} | {modded :<18} | {cancelled:<22} |\n"
 
@@ -179,7 +188,9 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             table = "| Qubits Range     | T Depth Reference  | T Depth Modded (%) | T Depth Cancelled (%)  |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(self._start_range_qubits, self._end_range_qubits + 1):
+            for i in range(
+                self._start_range_qubits, self._end_range_qubits + 1
+            ):
                 modded, cancelled = calculate(i, 3)
                 table += f"| {self._data[i][0]:<16} | {self._data[i][3]:<18} | {modded :<18} | {cancelled:<22} |\n"
 
@@ -189,7 +200,9 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             table = "| Qubits Range     | Depth Reference    | Depth Modded (%)   | Depth Cancelled (%)    |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
-            for i in range(self._start_range_qubits, self._end_range_qubits + 1):
+            for i in range(
+                self._start_range_qubits, self._end_range_qubits + 1
+            ):
                 modded, cancelled = calculate(i, 2)
                 table += f"| {self._data[i][0]:<16} | {self._data[i][2]:<18} | {modded :<18} | {cancelled:<22} |\n"
 

@@ -7,7 +7,7 @@ from typing import Union
 import cirq
 import numpy as np
 
-import qramcircuits.bucket_brigade as bb
+import qram.bucket_brigade.main as bb
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, elapsed_time
 from utils.types import (
@@ -141,6 +141,12 @@ class QRAMSimulatorBase:
         self._hpc = hpc
         self._shots = shots
 
+        if self._hpc:
+            manager = multiprocessing.Manager()
+            self._simulation_results = manager.dict()
+        else:
+            self._simulation_results = {}
+
     #######################################
     # Worker methods
     #######################################
@@ -207,7 +213,10 @@ class QRAMSimulatorBase:
         """
 
         # Multiple shots simulation used only for the bucket brigade circuit and not for the decomposed circuit
-        if self._specific_simulation != "full" and self._simulation_kind == "bb":
+        if (
+            self._specific_simulation != "full"
+            and self._simulation_kind == "bb"
+        ):
             return self._simulate_multiple_shots(
                 i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
             )
@@ -344,8 +353,10 @@ class QRAMSimulatorBase:
         )
 
         # Simulate modded circuit
-        final_state_vector_modded, measurements_modded = self._simulate_circuit(
-            circuit_modded, qubit_order_modded, initial_state_modded
+        final_state_vector_modded, measurements_modded = (
+            self._simulate_circuit(
+                circuit_modded, qubit_order_modded, initial_state_modded
+            )
         )
 
         # Format the results
@@ -356,12 +367,16 @@ class QRAMSimulatorBase:
         )
         result = str_measurements + "\n" + str_final_state_vector
 
-        str_measurements_modded = self._format_measurements(measurements_modded)
+        str_measurements_modded = self._format_measurements(
+            measurements_modded
+        )
         str_output_vector_modded = str(np.around(final_state_vector_modded)[0])
         str_final_state_vector_modded = self._format_final_state_vector(
             str_output_vector_modded, measurements_modded
         )
-        result_modded = str_measurements_modded + "\n" + str_final_state_vector_modded
+        result_modded = (
+            str_measurements_modded + "\n" + str_final_state_vector_modded
+        )
 
         return self._compare_results(
             i,
@@ -416,8 +431,12 @@ class QRAMSimulatorBase:
         for o_qubit in self._bbcircuit.qubit_order:
             qubit_str = str(o_qubit)
             if qubit_str in measurements:
-                formatted.append(f"{self.bitstring(measurements[qubit_str])[0]}")
-        return f"output vector: {str_output_vector}|" + "".join(formatted) + "⟩"
+                formatted.append(
+                    f"{self.bitstring(measurements[qubit_str])[0]}"
+                )
+        return (
+            f"output vector: {str_output_vector}|" + "".join(formatted) + "⟩"
+        )
 
     #######################################
     # Results methods
@@ -428,7 +447,13 @@ class QRAMSimulatorBase:
             if self._print_sim in ["Full", "Dot"]:
                 colpr(color, "•", end="")
             if self._print_sim == "Full":
-                self._simulation_results[i] = [color, result, result_modded]
+                result_str = str(result)
+                result_modded_str = str(result_modded)
+                self._simulation_results[i] = [
+                    color,
+                    result_str,
+                    result_modded_str,
+                ]
 
     def _compare_results(
         self,
@@ -494,7 +519,10 @@ class QRAMSimulatorBase:
         return fail, success_measurements, success_vector
 
     def _print_simulation_results(
-        self, results: "list[tuple[int, int, int]]", sim_range: "list[int]", step: int
+        self,
+        results: "list[tuple[int, int, int]]",
+        sim_range: "list[int]",
+        step: int,
     ) -> None:
         """
         Prints the simulation results.
@@ -526,7 +554,8 @@ class QRAMSimulatorBase:
         sm = format(((success_measurements * 100) / total_tests), ",.2f")
         sv = format(((success_vector * 100) / total_tests), ",.2f")
         ts = format(
-            (((success_measurements + success_vector) * 100) / total_tests), ",.2f"
+            (((success_measurements + success_vector) * 100) / total_tests),
+            ",.2f",
         )
 
         self._simulation_assessment = [f, ts, sm, sv]
@@ -546,8 +575,16 @@ class QRAMSimulatorBase:
                     f"\t• Succeed: {success_measurements + success_vector} ({ts} %)",
                     end="\t( ",
                 )
-                colpr("b", f"Measurements: {success_measurements} ({sm} %)", end=" • ")
-                colpr("g", f"Output vector: {success_vector} ({sv} %)", end=" )\n\n")
+                colpr(
+                    "b",
+                    f"Measurements: {success_measurements} ({sm} %)",
+                    end=" • ",
+                )
+                colpr(
+                    "g",
+                    f"Output vector: {success_vector} ({sv} %)",
+                    end=" )\n\n",
+                )
 
             colpr("w", "Time elapsed on simulation and comparison:", end=" ")
             colpr("r", self._stop_time, end="\n\n")
@@ -576,11 +613,11 @@ class QRAMSimulatorBase:
             color, result, result_modded = self._simulation_results[i]
             colpr("c", f"Index of array {j} {i}", end="\n")
             colpr("w", f"{name} circuit result: ")
-            colpr("w", str(result))
+            colpr("w", result)
             colpr(
                 "c",
                 "Comparing the output vector and measurements of both circuits ...",
                 end="\n",
             )
             colpr(color, f"{name_modded} circuit result: ")
-            colpr(color, str(result_modded), end="\n\n")
+            colpr(color, result_modded, end="\n\n")
