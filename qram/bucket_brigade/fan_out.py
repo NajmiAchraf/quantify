@@ -48,7 +48,7 @@ class BucketBrigadeFanOut(BucketBrigadeBase):
         current_idx = 2
 
         # Iterate through address bits to create the tree structure
-        for i in range(1, self.size_adr_n):
+        for i in range(1, self.qram_bits):
             # Get pre-created ancillas for this level
             anc_created = self.all_ancillas[current_idx : current_idx + 2**i]
             current_idx += 2**i
@@ -66,9 +66,9 @@ class BucketBrigadeFanOut(BucketBrigadeBase):
             )
 
         # Final verification
-        if len(anc_previous) != 2**self.size_adr_n:
+        if len(anc_previous) != 2**self.qram_bits:
             raise ValueError(
-                f"Expected {2**self.size_adr_n} ancilla qubits, but got {len(anc_previous)}"
+                f"Expected {2**self.qram_bits} ancilla qubits, but got {len(anc_previous)}"
             )
 
         return cirq.Circuit(compute_fan_out_moments)
@@ -155,7 +155,7 @@ class BucketBrigadeFanOut(BucketBrigadeBase):
             Complete write circuit
         """
         self.logger.info(
-            f"Constructing write circuit with {self.size_adr_n} address bits"
+            f"Constructing write circuit with {self.qram_bits} address bits"
         )
 
         # Construct the fan-out structure

@@ -51,7 +51,7 @@ class BucketBrigadeRead(BucketBrigadeBase):
             Complete read circuit
         """
         self.logger.info(
-            f"Constructing read circuit with {self.size_adr_n} address bits"
+            f"Constructing read circuit with {self.qram_bits} address bits"
         )
 
         # Wire up the read memory

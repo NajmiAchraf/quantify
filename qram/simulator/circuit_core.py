@@ -9,7 +9,6 @@ from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, message, printCircuit, printRange
 
-
 #######################################
 # QRAM Simulator Circuit Core
 #######################################
@@ -121,20 +120,28 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         self._simulation_kind = "bb"
 
+        extra_qubits = 1
+        if any(
+            component in ["write", "read", "fan_read"]
+            for component in self._circuit_type
+        ):
+            extra_qubits = 2
+
         simulation_configs = {
             "full": {
                 "step": 1,
                 "step_multiplier": 1,
                 "stop_multiplier": 2
-                ** (2 * (2**self._qubits_number) + self._qubits_number + 2),
+                ** (2 * (2**self._qram_bits) + self._qram_bits + extra_qubits),
                 "message": message(
                     "Simulating the circuit ... Checking all qubits"
                 ),
             },
             "qram": {
-                "step": 2 ** (2 * (2**self._qubits_number) + 2),
-                "step_multiplier": 2 ** (2 * (2**self._qubits_number) + 2),
-                "stop_multiplier": 2**self._qubits_number,
+                "step": 2 ** (2 * (2**self._qram_bits) + extra_qubits),
+                "step_multiplier": 2
+                ** (2 * (2**self._qram_bits) + extra_qubits),
+                "stop_multiplier": 2**self._qram_bits,
                 "message": message(
                     "Simulating the circuit ... Checking the QRAM logic and measure all qubits"
                 ),

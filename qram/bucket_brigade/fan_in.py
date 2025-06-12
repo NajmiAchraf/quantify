@@ -40,7 +40,7 @@ class BucketBrigadeFanIn(BucketBrigadeFanOut):
             Complete reset circuit
         """
         self.logger.info(
-            f"Constructing reset circuit with {self.size_adr_n} address bits"
+            f"Constructing reset circuit with {self.qram_bits} address bits"
         )
 
         # Construct the fan-out structure

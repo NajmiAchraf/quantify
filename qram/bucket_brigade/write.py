@@ -44,7 +44,7 @@ class BucketBrigadeWrite(BucketBrigadeBase):
             Complete write circuit
         """
         self.logger.info(
-            f"Constructing write circuit with {self.size_adr_n} address bits"
+            f"Constructing write circuit with {self.qram_bits} address bits"
         )
 
         # Wire up the write memory

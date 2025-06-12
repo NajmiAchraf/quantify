@@ -52,7 +52,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         Core function of the experiment.
         """
 
-        super()._core(nr_qubits=nr_qubits)
+        super()._core(qram_bits=nr_qubits)
 
         self.__assessment(nr_qubits=nr_qubits)
 

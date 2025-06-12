@@ -39,7 +39,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         Core function of the experiment.
         """
 
-        super()._core(nr_qubits=nr_qubits)
+        super()._core(qram_bits=nr_qubits)
 
         if not self._hpc:
             print(f"{'='*150}\n\n")
@@ -106,26 +106,18 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
                 end="\n\n",
             )
 
-            # Get circuit type as a list for consistent checking
-            circuit_types = self._circuit_type
-            if isinstance(circuit_types, str):
-                if circuit_types == "classic":
-                    circuit_types = ["fan_out", "query", "fan_in"]
-                else:
-                    circuit_types = [circuit_types]
-
             # Check each component type and print its decomposition
-            if "fan_out" in circuit_types:
+            if "fan_out" in self._circuit_types:
                 print(f"\t• fan_out_decomp: \t{decirc[0].dec_fan_out}")
-            if "write" in circuit_types:
+            if "write" in self._circuit_types:
                 print(f"\t• write_decomp:   \t{decirc[0].dec_mem_write}")
-            if "query" in circuit_types:
+            if "query" in self._circuit_types:
                 print(f"\t• query_decomp:   \t{decirc[0].dec_mem_query}")
-            if "fan_in" in circuit_types:
+            if "fan_in" in self._circuit_types:
                 print(f"\t• fan_in_decomp:  \t{decirc[0].dec_fan_in}")
-            if "read" in circuit_types:
+            if "read" in self._circuit_types:
                 print(f"\t• read_decomp:    \t{decirc[0].dec_mem_read}")
-            if "fan_read" in circuit_types:
+            if "fan_read" in self._circuit_types:
                 print(f"\t• fan_read_decomp:\t{decirc[0].dec_mem_read}")
 
             colpr(

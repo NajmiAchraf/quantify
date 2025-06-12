@@ -44,7 +44,7 @@ class BucketBrigadeBase:
         self.address: List[cirq.NamedQubit] = []
         self.all_ancillas: List[cirq.NamedQubit] = []
         self.memory: List[cirq.NamedQubit] = []
-        self.size_adr_n: int = qram_bits
+        self.qram_bits: int = qram_bits
         self.decomp_scenario = decomp_scenario
         self.target: Optional[cirq.NamedQubit] = None
         self.read_write: Optional[cirq.NamedQubit] = None
@@ -63,7 +63,7 @@ class BucketBrigadeBase:
         """
         # Create address qubits
         self.address = [
-            cirq.NamedQubit(f"a{i}") for i in range(self.size_adr_n)
+            cirq.NamedQubit(f"a{i}") for i in range(self.qram_bits)
         ]
 
         # Create all possible ancilla qubits
@@ -77,7 +77,7 @@ class BucketBrigadeBase:
         self.all_ancillas.extend(first_level)
 
         # Remaining levels in the binary tree
-        for level in range(1, self.size_adr_n):
+        for level in range(1, self.qram_bits):
             level_ancillas = [
                 cirq.NamedQubit(self.get_b_ancilla_name(j))
                 for j in range(2**level, 2 ** (level + 1))
@@ -86,8 +86,8 @@ class BucketBrigadeBase:
 
         # Create memory qubits - one for each possible address
         self.memory = [
-            cirq.NamedQubit(f"m{miscutils.my_bin(i, self.size_adr_n)}")
-            for i in range(2**self.size_adr_n)
+            cirq.NamedQubit(f"m{miscutils.my_bin(i, self.qram_bits)}")
+            for i in range(2**self.qram_bits)
         ]
 
         # Create target qubit
@@ -122,7 +122,7 @@ class BucketBrigadeBase:
         Returns:
             String representing the ancilla qubit name.
         """
-        return f"b_{miscutils.my_bin(i, self.size_adr_n)}"
+        return f"b_{miscutils.my_bin(i, self.qram_bits)}"
 
     def _create_memory_operations(
         self,

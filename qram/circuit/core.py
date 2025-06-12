@@ -14,6 +14,7 @@ from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.arg_parser import parser_args
 from utils.print_utils import colpr, elapsed_time, loading_animation
 from utils.types import (
+    type_circuit,
     type_print_circuit,
     type_print_sim,
     type_specific_simulation,
@@ -29,6 +30,7 @@ class QRAMCircuitCore:
     A class used to represent the QRAM circuit core.
 
     Attributes:
+        _shots (int): Number of shots for the simulation.
         _hpc (bool): Flag indicating whether to use High Performance Computing (HPC) mode.
         _simulate (bool): Flag indicating whether to simulate Toffoli decompositions and circuit.
         _print_circuit (type_print_circuit): Flag indicating whether to print the full circuit.
@@ -36,6 +38,7 @@ class QRAMCircuitCore:
         _start_range_qubits (int): Start range of qubits.
         _end_range_qubits (int): End range of qubits.
         _specific_simulation (type_specific_simulation): Specific simulation for specific qubit wire.
+        _circuit_type (type_circuit): Type of the circuit (fan_out, write, query, fan_in, read, fan_read).
 
         _start_time (float): Start time of the experiment.
         _stop_time (str): Stop time of the experiment.
@@ -46,7 +49,7 @@ class QRAMCircuitCore:
         _bbcircuit_modded (BucketBrigade): Modified bucket brigade circuit.
 
         _simulated (bool): Flag indicating whether the circuit has been simulated.
-        _Simulator (QRAMCircuitSimulator): The QRAM circuit simulator.
+        _simulator_manager (QRAMCircuitSimulatorManager): The QRAM circuit simulator manager.
 
     Methods:
         __init__(): Initializes the QRAMCircuitCore class.
@@ -69,7 +72,7 @@ class QRAMCircuitCore:
     _start_range_qubits: int
     _end_range_qubits: int = 0
     _specific_simulation: type_specific_simulation = "qram"
-    _circuit_type: Union[List[str], str] = "classic"
+    _circuit_type: type_circuit
 
     _start_time: float = 0
     _stop_time: str = ""
@@ -186,7 +189,7 @@ class QRAMCircuitCore:
         # Specific simulation (qram, full) by default it is full circuit
         self._specific_simulation = args.specific
 
-        # Circuit type (fan_out, write, query, fan_in, read, fan_read, classic)
+        # Circuit type (fan_out, write, query, fan_in, read, fan_read)
         self._circuit_type = args.circuit_type
 
     #######################################
@@ -214,46 +217,18 @@ class QRAMCircuitCore:
         """
 
         if isinstance(toffoli_decomp_type, list):
-            # Handle case with different decompositions for different parts
-            if len(toffoli_decomp_type) == 3:
-                # Original format with 3 decomposition types (legacy)
-                return BucketBrigadeDecompType(
-                    toffoli_decomp_types=[
-                        toffoli_decomp_type[0],  # fan_out_decomp
-                        toffoli_decomp_type[0],  # mem_write_decomp
-                        toffoli_decomp_type[1],  # mem_query_decomp
-                        toffoli_decomp_type[0],  # fan_in_decomp
-                        toffoli_decomp_type[0],  # mem_read_decomp
-                    ],
-                    parallel_toffolis=parallel_toffolis,
-                    reverse_moments=reverse_moments,
-                )
-            elif len(toffoli_decomp_type) == 4:
-                # Format with 4 decomposition types (legacy)
-                return BucketBrigadeDecompType(
-                    toffoli_decomp_types=[
-                        toffoli_decomp_type[0],  # fan_out_decomp
-                        toffoli_decomp_type[1],  # mem_write_decomp
-                        toffoli_decomp_type[2],  # mem_query_decomp
-                        toffoli_decomp_type[3],  # fan_in_decomp
-                        toffoli_decomp_type[1],  # mem_read_decomp
-                    ],
-                    parallel_toffolis=parallel_toffolis,
-                    reverse_moments=reverse_moments,
-                )
-            elif len(toffoli_decomp_type) == 5:
-                # New format with 5 decomposition types
-                return BucketBrigadeDecompType(
-                    toffoli_decomp_types=[
-                        toffoli_decomp_type[0],  # fan_out_decomp
-                        toffoli_decomp_type[1],  # mem_write_decomp
-                        toffoli_decomp_type[2],  # mem_query_decomp
-                        toffoli_decomp_type[4],  # fan_in_decomp
-                        toffoli_decomp_type[3],  # mem_read_decomp
-                    ],
-                    parallel_toffolis=parallel_toffolis,
-                    reverse_moments=reverse_moments,
-                )
+            # New format with 5 decomposition types
+            return BucketBrigadeDecompType(
+                toffoli_decomp_types=[
+                    toffoli_decomp_type[0],  # fan_out_decomp
+                    toffoli_decomp_type[1],  # mem_write_decomp
+                    toffoli_decomp_type[2],  # mem_query_decomp
+                    toffoli_decomp_type[3],  # fan_in_decomp
+                    toffoli_decomp_type[4],  # mem_read_decomp
+                ],
+                parallel_toffolis=parallel_toffolis,
+                reverse_moments=reverse_moments,
+            )
         else:
             # Same decomposition for all parts
             return BucketBrigadeDecompType(
@@ -345,26 +320,26 @@ class QRAMCircuitCore:
                 stop_event.set()
                 loading_thread.join()
 
-    def _core(self, nr_qubits: int) -> None:
+    def _core(self, qram_bits: int) -> None:
         """
         Core function of the experiment.
         """
 
         self._start_time = time.time()
 
-        if nr_qubits > 3 and self._print_sim == "Full":
+        if qram_bits > 3 and self._print_sim == "Full":
             self._print_sim = "Dot"
 
         def _create_bbcircuit():
             self._bbcircuit = BucketBrigade(
-                qram_bits=nr_qubits,
+                qram_bits=qram_bits,
                 decomp_scenario=self._decomp_scenario,
                 circuit_type=self._circuit_type,
             )
 
         def _create_bbcircuit_modded():
             self._bbcircuit_modded = BucketBrigade(
-                qram_bits=nr_qubits,
+                qram_bits=qram_bits,
                 decomp_scenario=self._decomp_scenario_modded,
                 circuit_type=self._circuit_type,
             )
@@ -377,10 +352,11 @@ class QRAMCircuitCore:
 
         if self._simulate:
             self._simulator_manager = QRAMCircuitSimulatorManager(
+                circuit_type=self._circuit_type,
                 bbcircuit=self._bbcircuit,
                 bbcircuit_modded=self._bbcircuit_modded,
                 specific_simulation=self._specific_simulation,
-                qubits_number=self._start_range_qubits,
+                qram_bits=self._start_range_qubits,
                 print_circuit=self._print_circuit,
                 print_sim=self._print_sim,
                 hpc=self._hpc,

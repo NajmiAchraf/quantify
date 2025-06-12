@@ -2,7 +2,7 @@ import math
 import multiprocessing
 from functools import partial
 from multiprocessing.managers import DictProxy
-from typing import Union
+from typing import List, Literal, Union
 
 import cirq
 import numpy as np
@@ -11,6 +11,7 @@ import qram.bucket_brigade.main as bb
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, elapsed_time
 from utils.types import (
+    type_circuit,
     type_print_circuit,
     type_print_sim,
     type_simulation_kind,
@@ -28,7 +29,7 @@ class QRAMSimulatorBase:
 
     Attributes:
         _specific_simulation (str): The specific simulation.
-        _qubits_number (int): The number of qubits.
+        _qram_bits (int): The number of QRAM bits.
         _print_circuit (Literal["Print", "Display", "Hide"]): The print circuit flag.
         _print_sim (Literal["Dot", "Full", "Loading", "Hide"]): Flag indicating whether to print the full simulation result.
         _simulation_kind (Literal["bb", "dec"]): The simulation kind.
@@ -49,7 +50,7 @@ class QRAMSimulatorBase:
 
     Methods:
         get_simulation_assessment(): Returns the simulation assessment.
-        __init__(bbcircuit, bbcircuit_modded, specific_simulation, qubits_number, print_circuit, print_sim, hpc):
+        __init__(bbcircuit, bbcircuit_modded, specific_simulation, qram_bits, print_circuit, print_sim, hpc):
             Constructor of the CircuitSimulator class.
 
         _worker(i, step, circuit, circuit_modded, qubit_order, qubit_order_modded, initial_state, initial_state_modded):
@@ -68,7 +69,7 @@ class QRAMSimulatorBase:
     """
 
     _specific_simulation: type_specific_simulation
-    _qubits_number: int
+    _qram_bits: int
     _print_circuit: type_print_circuit
     _print_sim: type_print_sim
     _simulation_kind: type_simulation_kind = "dec"
@@ -106,10 +107,11 @@ class QRAMSimulatorBase:
 
     def __init__(
         self,
+        circuit_type: type_circuit,
         bbcircuit: bb.BucketBrigade,
         bbcircuit_modded: bb.BucketBrigade,
         specific_simulation: type_specific_simulation,
-        qubits_number: int,
+        qram_bits: int,
         print_circuit: type_print_circuit,
         print_sim: type_print_sim,
         hpc: bool,
@@ -122,7 +124,7 @@ class QRAMSimulatorBase:
             bbcircuit (BBCircuit): The bucket brigade circuit.
             bbcircuit_modded (BBCircuit): The modded circuit.
             specific_simulation (str): The specific simulation.
-            qubits_number (int): The number of qubits.
+            qram_bits (int): The number of QRAM bits.
             print_circuit (str): The print circuit flag.
             print_sim (str): The print simulation flag.
 
@@ -130,12 +132,13 @@ class QRAMSimulatorBase:
             None
         """
 
+        self._circuit_type = circuit_type
         self._bbcircuit = bbcircuit
         self._bbcircuit_modded = bbcircuit_modded
         self._decomp_scenario = bbcircuit.decomp_scenario
         self._decomp_scenario_modded = bbcircuit_modded.decomp_scenario
         self._specific_simulation = specific_simulation
-        self._qubits_number = qubits_number
+        self._qram_bits = qram_bits
         self._print_circuit = print_circuit
         self._print_sim = print_sim
         self._hpc = hpc
@@ -488,7 +491,7 @@ class QRAMSimulatorBase:
         success_vector: int = 0
 
         try:
-            if self._qubits_number <= 3 or self._simulation_kind == "dec":
+            if self._qram_bits <= 3 or self._simulation_kind == "dec":
                 # Compare rounded final state which is the output vector
                 assert np.array_equal(
                     np.array(np.around(final_state_vector)),

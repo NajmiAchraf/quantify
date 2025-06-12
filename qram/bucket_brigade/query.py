@@ -51,7 +51,7 @@ class BucketBrigadeQuery(BucketBrigadeBase):
             Complete query circuit
         """
         self.logger.info(
-            f"Constructing query circuit with {self.size_adr_n} address bits"
+            f"Constructing query circuit with {self.qram_bits} address bits"
         )
 
         # Wire up the query memory

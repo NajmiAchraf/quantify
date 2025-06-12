@@ -1,5 +1,5 @@
 import multiprocessing
-from typing import Any, List, Literal, Tuple, Union
+from typing import Any, Tuple
 
 import cirq
 
@@ -15,6 +15,7 @@ from qram.bucket_brigade.fan_read import BucketBrigadeFanRead
 from qram.bucket_brigade.query import BucketBrigadeQuery
 from qram.bucket_brigade.read import BucketBrigadeRead
 from qram.bucket_brigade.write import BucketBrigadeWrite
+from utils.types import type_circuit
 
 # Module-level component mapping for pickle compatibility
 COMPONENT_CLASSES = {
@@ -63,18 +64,7 @@ class BucketBrigade(BucketBrigadeBase):
         self,
         qram_bits: int,
         decomp_scenario: BucketBrigadeDecompType,
-        circuit_type: Union[
-            "List[Literal['fan_out','write','query','fan_in','read','fan_read']]",
-            Literal[
-                "fan_out",
-                "write",
-                "query",
-                "fan_in",
-                "read",
-                "fan_read",
-                "classic",
-            ],
-        ] = "classic",
+        circuit_type: type_circuit,
     ) -> None:
         """
         Initialize a BucketBrigade QRAM circuit.
@@ -89,7 +79,6 @@ class BucketBrigade(BucketBrigadeBase):
                 - "fan_in": Reset phase (uncompute fan-out)
                 - "read": Read phase only
                 - "fan_read": Fan-read structure
-                - "classic": Classic bucket brigade QRAM
         """
         # Initialize the base class
         super().__init__(qram_bits, decomp_scenario)
@@ -142,7 +131,7 @@ class BucketBrigade(BucketBrigadeBase):
     def construct_circuit(self) -> cirq.Circuit:
         """Build the appropriate circuit based on circuit_type."""
         self.logger.info(
-            f"Constructing {self.circuit_type} circuit with {self.size_adr_n} address bits"
+            f"Constructing {self.circuit_type} circuit with {self.qram_bits} address bits"
         )
 
         # Initialize empty list for components
@@ -159,29 +148,12 @@ class BucketBrigade(BucketBrigadeBase):
 
         # Handle different circuit_type formats
         if isinstance(self.circuit_type, str):
-            # Single string case (e.g., "classic")
-            if self.circuit_type == "classic":
-                components.extend(
-                    [
-                        ("BucketBrigadeFanOut", 0),
-                        ("BucketBrigadeQuery", 2),
-                        ("BucketBrigadeFanIn", 3),
-                    ]
-                )
-            elif self.circuit_type in component_order:
+            if self.circuit_type in component_order:
                 components.append(component_order[self.circuit_type])
         else:
             # List case
             for component in self.circuit_type:
-                if component == "classic":
-                    components.extend(
-                        [
-                            ("BucketBrigadeFanOut", 0),
-                            ("BucketBrigadeQuery", 2),
-                            ("BucketBrigadeFanIn", 3),
-                        ]
-                    )
-                elif component in component_order:
+                if component in component_order:
                     components.append(component_order[component])
 
         # Sort by order value and extract component names
@@ -197,7 +169,7 @@ class BucketBrigade(BucketBrigadeBase):
 
         # Create args list for multiprocessing
         args_list = [
-            (comp_name, self.size_adr_n, self.decomp_scenario)
+            (comp_name, self.qram_bits, self.decomp_scenario)
             for comp_name in components
         ]
 
@@ -224,7 +196,7 @@ class BucketBrigade(BucketBrigadeBase):
             # Single component case
             self._copy_component_attributes(created_components[0])
         else:
-            # Multiple components case (classic or custom combination)
+            # Multiple components case (custom combination)
             # Copy attributes from first component
             self._copy_component_attributes(
                 created_components[0], copy_circuit=False
@@ -240,7 +212,7 @@ class BucketBrigade(BucketBrigadeBase):
 
             # Extract the individual circuits (use empty circuits for missing components)
             empty_circuit = cirq.Circuit()
-            comp_fan_in = component_circuits.get(
+            comp_fan_out = component_circuits.get(
                 "BucketBrigadeFanOut", empty_circuit
             )
             memory_write = component_circuits.get(
@@ -249,11 +221,14 @@ class BucketBrigade(BucketBrigadeBase):
             memory_query = component_circuits.get(
                 "BucketBrigadeQuery", empty_circuit
             )
+            comp_fan_in = component_circuits.get(
+                "BucketBrigadeFanIn", empty_circuit
+            )
             memory_read = component_circuits.get(
                 "BucketBrigadeRead", empty_circuit
             )
-            comp_fan_out = component_circuits.get(
-                "BucketBrigadeFanIn", empty_circuit
+            comp_fan_read = component_circuits.get(
+                "BucketBrigadeFanRead", empty_circuit
             )
 
             # Use the reverse_and_link method to combine the circuits with the appropriate strategy
@@ -261,11 +236,12 @@ class BucketBrigade(BucketBrigadeBase):
                 "Linking circuit components using reverse_and_link"
             )
             combined_circuit = self.reverse_and_link(
-                comp_fan_in,
+                comp_fan_out,
                 memory_write,
                 memory_query,
+                comp_fan_in,
                 memory_read,
-                comp_fan_out,
+                comp_fan_read,
             )
 
             self.circuit = combined_circuit
@@ -292,21 +268,23 @@ class BucketBrigade(BucketBrigadeBase):
 
     def reverse_and_link(
         self,
-        comp_fan_in: cirq.Circuit,
+        comp_fan_out: cirq.Circuit,
         memory_write_decomposed: cirq.Circuit,
         memory_query_decomposed: cirq.Circuit,
+        comp_fan_in: cirq.Circuit,
         memory_read_decomposed: cirq.Circuit,
-        comp_fan_out: cirq.Circuit,
+        comp_fan_read: cirq.Circuit,
     ) -> cirq.Circuit:
         """
         Link the different parts of the circuit together with appropriate reversals.
 
         Args:
-            comp_fan_in: Fan-in (addressing) part of the circuit
+            comp_fan_out: Fan-out (addressing) part of the circuit
             memory_write_decomposed: Memory write access part of the circuit
-            memory_read_decomposed: Memory read access part of the circuit
             memory_query_decomposed: Memory query access part of the circuit
-            comp_fan_out: Fan-out (uncomputation) part of the circuit
+            comp_fan_in: Fan-in (uncomputation) part of the circuit
+            memory_read_decomposed: Memory read access part of the circuit
+            comp_fan_read: Fan-read part of the circuit
 
         Returns:
             Combined circuit with all parts linked
@@ -316,57 +294,54 @@ class BucketBrigade(BucketBrigadeBase):
         # Handle different reversal modes
         if self.decomp_scenario.reverse_moments == ReverseMoments.NO_REVERSE:
             # Standard concatenation without reversal
-            circuit.append(comp_fan_in)
+            circuit.append(comp_fan_out)
             circuit.append(memory_write_decomposed)
             circuit.append(memory_query_decomposed)
+            circuit.append(comp_fan_in)
             circuit.append(memory_read_decomposed)
-            circuit.append(comp_fan_out)
+            circuit.append(comp_fan_read)
+            # If parallel toffolis are enabled, stratify the circuit
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
 
         elif self.decomp_scenario.reverse_moments == ReverseMoments.IN_TO_OUT:
-            # Use fan-in for both in and out (reversed)
-            circuit.append(comp_fan_in)
+            # Use fan-out for both out and in (reversed)
+            circuit.append(comp_fan_out)
             circuit.append(memory_write_decomposed)
             circuit.append(memory_query_decomposed)
-            circuit.append(memory_read_decomposed)
             if self.decomp_scenario.parallel_toffolis:
                 circuit = BucketBrigade.stratify(circuit)
-            circuit.append(comp_fan_out)
+            if comp_fan_in.__len__() > 0 and comp_fan_out.__len__() > 0:
+                # Reverse the fan-out moments
+                comp_fan_in = BucketBrigade.stratify(comp_fan_out)
+                comp_fan_in = ctu.reverse_moments(comp_fan_in)
+            circuit.append(comp_fan_in)
+            circuit.append(memory_read_decomposed)
+            circuit.append(comp_fan_read)
 
         elif self.decomp_scenario.reverse_moments == ReverseMoments.OUT_TO_IN:
-            # #! Use fan-out for both in (reversed) and out
-            # compute_fanin_moments = cirq.Circuit(
-            #     ctu.reverse_moments(comp_fan_out)
-            # )
-            # if self.decomp_scenario.parallel_toffolis:
-            #     comp_fan_in = BucketBrigade.stratify(compute_fanin_moments)
-            #     comp_fan_in = BucketBrigade.parallelize_toffolis(comp_fan_in)
-
-            #! Use fan-out for both in (reversed) and out
-            compute_fanin_moments = cirq.Circuit(
-                ctu.reverse_moments(comp_fan_in)
-            )
-            if self.decomp_scenario.parallel_toffolis:
-                comp_fan_in = BucketBrigade.stratify(compute_fanin_moments)
-                comp_fan_in = BucketBrigade.parallelize_toffolis(comp_fan_in)
-            #! Use fan-out for both in (reversed) and out
-            compute_fanin_moments = cirq.Circuit(
-                ctu.reverse_moments(comp_fan_in)
-            )
-            if self.decomp_scenario.parallel_toffolis:
-                comp_fan_in = BucketBrigade.stratify(compute_fanin_moments)
-                comp_fan_in = BucketBrigade.parallelize_toffolis(comp_fan_in)
+            if comp_fan_in.__len__() > 0 and comp_fan_out.__len__() > 0:
+                compute_fanout_moments = cirq.Circuit(
+                    ctu.reverse_moments(comp_fan_in)
+                )
+                if self.decomp_scenario.parallel_toffolis:
+                    comp_fan_out = BucketBrigade.stratify(
+                        compute_fanout_moments
+                    )
+                    comp_fan_out = BucketBrigade.parallelize_toffolis(
+                        comp_fan_out
+                    )
 
             # Temporarily change the mode to avoid recursion issues
             original_mode = self.decomp_scenario.reverse_moments
             self.decomp_scenario.reverse_moments = ReverseMoments.IN_TO_OUT
             circuit = self.reverse_and_link(
-                comp_fan_in,
+                comp_fan_out,
                 memory_write_decomposed,
                 memory_query_decomposed,
+                comp_fan_in,
                 memory_read_decomposed,
-                comp_fan_out,
+                comp_fan_read,
             )
             self.decomp_scenario.reverse_moments = original_mode
 

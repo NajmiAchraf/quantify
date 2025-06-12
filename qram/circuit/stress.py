@@ -84,7 +84,7 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Core function of the experiment.
         """
 
-        super(QRAMCircuitExperiments, self)._core(nr_qubits=nr_qubits)
+        super(QRAMCircuitExperiments, self)._core(qram_bits=nr_qubits)
 
         self._stress()
 

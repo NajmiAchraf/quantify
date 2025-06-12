@@ -35,7 +35,7 @@ class BucketBrigadeDecompType:
         Returns all decomposition types used in the circuit.
 
         Returns:
-            List of decomposition types [fan_in, mem_write, mem_read, mem_query, fan_out]
+            List of decomposition types [dec_fan_out, dec_mem_write, dec_mem_query, dec_fan_in, dec_mem_read].
         """
         return [
             self.dec_fan_out,
