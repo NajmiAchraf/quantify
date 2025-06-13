@@ -124,9 +124,9 @@ def parse_shots(value: str) -> int:
     """
 
     shots: int = int(value)
-    if shots < 10:
+    if shots < 1:
         raise argparse.ArgumentTypeError(
-            "The number of shots should be greater than 10."
+            "The number of shots should be greater than 1."
         )
     return shots
 
@@ -247,8 +247,8 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             "--shots",
             type=parse_shots,
             nargs="?",
-            default=50,
-            help="The number of shots for the simulation, except for specific 'full' simulation case, by default it is 50.",
+            default=1,
+            help="The number of shots for the simulation, except for specific 'full' simulation case, by default it is 1.",
         )
         parser.add_argument(
             "--hpc",

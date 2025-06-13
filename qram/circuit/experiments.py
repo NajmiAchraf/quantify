@@ -77,11 +77,11 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
 
         colpr(
             "c",
-            "Bucket Brigade circuit creation:\n"
-            "\t• {:<1} Qbits\n"
+            "QRAM Bucket Brigade circuit creation:\n"
+            "\t• {:<1} qram bits\n"
             "\t• Time elapsed on creation: {:<12}\n"
-            "\t• RSS (Memory Usage): {:<10}\n"
-            "\t• VMS (Memory Usage): {:<10}".format(
+            "\t• RSS (Resident Set Size / Physical Memory Usage): {:<10}\n"
+            "\t• VMS (Virtual Memory Usage): {:<10}".format(
                 self._start_range_qubits,
                 self._stop_time,
                 format_bytes(process.memory_info().rss),
@@ -107,18 +107,16 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             )
 
             # Check each component type and print its decomposition
-            if "fan_out" in self._circuit_types:
+            if "fan_out" in self._circuit_type:
                 print(f"\t• fan_out_decomp: \t{decirc[0].dec_fan_out}")
-            if "write" in self._circuit_types:
+            if "write" in self._circuit_type:
                 print(f"\t• write_decomp:   \t{decirc[0].dec_mem_write}")
-            if "query" in self._circuit_types:
+            if "query" in self._circuit_type:
                 print(f"\t• query_decomp:   \t{decirc[0].dec_mem_query}")
-            if "fan_in" in self._circuit_types:
+            if "fan_in" in self._circuit_type:
                 print(f"\t• fan_in_decomp:  \t{decirc[0].dec_fan_in}")
-            if "read" in self._circuit_types:
+            if "read" in self._circuit_type:
                 print(f"\t• read_decomp:    \t{decirc[0].dec_mem_read}")
-            if "fan_read" in self._circuit_types:
-                print(f"\t• fan_read_decomp:\t{decirc[0].dec_mem_read}")
 
             colpr(
                 "y",

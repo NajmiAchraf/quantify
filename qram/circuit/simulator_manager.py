@@ -54,11 +54,14 @@ class QRAMCircuitSimulatorManager:
                 is_stress, *self.args, **self.kwargs
             )
         elif not self.kwargs.get("hpc"):
-            if self.kwargs.get("specific_simulation") != "full":
-                self._simulator = QRAMSimulatorCircuitSequential(
+            if (
+                self.kwargs.get("specific_simulation") == "full"
+                or self.kwargs.get("shots") == 1
+            ):
+                self._simulator = QRAMSimulatorCircuitParallel(
                     is_stress, *self.args, **self.kwargs
                 )
             else:
-                self._simulator = QRAMSimulatorCircuitParallel(
+                self._simulator = QRAMSimulatorCircuitSequential(
                     is_stress, *self.args, **self.kwargs
                 )

@@ -107,20 +107,10 @@ class BucketBrigade(BucketBrigadeBase):
                 return
 
             # Check if any component needs read/write qubit
-            needs_read_write = False
-
-            if isinstance(self.circuit_type, str):
-                # Single string case
-                needs_read_write = any(
-                    component in self.circuit_type
-                    for component in ["write", "read", "fan_read"]
-                )
-            else:
-                # List case
-                needs_read_write = any(
-                    component in ["write", "read", "fan_read"]
-                    for component in self.circuit_type
-                )
+            needs_read_write = any(
+                component in ["write", "read"]
+                for component in self.circuit_type
+            )
 
             # Create or clear read/write qubit based on need
             if needs_read_write:

@@ -94,10 +94,7 @@ class BucketBrigadeBase:
         self.target = cirq.NamedQubit("target")
 
         # Create read/write qubit only if needed based on the class name
-        if any(
-            name in self.__class__.__name__
-            for name in ["Write", "Read", "FanRead"]
-        ):
+        if any(name in self.__class__.__name__ for name in ["Write", "Read"]):
             self.read_write = cirq.NamedQubit("read/write")
         else:
             self.read_write = None

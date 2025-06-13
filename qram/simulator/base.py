@@ -217,16 +217,16 @@ class QRAMSimulatorBase:
 
         # Multiple shots simulation used only for the bucket brigade circuit and not for the decomposed circuit
         if (
-            self._specific_simulation != "full"
-            and self._simulation_kind == "bb"
+            "Parallel" in self.__class__.__name__
+            or "Decompositions" in self.__class__.__name__
         ):
+            return self._simulate_one_shot(
+                i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
+            )
+        elif "Sequential" in self.__class__.__name__:
             return self._simulate_multiple_shots(
                 i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
             )
-
-        return self._simulate_one_shot(
-            i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
-        )
 
     def _simulate_one_shot(
         self,

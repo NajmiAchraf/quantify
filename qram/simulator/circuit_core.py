@@ -122,8 +122,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         extra_qubits = 1
         if any(
-            component in ["write", "read", "fan_read"]
-            for component in self._circuit_type
+            component in ["write", "read"] for component in self._circuit_type
         ):
             extra_qubits = 2
 
@@ -173,12 +172,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         measurements = []
         for qubit in bbcircuit.qubit_order:
-            if self._specific_simulation in ["full", "qram", "a"]:
-                measurements.append(cirq.measure(qubit))
-            else:
-                for _name in self._specific_simulation:
-                    if qubit.name.startswith(_name):
-                        measurements.append(cirq.measure(qubit))
+            measurements.append(cirq.measure(qubit))
 
         bbcircuit.circuit.append(measurements)
         bbcircuit.circuit = cirq.synchronize_terminal_measurements(
