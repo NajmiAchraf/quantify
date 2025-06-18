@@ -27,6 +27,13 @@ def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
         parallel_toffolis_mod=True,
         reverse_moments=ReverseMoments.OUT_TO_IN,
     )
+    # QRAMCircuitExperiments().bb_decompose_test(
+    #     dec=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis=False,
+    #     dec_mod=ToffoliDecompType.NO_DECOMP,
+    #     parallel_toffolis_mod=False,
+    #     reverse_moments=ReverseMoments.OUT_TO_IN,
+    # )
 
 
 def main() -> int:

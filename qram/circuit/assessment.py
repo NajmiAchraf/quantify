@@ -70,7 +70,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
 
             num_qubits = len(self._bbcircuit.circuit.all_qubits())
-            circuit_depth = len(self._bbcircuit.circuit)
+            circuit_depth = count_circuit_depth(self._bbcircuit.circuit)
 
             t_depth = count_t_depth_of_circuit(self._bbcircuit.circuit)
             t_count = count_t_of_circuit(self._bbcircuit.circuit)
@@ -86,7 +86,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             ]
 
         num_qubits = len(self._bbcircuit_modded.circuit.all_qubits())
-        circuit_depth = len(self._bbcircuit_modded.circuit)
+        circuit_depth = count_circuit_depth(self._bbcircuit_modded.circuit)
 
         t_depth = count_t_depth_of_circuit(self._bbcircuit_modded.circuit)
         t_count = count_t_of_circuit(self._bbcircuit_modded.circuit)
@@ -116,7 +116,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
 
         # Assessment of essential checks
         colpr("b", "Creation of the Bucket Brigade Circuits:", end="\n\n")
-        table = "| Qubits Range     | Elapsed Time               | RSS (Memory Usage)     | VMS (Memory Usage)     |\n"
+        table = "| QRAM Bits        | Elapsed Time               | RSS (Memory Usage)     | VMS (Memory Usage)     |\n"
         table += "|------------------|----------------------------|------------------------|------------------------|\n"
 
         for x in range(self._start_range_qubits, self._end_range_qubits + 1):
@@ -128,7 +128,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
             colpr("b", "Reference circuit assessment:", end="\n\n")
 
-            table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
+            table = "| QRAM Bits        | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
             table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
             for x in range(
@@ -140,7 +140,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
 
         # Assessment of the modded circuit
         colpr("b", "Modded circuit assessment:", end="\n\n")
-        table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
+        table = "| QRAM Bits        | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
         for x in range(self._start_range_qubits, self._end_range_qubits + 1):
@@ -173,7 +173,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             colpr("y", "Comparing assessments", end="\n\n")
 
             colpr("b", "T count comparison:", end="\n\n")
-            table = "| Qubits Range     | T Count Reference  | T Count Modded (%) | T Count Cancelled (%)  |\n"
+            table = "| QRAM Bits        | T Count Reference  | T Count Modded (%) | T Count Cancelled (%)  |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
             for i in range(
@@ -185,7 +185,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             print(table, end="\n\n")
 
             colpr("b", "T depth comparison:", end="\n\n")
-            table = "| Qubits Range     | T Depth Reference  | T Depth Modded (%) | T Depth Cancelled (%)  |\n"
+            table = "| QRAM Bits        | T Depth Reference  | T Depth Modded (%) | T Depth Cancelled (%)  |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
             for i in range(
@@ -197,7 +197,7 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
             print(table, end="\n\n")
 
             colpr("b", "Depth of the circuit comparison:", end="\n\n")
-            table = "| Qubits Range     | Depth Reference    | Depth Modded (%)   | Depth Cancelled (%)    |\n"
+            table = "| QRAM Bits        | Depth Reference    | Depth Modded (%)   | Depth Cancelled (%)    |\n"
             table += "|------------------|--------------------|--------------------|------------------------|\n"
 
             for i in range(

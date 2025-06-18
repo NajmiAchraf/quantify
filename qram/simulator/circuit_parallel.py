@@ -1,5 +1,6 @@
 import multiprocessing
 import threading
+from typing import List, Tuple
 
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from utils.print_utils import loading_animation
@@ -56,8 +57,8 @@ class QRAMSimulatorCircuitParallel(QRAMSimulatorCircuitCore):
         # Use multiprocessing to parallelize the simulation ###################################
 
         try:
-            results: "list[tuple[int, int, int]]" = self._parallel_execution(
-                sim_range, step
+            results: List[Tuple[int, int, int, int]] = (
+                self._parallel_execution(sim_range, step)
             )
 
         finally:

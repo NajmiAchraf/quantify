@@ -1,6 +1,7 @@
 import multiprocessing
 import time
 from functools import partial
+from typing import List, Tuple
 
 import cirq
 
@@ -52,7 +53,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
     def _parallel_execution(
         self, sim_range: "list[int]", step: int
-    ) -> "list[tuple[int, int, int]]":
+    ) -> List[Tuple[int, int, int, int]]:
         """
         Simulates the circuit using multiprocessing.
 
@@ -63,7 +64,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        results: "list[tuple[int, int, int]]" = []
+        results: List[Tuple[int, int, int, int]] = []
 
         with multiprocessing.Pool() as pool:
             results = pool.map(
@@ -82,7 +83,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
     def _sequential_execution(
         self, sim_range: "list[int]", step: int
-    ) -> "list[tuple[int, int, int]]":
+    ) -> List[Tuple[int, int, int, int]]:
         """
         Simulates the circuit sequentially.
 
@@ -93,7 +94,7 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
 
         # simulation is not parallelized ######################################################
 
-        results: "list[tuple[int, int, int]]" = []
+        results: List[Tuple[int, int, int, int]] = []
 
         for i in sim_range:
             results.append(

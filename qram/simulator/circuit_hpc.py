@@ -1,4 +1,5 @@
 import itertools
+from typing import List, Tuple
 
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
@@ -80,7 +81,7 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
 
         # Use multiprocessing to parallelize the simulation ###################################
 
-        results: "list[tuple[int, int, int]]" = []
+        results: List[Tuple[int, int, int, int]] = []
 
         if (
             self._specific_simulation != "full"

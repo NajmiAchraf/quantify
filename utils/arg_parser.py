@@ -40,20 +40,6 @@ def parse_t_count(value: str) -> int:
     return t_count
 
 
-def parse_t_count_bilan(value: str) -> int:
-    """
-    Parse the T count for the QueryConfiguration.
-    Ensures the T count is between 4 and 7.
-    """
-
-    t_count: int = int(value)
-    if not (4 <= t_count <= 6):
-        raise argparse.ArgumentTypeError(
-            "The T count should be between 4 and 6."
-        )
-    return t_count
-
-
 def parse_t_cancel(value: str) -> int:
     """
     Parse the T cancel for the combinations.
@@ -116,6 +102,33 @@ def parse_qubit_range(value: str) -> Tuple[int, int]:
         raise argparse.ArgumentTypeError(MSG0 + ".")
 
     return start, end
+
+
+def parse_min_qram_size(qubit: int):
+    """
+    Creates a parser function for minimum QRAM size with the given qubit constraint.
+
+    Args:
+        qubit (int): The number of qubits (for validation)
+
+    Returns:
+        function: A function that parses min_qram_size values
+    """
+
+    def _parse_min_qram_size_inner(value: str) -> int:
+        """
+        Parse the minimum QRAM size for hierarchical decomposition.
+        Ensures the value is a positive integer.
+        """
+        min_qram_size: int = int(value)
+        if qubit < min_qram_size or min_qram_size < 1:
+            raise argparse.ArgumentTypeError(
+                "The minimum QRAM size should be a positive integer "
+                f"and less than or equal to the number of QRAM bits ({qubit})."
+            )
+        return min_qram_size
+
+    return _parse_min_qram_size_inner
 
 
 def parse_shots(value: str) -> int:
@@ -214,25 +227,40 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         help=f"{MSG0}, by default it is 2.",
     )
 
-    if qram_type == "experiments" or qram_type == "stress":
-        parser.add_argument(
-            "--t-count",
-            type=parse_t_count,
-            nargs="?",
-            default=7,
-            required=True,
-            help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
-        )
-    elif qram_type == "assessment":
-        parser.add_argument(
-            "--t-count",
-            type=parse_t_count_bilan,
-            nargs="?",
-            default=6,
-            required=True,
-            help="The T count for the QueryConfiguration it should be between 4 and 6, by default it is 6.",
-        )
+    # Parse just the qubit-range to get the qubit value for min-qram-size validation
+    # Use parse_known_args to handle the fact that not all arguments are defined yet
+    args, _ = parser.parse_known_args()
+    qubit = args.qubit_range[0]
 
+    # Now add min-qram-size with the correct qubit value
+    parser.add_argument(
+        "--min-qram-size",
+        type=parse_min_qram_size(qubit),
+        nargs="?",
+        default=0,
+        help="Minimum QRAM size for hierarchical decomposition.",
+    )
+
+    parser.add_argument(
+        "--t-count",
+        type=parse_t_count,
+        nargs="?",
+        default=7,
+        required=True,
+        help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
+    )
+
+    parser.add_argument(
+        "--circuit-type",
+        type=parse_circuit_type,
+        nargs="?",
+        default=["fan_out", "query", "fan_in"],
+        help="""Circuit type to use as a numeric value where:
+        1=fan_out, 2=write, 4=query, 8=fan_in, 16=read, 32=fan_read
+        Examples: 3=fan_out+write, 7=fan_out+write+query, 13=fan_out+query+fan_in (default)""",
+    )
+
+    # Only add t-cancel for "stress" type
     if qram_type == "stress":
         parser.add_argument(
             "--t-cancel",
@@ -242,6 +270,7 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             help="The T cancel for the combinations it should be greater than 0, by default it is 1.",
         )
 
+    # Add simulation and circuit arguments for all types except "assessment"
     if qram_type != "assessment":
         parser.add_argument(
             "--shots",
@@ -281,15 +310,6 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
             nargs="?",
             default="qram",
             help=MSG1,
-        )
-        parser.add_argument(
-            "--circuit-type",
-            type=parse_circuit_type,
-            nargs="?",
-            default=["fan_out", "query", "fan_in"],
-            help="""Circuit type to use as a numeric value where:
-            1=fan_out, 2=write, 4=query, 8=fan_in, 16=read, 32=fan_read
-            Examples: 3=fan_out+write, 7=fan_out+write+query, 13=fan_out+query+fan_in (default)""",
         )
 
     return parser

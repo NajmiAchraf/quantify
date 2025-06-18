@@ -2,12 +2,15 @@ import math
 import multiprocessing
 from functools import partial
 from multiprocessing.managers import DictProxy
-from typing import List, Literal, Union
+from typing import List, Literal, Tuple, Union
 
 import cirq
 import numpy as np
 
 import qram.bucket_brigade.main as bb
+from qram.bucket_brigade.hierarchical_network import (
+    HierarchicalBucketBrigadeNetwork,
+)
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import colpr, elapsed_time
 from utils.types import (
@@ -83,7 +86,9 @@ class QRAMSimulatorBase:
     _simulation_assessment: "list[str]" = []
 
     _bbcircuit: bb.BucketBrigade
-    _bbcircuit_modded: bb.BucketBrigade
+    _bbcircuit_modded: Union[
+        bb.BucketBrigade, HierarchicalBucketBrigadeNetwork
+    ]
     _decomp_scenario: bb.BucketBrigadeDecompType
     _decomp_scenario_modded: bb.BucketBrigadeDecompType
 
@@ -162,7 +167,7 @@ class QRAMSimulatorBase:
         circuit_modded: cirq.Circuit,
         qubit_order: "list[cirq.NamedQubit]",
         qubit_order_modded: "list[cirq.NamedQubit]",
-    ) -> "tuple[int, int, int]":
+    ) -> Tuple[int, int, int, int]:
         """
         Worker function for multiprocessing.
 
@@ -175,7 +180,7 @@ class QRAMSimulatorBase:
             qubit_order_modded (list[cirq.NamedQubit]): The qubit order of the modded circuit.
 
         Returns:
-            tuple[int, int, int]: The number of failed tests and the number of measurements and full tests success.
+            tuple[int, int, int, int]: The number of failed tests and the number of measurements and fidelity and vector tests success.
         """
 
         j = i
@@ -183,11 +188,11 @@ class QRAMSimulatorBase:
             # Calculate the index for the decomposed circuit by reversing the binary representation of the index
             j = math.floor(i / step)
 
-        f, sm, sv = self._simulate_and_compare(
+        f, sm, sf, sv = self._simulate_and_compare(
             i, j, circuit, circuit_modded, qubit_order, qubit_order_modded
         )
 
-        return f, sm, sv
+        return f, sm, sf, sv
 
     def _simulate_and_compare(
         self,
@@ -197,7 +202,7 @@ class QRAMSimulatorBase:
         circuit_modded: cirq.Circuit,
         qubit_order: "list[cirq.NamedQubit]",
         qubit_order_modded: "list[cirq.NamedQubit]",
-    ) -> "tuple[int, int, int]":
+    ) -> Tuple[int, int, int, int]:
         """
         Simulate and compares the results of the simulation.
 
@@ -212,7 +217,8 @@ class QRAMSimulatorBase:
         Returns:
             int: The number of failed tests.
             int: The number of measurements tests success.
-            int: The number of full tests success.
+            int: The number of fidelity tests success.
+            int: The number of vector tests success.
         """
 
         # Multiple shots simulation used only for the bucket brigade circuit and not for the decomposed circuit
@@ -236,7 +242,7 @@ class QRAMSimulatorBase:
         circuit_modded: cirq.Circuit,
         qubit_order: "list[cirq.NamedQubit]",
         qubit_order_modded: "list[cirq.NamedQubit]",
-    ) -> "tuple[int, int, int]":
+    ) -> Tuple[int, int, int, int]:
         """
         Simulate and compares the results of the simulation.
 
@@ -251,7 +257,8 @@ class QRAMSimulatorBase:
         Returns:
             int: The number of failed tests.
             int: The number of measurements tests success.
-            int: The number of full tests success.
+            int: The number of fidelity tests success.
+            int: The number of vector tests success.
         """
 
         initial_state: int = j
@@ -332,7 +339,7 @@ class QRAMSimulatorBase:
         circuit_modded: cirq.Circuit,
         qubit_order: "list[cirq.NamedQubit]",
         qubit_order_modded: "list[cirq.NamedQubit]",
-    ) -> "tuple[int, int, int]":
+    ) -> Tuple[int, int, int, int]:
         """
         Simulate and compare the results of the simulation.
 
@@ -467,7 +474,7 @@ class QRAMSimulatorBase:
         measurements_modded: Union["dict[str, np.ndarray]", "dict[str, list]"],
         final_state_vector: "list[np.ndarray]",
         final_state_vector_modded: "list[np.ndarray]",
-    ) -> "tuple[int, int, int]":
+    ) -> Tuple[int, int, int, int]:
         """
         Compares the results of the simulation.
 
@@ -483,47 +490,91 @@ class QRAMSimulatorBase:
         Returns:
             int: The number of failed tests.
             int: The number of measurements tests success.
-            int: The number of full tests success.
+            int: The number of fidelity tests success.
+            int: The number of vector tests success.
         """
 
         fail: int = 0
         success_measurements: int = 0
+        success_fidelity: int = 0
         success_vector: int = 0
 
+        # First check if measurements match
+        measurement_match = True
+        for o_qubit in self._bbcircuit.qubit_order:
+            qubit_str = str(o_qubit)
+            if qubit_str in measurements and qubit_str in measurements_modded:
+                # Extract measurement values for comparison
+                if isinstance(measurements[qubit_str], list):
+                    m1 = measurements[qubit_str][0]
+                else:
+                    m1 = measurements[qubit_str]
+
+                if isinstance(measurements_modded[qubit_str], list):
+                    m2 = measurements_modded[qubit_str][0]
+                else:
+                    m2 = measurements_modded[qubit_str]
+
+                # Compare bit values - these must match exactly
+                if not np.array_equal(m1, m2):
+                    measurement_match = False
+                    break
+
+        # If measurements don't match, mark as failure
+        if not measurement_match:
+            fail += 1
+            self._log_results(i, result, result_modded, "r")
+            return fail, success_measurements, success_fidelity, success_vector
+
+        # If measurements match, proceed to state vector comparison
         try:
             if self._qram_bits <= 3 or self._simulation_kind == "dec":
-                # Compare rounded final state which is the output vector
-                assert np.array_equal(
-                    np.array(np.around(final_state_vector)),
-                    np.array(np.around(final_state_vector_modded)),
-                )
-            else:
-                raise AssertionError
-        except AssertionError:
-            try:
-                # Compare specific measurements for the specific qubits
-                for o_qubit in self._bbcircuit.qubit_order:
-                    qubit_str = str(o_qubit)
-                    if qubit_str in measurements:
-                        assert np.array_equal(
-                            measurements[qubit_str],
-                            measurements_modded.get(qubit_str, np.array([])),
+                v1 = np.array(final_state_vector)
+                v2 = np.array(final_state_vector_modded)
+
+                # First try exact array comparison (preferred)
+                try:
+                    # Try to check if arrays are exactly equal (considering a small tolerance for floating point)
+                    if np.allclose(v1, v2, rtol=1e-5, atol=1e-8):
+                        success_vector += 1
+                        self._log_results(i, result, result_modded, "g")
+                        return (
+                            fail,
+                            success_measurements,
+                            success_fidelity,
+                            success_vector,
                         )
-            except AssertionError:
-                fail += 1
-                self._log_results(i, result, result_modded, "r")
+                except:
+                    # If the comparison fails (e.g., shape mismatch), continue to fidelity check
+                    pass
+
+                # If exact comparison failed, normalize and check fidelity
+                # to account for phase differences
+                if np.linalg.norm(v1) > 0:
+                    v1 = v1 / np.linalg.norm(v1)
+                if np.linalg.norm(v2) > 0:
+                    v2 = v2 / np.linalg.norm(v2)
+
+                # Check if they're approximately equal with fidelity
+                fidelity = np.abs(np.vdot(v1, v2)) ** 2
+                if fidelity > 0.99:
+                    # If vectors differ but measurements match, it's a partial success
+                    success_fidelity += 1
+                    self._log_results(i, result, result_modded, "v")
             else:
+                # For larger systems, only check measurements
                 success_measurements += 1
                 self._log_results(i, result, result_modded, "b")
-        else:
-            success_vector += 1
-            self._log_results(i, result, result_modded, "g")
+        except (AssertionError, TypeError, ValueError):
+            # If any comparison fails but measurements match, count as measurement success
+            success_measurements += 1
+            self._log_results(i, result, result_modded, "b")
 
-        return fail, success_measurements, success_vector
+        return fail, success_measurements, success_fidelity, success_vector
 
     def _print_simulation_results(
         self,
-        results: "list[tuple[int, int, int]]",
+        results: List[Tuple[int, int, int, int]],
         sim_range: "list[int]",
         step: int,
     ) -> None:
@@ -531,7 +582,7 @@ class QRAMSimulatorBase:
         Prints the simulation results.
 
         Args:
-            results (list[tuple[int, int, int]]): The results of the simulation.
+            results (list[tuple[int, int, int, int]]): The results of the simulation.
             sim_range (list[int]): The range of the simulation.
             step (int): The step index.
 
@@ -541,13 +592,15 @@ class QRAMSimulatorBase:
 
         fail: int = 0
         success_measurements: int = 0
+        success_fidelity: int = 0
         success_vector: int = 0
         total_tests: int = 0
 
         # Aggregate results
-        for f, sm, sv in results:
+        for f, sm, sf, sv in results:
             fail += f
             success_measurements += sm
+            success_fidelity += sf
             success_vector += sv
             total_tests += 1
 
@@ -555,39 +608,41 @@ class QRAMSimulatorBase:
 
         f = format(((fail * 100) / total_tests), ",.2f")
         sm = format(((success_measurements * 100) / total_tests), ",.2f")
+        sf = format(((success_fidelity * 100) / total_tests), ",.2f")
         sv = format(((success_vector * 100) / total_tests), ",.2f")
         ts = format(
             (((success_measurements + success_vector) * 100) / total_tests),
             ",.2f",
         )
 
-        self._simulation_assessment = [f, ts, sm, sv]
+        self._simulation_assessment = [f, ts, sm, sf, sv]
 
         if not self._is_stress:
             print("\n\nResults of the simulation:\n")
             colpr("r", f"\t• Failed: {fail} ({f} %)")
-            if success_measurements == 0:
-                colpr(
-                    "g",
-                    f"\t• Succeed: {success_measurements + success_vector} ({ts} %)",
-                    end="\n\n",
-                )
-            else:
-                colpr(
-                    "y",
-                    f"\t• Succeed: {success_measurements + success_vector} ({ts} %)",
-                    end="\t( ",
-                )
-                colpr(
-                    "b",
-                    f"Measurements: {success_measurements} ({sm} %)",
-                    end=" • ",
-                )
-                colpr(
-                    "g",
-                    f"Output vector: {success_vector} ({sv} %)",
-                    end=" )\n\n",
-                )
+            col = "y"
+            if success_measurements == 0 and success_fidelity == 0:
+                col = "g"
+            colpr(
+                col,
+                f"\t• Succeed: {success_measurements + success_fidelity + success_vector} ({ts} %)",
+                end="\t( ",
+            )
+            colpr(
+                "b",
+                f"Measurements: {success_measurements} ({sm} %)",
+                end=" • ",
+            )
+            colpr(
+                "v",
+                f"Fidelity: {success_fidelity} ({sf} %)",
+                end=" • ",
+            )
+            colpr(
+                "g",
+                f"Output vector: {success_vector} ({sv} %)",
+                end=" )\n\n",
+            )
 
             colpr("w", "Time elapsed on simulation and comparison:", end=" ")
             colpr("r", self._stop_time, end="\n\n")

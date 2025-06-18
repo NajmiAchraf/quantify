@@ -8,6 +8,9 @@ from qram.bucket_brigade.decomp_type import (
     BucketBrigadeDecompType,
     ReverseMoments,
 )
+from qram.bucket_brigade.hierarchical_network import (
+    HierarchicalBucketBrigadeNetwork,
+)
 from qram.bucket_brigade.main import BucketBrigade
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
@@ -37,6 +40,7 @@ class QRAMCircuitCore:
         _print_sim (type_print_sim): Flag indicating whether to print the full simulation result.
         _start_range_qubits (int): Start range of qubits.
         _end_range_qubits (int): End range of qubits.
+        _min_qram_size (int): Minimum QRAM size for hierarchical decomposition.
         _specific_simulation (type_specific_simulation): Specific simulation for specific qubit wire.
         _circuit_type (type_circuit): Type of the circuit (fan_out, write, query, fan_in, read, fan_read).
 
@@ -71,6 +75,7 @@ class QRAMCircuitCore:
     _print_sim: type_print_sim = "Hide"
     _start_range_qubits: int
     _end_range_qubits: int = 0
+    _min_qram_size: int = 1
     _specific_simulation: type_specific_simulation = "qram"
     _circuit_type: type_circuit
 
@@ -80,7 +85,7 @@ class QRAMCircuitCore:
     _decomp_scenario: BucketBrigadeDecompType
     _decomp_scenario_modded: BucketBrigadeDecompType
     _bbcircuit: BucketBrigade
-    _bbcircuit_modded: BucketBrigade
+    _bbcircuit_modded: Union[BucketBrigade, HierarchicalBucketBrigadeNetwork]
 
     _simulated: bool = False
     _simulator_manager: QRAMCircuitSimulatorManager
@@ -186,6 +191,9 @@ class QRAMCircuitCore:
         # Start and end range of qubits
         self._start_range_qubits, self._end_range_qubits = args.qubit_range
 
+        # Minimum QRAM size for hierarchical decomposition
+        self._min_qram_size = args.min_qram_size
+
         # Specific simulation (qram, full) by default it is full circuit
         self._specific_simulation = args.specific
 
@@ -198,9 +206,7 @@ class QRAMCircuitCore:
 
     def __bb_decompose(
         self,
-        toffoli_decomp_type: Union[
-            "list[ToffoliDecompType]", ToffoliDecompType
-        ],
+        toffoli_decomp_type: Union[List[ToffoliDecompType], ToffoliDecompType],
         parallel_toffolis: bool,
         reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE,
     ) -> BucketBrigadeDecompType:
@@ -245,9 +251,9 @@ class QRAMCircuitCore:
 
     def bb_decompose_test(
         self,
-        dec: Union["list[ToffoliDecompType]", ToffoliDecompType],
+        dec: Union[List[ToffoliDecompType], ToffoliDecompType],
         parallel_toffolis: bool,
-        dec_mod: Union["list[ToffoliDecompType]", ToffoliDecompType],
+        dec_mod: Union[List[ToffoliDecompType], ToffoliDecompType],
         parallel_toffolis_mod: bool,
         reverse_moments: ReverseMoments = ReverseMoments.NO_REVERSE,
     ) -> None:
@@ -338,11 +344,19 @@ class QRAMCircuitCore:
             )
 
         def _create_bbcircuit_modded():
-            self._bbcircuit_modded = BucketBrigade(
-                qram_bits=qram_bits,
-                decomp_scenario=self._decomp_scenario_modded,
-                circuit_type=self._circuit_type,
-            )
+            if self._min_qram_size == 0:
+                self._bbcircuit_modded = BucketBrigade(
+                    qram_bits=qram_bits,
+                    decomp_scenario=self._decomp_scenario_modded,
+                    circuit_type=self._circuit_type,
+                )
+            else:
+                self._bbcircuit_modded = HierarchicalBucketBrigadeNetwork(
+                    qram_bits=qram_bits,
+                    min_qram_size=self._min_qram_size,
+                    decomp_scenario=self._decomp_scenario_modded,
+                    circuit_type=self._circuit_type,
+                )
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.submit(_create_bbcircuit)

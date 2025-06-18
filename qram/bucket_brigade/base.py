@@ -107,7 +107,7 @@ class BucketBrigadeBase:
         Returns:
             List of qubits in a specific order.
         """
-        return self._qubit_order
+        return self._qubit_order.copy()
 
     def get_b_ancilla_name(self, i: int) -> str:
         """

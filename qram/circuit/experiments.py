@@ -184,7 +184,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
         )
 
         num_qubits = len(bbcircuit.circuit.all_qubits())
-        circuit_depth = len(bbcircuit.circuit)
+        circuit_depth = count_circuit_depth(bbcircuit.circuit)
 
         if (
             decomp_scenario.get_decomp_types()[0]
@@ -216,7 +216,7 @@ class QRAMCircuitExperiments(QRAMCircuitCore):
             )
 
         # Create the Markdown table
-        table = "| Qubits Range     | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
+        table = "| QRAM Bits        | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
         table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
 
         for row in data:

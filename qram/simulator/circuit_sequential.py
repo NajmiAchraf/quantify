@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 
 #######################################
@@ -36,7 +38,7 @@ class QRAMSimulatorCircuitSequential(QRAMSimulatorCircuitCore):
 
         # simulation is not parallelized ######################################################
 
-        results: "list[tuple[int, int, int]]" = self._sequential_execution(
+        results: List[Tuple[int, int, int, int]] = self._sequential_execution(
             sim_range, step
         )
 
