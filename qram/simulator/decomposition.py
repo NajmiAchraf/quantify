@@ -12,11 +12,11 @@ from qramcircuits.toffoli_decomposition import (
     ToffoliDecompType,
 )
 from utils.print_utils import (
-    colpr,
     loading_animation,
-    message,
-    printCircuit,
-    printRange,
+    print_colored,
+    print_message,
+    print_simulation_range,
+    render_circuit,
 )
 
 
@@ -126,7 +126,7 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         circuit = cirq.synchronize_terminal_measurements(circuit)
 
         if decomposition_type != ToffoliDecompType.NO_DECOMP:
-            printCircuit(
+            render_circuit(
                 self._print_circuit,
                 circuit,
                 qubits,
@@ -142,10 +142,9 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
 
         self._simulation_kind = "dec"
 
-        msg = message(
+        print_message(
             "Simulating the circuit ... Comparing the results of the decompositions to the Toffoli gate"
         )
-        colpr("y", f"\n{msg}", end="\n\n")
 
         for decomp_scenario in [
             self._decomp_scenario,
@@ -198,9 +197,12 @@ class QRAMSimulatorDecompositions(QRAMSimulatorBase):
         stop = 8 * step
 
         # prints ##############################################################################
-        printRange(start, stop, step)
+        print_simulation_range(
+            list(range(start, stop, step)),
+            step,
+        )
 
-        colpr(
+        print_colored(
             "c",
             "Simulating the decomposition ... ",
             str(decomposition_type),

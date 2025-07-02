@@ -12,7 +12,7 @@ from qram.bucket_brigade.query import BucketBrigadeQuery
 from qram.bucket_brigade.read import BucketBrigadeRead
 from qram.bucket_brigade.write import BucketBrigadeWrite
 from qramcircuits.toffoli_decomposition import ToffoliDecomposition
-from utils.print_utils import printCircuit
+from utils.print_utils import render_circuit
 from utils.types import type_circuit
 
 
@@ -601,9 +601,9 @@ class HierarchicalBucketBrigadeNetwork:
                     if component_circuit and len(component_circuit) > 0:
                         # Create frozen circuit operation (without control)
                         frozen_circuit = cirq.FrozenCircuit(component_circuit)
-                        # Fix: Add use_repetition_ids=False to avoid the warning
+                        # Fix: Add use_repetition_ids=True to avoid the warning
                         circuit_op = cirq.CircuitOperation(
-                            frozen_circuit, use_repetition_ids=False
+                            frozen_circuit, use_repetition_ids=True
                         )
 
                         if component_name not in result:

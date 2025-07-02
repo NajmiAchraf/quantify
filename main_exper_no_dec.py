@@ -17,14 +17,8 @@ def Experiment(QueryConfiguration: ToffoliDecompType) -> None:
     QRAMCircuitExperiments().bb_decompose_test(
         dec=ToffoliDecompType.NO_DECOMP,
         parallel_toffolis=False,
-        dec_mod=[
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # fan_out
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # mem_write
-            QueryConfiguration,  # mem_query
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # fan_in
-            ToffoliDecompType.RELATIVE_PHASE_TD_4_CXD_3,  # mem_read
-        ],
-        parallel_toffolis_mod=True,
+        dec_mod=ToffoliDecompType.NO_DECOMP,
+        parallel_toffolis_mod=False,
         reverse_moments=ReverseMoments.OUT_TO_IN,
     )
 

@@ -70,23 +70,39 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
 
             num_qubits = len(self._bbcircuit.circuit.all_qubits())
-            circuit_depth = count_circuit_depth(self._bbcircuit.circuit)
+            circuit_depth = len(self._bbcircuit.circuit)
+            sub_circuits_depth = count_circuit_depth(self._bbcircuit.circuit)
 
             t_depth = count_t_depth_of_circuit(self._bbcircuit.circuit)
             t_count = count_t_of_circuit(self._bbcircuit.circuit)
             hadamard_count = count_h_of_circuit(self._bbcircuit.circuit)
 
-            self._data[nr_qubits] = [
-                nr_qubits,
-                num_qubits,
-                circuit_depth,
-                t_depth,
-                t_count,
-                hadamard_count,
-            ]
+            # Store data with sub-circuits depth
+            if sub_circuits_depth != circuit_depth:
+                self._data[nr_qubits] = [
+                    nr_qubits,
+                    num_qubits,
+                    circuit_depth,
+                    sub_circuits_depth,
+                    t_depth,
+                    t_count,
+                    hadamard_count,
+                ]
+            else:
+                self._data[nr_qubits] = [
+                    nr_qubits,
+                    num_qubits,
+                    circuit_depth,
+                    t_depth,
+                    t_count,
+                    hadamard_count,
+                ]
 
         num_qubits = len(self._bbcircuit_modded.circuit.all_qubits())
-        circuit_depth = count_circuit_depth(self._bbcircuit_modded.circuit)
+        circuit_depth = len(self._bbcircuit_modded.circuit)
+        sub_circuits_depth = count_circuit_depth(
+            self._bbcircuit_modded.circuit
+        )
 
         t_depth = count_t_depth_of_circuit(self._bbcircuit_modded.circuit)
         t_count = count_t_of_circuit(self._bbcircuit_modded.circuit)
@@ -95,115 +111,77 @@ class QRAMCircuitAssessment(QRAMCircuitCore):
         rss = format_bytes(process.memory_info().rss)
         vms = format_bytes(process.memory_info().vms)
 
-        self._data_modded[nr_qubits] = [
-            nr_qubits,
-            num_qubits,
-            circuit_depth,
-            t_depth,
-            t_count,
-            hadamard_count,
-            self._stop_time,
-            rss,
-            vms,
-        ]
+        # Store data with sub-circuits depth for modded circuit
+        if sub_circuits_depth != circuit_depth:
+            self._data_modded[nr_qubits] = [
+                nr_qubits,
+                num_qubits,
+                circuit_depth,
+                sub_circuits_depth,
+                t_depth,
+                t_count,
+                hadamard_count,
+                self._stop_time,
+                rss,
+                vms,
+            ]
+        else:
+            self._data_modded[nr_qubits] = [
+                nr_qubits,
+                num_qubits,
+                circuit_depth,
+                t_depth,
+                t_count,
+                hadamard_count,
+                self._stop_time,
+                rss,
+                vms,
+            ]
 
     def __print_assessment(self) -> None:
         """
         Prints the assessment of the experiment.
         """
 
-        colpr("y", "\n\nAssessment of the experiment:", end="\n\n")
+        # Print main title
+        print_assessment_main_title()
 
-        # Assessment of essential checks
-        colpr("b", "Creation of the Bucket Brigade Circuits:", end="\n\n")
-        table = "| QRAM Bits        | Elapsed Time               | RSS (Memory Usage)     | VMS (Memory Usage)     |\n"
-        table += "|------------------|----------------------------|------------------------|------------------------|\n"
+        # Print circuit creation assessment
+        print_circuit_creation_assessment(
+            self._data_modded, self._start_range_qubits, self._end_range_qubits
+        )
 
-        for x in range(self._start_range_qubits, self._end_range_qubits + 1):
-            table += f"| {self._data_modded[x][0]:<16} | {self._data_modded[x][6]:<26} | {self._data_modded[x][7]:<22} | {self._data_modded[x][8]:<22} |\n"
-
-        print(table, end="\n\n")
-
-        # Assessment of the reference circuit
+        # Print reference circuit assessment (if applicable)
         if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
-            colpr("b", "Reference circuit assessment:", end="\n\n")
+            print_reference_circuit_assessment(
+                self._data, self._start_range_qubits, self._end_range_qubits
+            )
 
-            table = "| QRAM Bits        | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
-            table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
+        # Print modded circuit assessment
+        print_modded_circuit_assessment(
+            self._data_modded, self._start_range_qubits, self._end_range_qubits
+        )
 
-            for x in range(
-                self._start_range_qubits, self._end_range_qubits + 1
-            ):
-                table += f"| {self._data[x][0]:<16} | {self._data[x][1]:<16} | {self._data[x][2]:<20} | {self._data[x][3]:<16} | {self._data[x][4]:<16} | {self._data[x][5]:<17} |\n"
+        # Print depth analysis (sub-circuits vs circuit depth)
+        has_reference = (
+            self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP
+        )
+        print_depth_analysis(
+            self._data_modded,
+            self._data,
+            self._start_range_qubits,
+            self._end_range_qubits,
+            has_reference,
+        )
 
-            print(table, end="\n\n")
-
-        # Assessment of the modded circuit
-        colpr("b", "Modded circuit assessment:", end="\n\n")
-        table = "| QRAM Bits        | Number of Qubits | Depth of the Circuit | T Depth          | T Count          | Hadamard Count    |\n"
-        table += "|------------------|------------------|----------------------|------------------|------------------|-------------------|\n"
-
-        for x in range(self._start_range_qubits, self._end_range_qubits + 1):
-            table += f"| {self._data_modded[x][0]:<16} | {self._data_modded[x][1]:<16} | {self._data_modded[x][2]:<20} | {self._data_modded[x][3]:<16} | {self._data_modded[x][4]:<16} | {self._data_modded[x][5]:<17} |\n"
-
-        print(table, end="\n\n")
-
-        # Comparing assessments
+        # Print reference vs modded comparison (if applicable)
         if self._decomp_scenario.dec_fan_out != ToffoliDecompType.NO_DECOMP:
+            print_reference_modded_comparison(
+                self._data,
+                self._data_modded,
+                self._start_range_qubits,
+                self._end_range_qubits,
+            )
 
-            def calculate(i: int, j: int) -> "tuple[str, str]":
-                modded_percent = (
-                    self._data_modded[i][j] / self._data[i][j]
-                ) * 100
-                modded_percent_str = format(modded_percent, ",.2f")
-                modded = (
-                    str(self._data_modded[i][j])
-                    + f"  ( {modded_percent_str} )"
-                )
-
-                cancelled_percent = 100.0 - modded_percent
-                cancelled_percent_str = format(cancelled_percent, ",.2f")
-                cancelled = (
-                    str(self._data[i][j] - self._data_modded[i][j])
-                    + f"  ( {cancelled_percent_str} )"
-                )
-
-                return modded, cancelled
-
-            colpr("y", "Comparing assessments", end="\n\n")
-
-            colpr("b", "T count comparison:", end="\n\n")
-            table = "| QRAM Bits        | T Count Reference  | T Count Modded (%) | T Count Cancelled (%)  |\n"
-            table += "|------------------|--------------------|--------------------|------------------------|\n"
-
-            for i in range(
-                self._start_range_qubits, self._end_range_qubits + 1
-            ):
-                modded, cancelled = calculate(i, 4)
-                table += f"| {self._data[i][0]:<16} | {self._data[i][4]:<18} | {modded :<18} | {cancelled:<22} |\n"
-
-            print(table, end="\n\n")
-
-            colpr("b", "T depth comparison:", end="\n\n")
-            table = "| QRAM Bits        | T Depth Reference  | T Depth Modded (%) | T Depth Cancelled (%)  |\n"
-            table += "|------------------|--------------------|--------------------|------------------------|\n"
-
-            for i in range(
-                self._start_range_qubits, self._end_range_qubits + 1
-            ):
-                modded, cancelled = calculate(i, 3)
-                table += f"| {self._data[i][0]:<16} | {self._data[i][3]:<18} | {modded :<18} | {cancelled:<22} |\n"
-
-            print(table, end="\n\n")
-
-            colpr("b", "Depth of the circuit comparison:", end="\n\n")
-            table = "| QRAM Bits        | Depth Reference    | Depth Modded (%)   | Depth Cancelled (%)    |\n"
-            table += "|------------------|--------------------|--------------------|------------------------|\n"
-
-            for i in range(
-                self._start_range_qubits, self._end_range_qubits + 1
-            ):
-                modded, cancelled = calculate(i, 2)
-                table += f"| {self._data[i][0]:<16} | {self._data[i][2]:<18} | {modded :<18} | {cancelled:<22} |\n"
-
-            print(table, end="\n\n")
+        # Print final summary
+        print_assessment_summary()

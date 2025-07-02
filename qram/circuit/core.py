@@ -15,7 +15,12 @@ from qram.bucket_brigade.main import BucketBrigade
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.arg_parser import parser_args
-from utils.print_utils import colpr, elapsed_time, loading_animation
+from utils.print_utils import (
+    elapsed_time,
+    loading_animation,
+    print_colored,
+    print_qram_configuration,
+)
 from utils.types import (
     type_circuit,
     type_print_circuit,
@@ -98,7 +103,7 @@ class QRAMCircuitCore:
         try:
             self.__arg_input__()
         except Exception as e:
-            colpr(
+            print_colored(
                 "r",
                 "\nError occurred while parsing arguments:",
                 str(e),
@@ -107,7 +112,17 @@ class QRAMCircuitCore:
             sys.exit(1)
 
         if not self._hpc:
-            self.__print_input__()
+            print_qram_configuration(
+                circuit_type=self._circuit_type,
+                hpc=self._hpc,
+                simulate=self._simulate,
+                print_circuit=self._print_circuit,
+                start_range_qubits=self._start_range_qubits,
+                end_range_qubits=self._end_range_qubits,
+                specific_simulation=self._specific_simulation,
+                print_sim=self._print_sim,
+                shots=self._shots,
+            )
 
     #######################################
     # input methods
@@ -118,27 +133,29 @@ class QRAMCircuitCore:
         Prints the input arguments for the experiment.
         """
 
-        colpr(
+        print_colored(
             "y", "========== QRAM Circuit Configuration ==========", end="\n\n"
         )
 
-        colpr("w", "Circuit type:", end=" ")
-        colpr("r", f"{self._circuit_type}")
+        print_colored("w", "Circuit type:", end=" ")
+        print_colored("r", f"{self._circuit_type}")
 
-        colpr("w", "Simulate circuit on HPC:", end=" ")
-        colpr("r", f"{'Yes' if self._hpc else 'No'}")
+        print_colored("w", "Simulate circuit on HPC:", end=" ")
+        print_colored("r", f"{'Yes' if self._hpc else 'No'}")
 
-        colpr("w", "Simulate Toffoli decompositions and circuit:", end=" ")
-        colpr("r", f"{'Yes' if self._simulate else 'No'}")
+        print_colored(
+            "w", "Simulate Toffoli decompositions and circuit:", end=" "
+        )
+        print_colored("r", f"{'Yes' if self._simulate else 'No'}")
 
-        colpr("w", "Circuit display option:", end=" ")
-        colpr("r", f"{self._print_circuit}")
+        print_colored("w", "Circuit display option:", end=" ")
+        print_colored("r", f"{self._print_circuit}")
 
-        colpr("w", "Start range of qubits:", end=" ")
-        colpr("r", f"{self._start_range_qubits}")
+        print_colored("w", "Start range of qubits:", end=" ")
+        print_colored("r", f"{self._start_range_qubits}")
 
-        colpr("w", "End range of qubits:", end=" ")
-        colpr("r", f"{self._end_range_qubits}")
+        print_colored("w", "End range of qubits:", end=" ")
+        print_colored("r", f"{self._end_range_qubits}")
 
         if self._simulate:
 
@@ -147,17 +164,21 @@ class QRAMCircuitCore:
                 if self._specific_simulation == "full"
                 else "Simulate QRAM pattern"
             )
-            colpr("w", "Simulation type:", end=" ")
-            colpr("r", sim_msg)
+            print_colored("w", "Simulation type:", end=" ")
+            print_colored("r", sim_msg)
 
-            colpr("w", "Simulation display option:", end=" ")
-            colpr("r", f"{self._print_sim}")
+            print_colored("w", "Simulation display option:", end=" ")
+            print_colored("r", f"{self._print_sim}")
 
             if self._specific_simulation != "full":
-                colpr("w", "Number of shots for the each simulation:", end=" ")
-                colpr("r", f"{self._shots}")
+                print_colored(
+                    "w", "Number of shots for the each simulation:", end=" "
+                )
+                print_colored("r", f"{self._shots}")
 
-        colpr("y", "\n================================================\n")
+        print_colored(
+            "y", "\n================================================\n"
+        )
 
     def __arg_input__(self) -> None:
         """
@@ -295,7 +316,7 @@ class QRAMCircuitCore:
         """
 
         if self._decomp_scenario is None:
-            colpr("r", "Decomposition scenario is None")
+            print_colored("r", "Decomposition scenario is None")
             return
 
         animate = False

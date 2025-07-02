@@ -4,3 +4,4 @@ fasteners
 pyzx
 pytest
 psutil
+rich

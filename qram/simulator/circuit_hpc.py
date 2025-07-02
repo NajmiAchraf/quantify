@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from qram.simulator.circuit_core import QRAMSimulatorCircuitCore
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-from utils.print_utils import colpr, printRange
+from utils.print_utils import print_colored, print_simulation_range
 
 #######################################
 # QRAM Simulator Circuit HPC
@@ -53,9 +53,9 @@ class QRAMSimulatorCircuitHPC(QRAMSimulatorCircuitCore):
                 else "reference"
             )
 
-            printRange(sim_range[0], sim_range[-1], step)
+            print_simulation_range(sim_range[0], sim_range[-1], step)
 
-            colpr(
+            print_colored(
                 "c",
                 f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...",
                 end="\n\n",

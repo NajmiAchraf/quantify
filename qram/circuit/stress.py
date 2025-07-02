@@ -144,7 +144,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         size = comm.Get_size()
 
         # Determine the range of work for this MPI process
-        # print("rank, size : ", rank, size)
         total_work = list(copy.deepcopy(combinations))
 
         # Split the total work into chunks based on the number of ranks
@@ -158,16 +157,10 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             else 0
         )
 
-        # print("rank, local_work : ", rank, local_work)
-
         result = []
         for indices in local_work:
             self.__length_combinations += 1
             result.append(self._stress_experiment(indices))
-
-        # for item in result:
-        #     for map_name, value in item.items():
-        #         print(f"rank, map_name, value : {rank}, {map_name}, {value}")
 
         # Ensure results are serializable
         serializable_result = {
@@ -175,7 +168,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             for item in result
             for map_name, value in item.items()
         }
-        # print(f"rank, serializable_result : {rank}, {serializable_result}")
 
         # Gather results from all MPI processes
         results = comm.gather(serializable_result, root=0)
@@ -187,7 +179,6 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
             for item in results:
                 for map_name, value in item.items():
-                    # print(f"map_name, value : {map_name}, {value}")
                     if len(value) != 0:
                         self._stress_assessment[map_name] = value
 
@@ -209,10 +200,20 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         if self._simulate:
             self.__print_assessment()
             self.__export_assessment()
-        print(
-            f"Time elapsed for stress testing {self.__length_combinations} unique combinations: {self._stop_time}",
-            end="\n\n",
+
+        # Print completion summary with Rich formatting
+        completion_panel = Panel(
+            f"[bold green]✅ Stress Testing Completed![/bold green]\n"
+            f"[cyan]• Total Combinations Tested:[/cyan] [bold white]{self.__length_combinations:,}[/bold white]\n"
+            f"[cyan]• Time Elapsed:[/cyan] [bold yellow]{self._stop_time}[/bold yellow]",
+            title="[bold]🧪 Stress Test Summary",
+            border_style="green",
+            box=box.ROUNDED,
+            padding=(1, 2),
         )
+        console.print(completion_panel)
+        console.print("", style="white", end="")  # Reset color
+        console.print()
 
     def _stress_experiment(
         self, indices: "tuple[int, ...]"
@@ -233,20 +234,14 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         with fasteners.InterProcessLock(lock_file):
             if self._hpc:
-                colpr("w", "\nRank", end=": ")
-                colpr("r", f"{self.__rank}")
-                colpr("y", "Loading stress experiment", end=" ")
-                colpr("r", f"#{self.__length_combinations}", end=" ")
-                colpr("y", "of", end=" ")
-                colpr("r", f"{self.__chunk}", end=" ")
-                colpr("y", "with T gate indices:", end=" ")
-            else:
-                colpr(
-                    "y",
-                    "\nLoading stress experiment with T gate indices:",
-                    end=" ",
+                print_stress_experiment_header(
+                    indices,
+                    rank=self.__rank,
+                    current=self.__length_combinations,
+                    total=self.__chunk,
                 )
-            colpr("r", " ".join(map(str, indices)), end="\n\n")
+            else:
+                print_stress_experiment_header(indices)
 
         self._bbcircuit.circuit = copy.deepcopy(self.__circuit_save)
         self._bbcircuit_modded.circuit = copy.deepcopy(
@@ -269,22 +264,15 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
 
         with fasteners.InterProcessLock(lock_file):
             if self._hpc:
-                colpr("w", "\nRank", end=": ")
-                colpr("r", f"{self.__rank}")
-                colpr("g", "Completed stress experiment", end=" ")
-                colpr("r", f"#{self.__length_combinations}", end=" ")
-                colpr("g", "of", end=" ")
-                colpr("r", f"{self.__chunk}", end=" ")
-                colpr("g", "with T gate indices:", end=" ")
-            else:
-                colpr(
-                    "g",
-                    "\nCompleted stress experiment with T gate indices:",
-                    end=" ",
+                print_stress_experiment_completion(
+                    indices,
+                    elapsed,
+                    rank=self.__rank,
+                    current=self.__length_combinations,
+                    total=self.__chunk,
                 )
-            colpr("r", " ".join(map(str, indices)), end="\n")
-            colpr("w", "Time elapsed:", end=" ")
-            colpr("r", elapsed, end="\n\n")
+            else:
+                print_stress_experiment_completion(indices, elapsed)
 
         return self._stress_assessment
 
@@ -297,33 +285,71 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
         Print the assessment of the stress experiment.
         """
 
-        colpr("y", "\n\nAssessment of the stress experiment:", end="\n\n")
+        title = "🧪 Stress Experiment Assessment"
 
-        # Assessment of the stress experiment
-        colpr("b", "Stress experiment assessment:", end="\n\n")
+        # Create main title panel
+        title_panel = Panel(
+            Text(title, style="bold yellow", justify="center"),
+            border_style="yellow",
+            box=box.DOUBLE_EDGE,
+        )
+        console.print()
+        console.print(title_panel)
+        console.print("", style="white", end="")  # Reset color
+        console.print()
+
+        # Create assessment table
+        table = Table(
+            title="📊 Stress Test Results",
+            show_header=True,
+            header_style="bold white",
+            box=box.ROUNDED,
+            title_style="bold cyan",
+        )
 
         # Calculate the required width for the "T Gate Index" column
-        t_gate_index_width = self.__nbr_combinations * 3 + 13
+        t_gate_index_width = max(20, self.__nbr_combinations * 3 + 13)
 
-        # Create the table header with the adjusted width
-        table = f"| {'T Gate Index'.ljust(t_gate_index_width)} | Failed (%)        | Succeed (%)       | Measurements (%)  | Output Vector (%) |\n"
-        table += f"|-{'-' * t_gate_index_width}-|-------------------|-------------------|-------------------|-------------------|\n"
+        table.add_column(
+            "T Gate Index", style="bold cyan", width=t_gate_index_width
+        )
+        table.add_column("Failed (%)", style="bold red", justify="center")
+        table.add_column("Succeed (%)", style="bold green", justify="center")
+        table.add_column(
+            "Measurements (%)", style="bold yellow", justify="center"
+        )
+        table.add_column(
+            "Output Vector (%)", style="bold blue", justify="center"
+        )
 
         copied_combinations = copy.deepcopy(self._combinations)
 
-        # sort depend in the high success rate
-        # for bil in sorted(self._stress_assessment, key=lambda x: float(self._stress_assessment[x][1]), reverse=False):
-
+        # Add data rows
         for indices in copied_combinations:
             bil = ",".join(map(str, indices))
-            table += f"| {bil:<{t_gate_index_width}} | {self._stress_assessment[bil][0]:<17} | {self._stress_assessment[bil][1]:<17} | {self._stress_assessment[bil][2]:<17} | {self._stress_assessment[bil][3]:<17} |\n"
+            assessment = self._stress_assessment[bil]
 
-        print(table, end="\n\n")
+            table.add_row(
+                bil, assessment[0], assessment[1], assessment[2], assessment[3]
+            )
+
+        console.print(table)
+        console.print("", style="white", end="")  # Reset color
+        console.print()
 
     def __export_assessment(self) -> None:
         """
         Export the assessment of the stress experiment.
         """
+
+        # Create export header with Rich formatting
+        export_panel = Panel(
+            "[bold blue]📁 Exporting Stress Assessment Results...[/bold blue]",
+            border_style="blue",
+            box=box.ROUNDED,
+        )
+        console.print(export_panel)
+        console.print("", style="white", end="")  # Reset color
 
         csv = "T Gate Index 0"
         for i in range(self.__nbr_combinations - 1):
@@ -342,8 +368,8 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             "%Y%m%d-%H%M%S", time.localtime(self._start_time)
         )
         time_stamp_end = time.strftime("%Y%m%d-%H%M%S")
-        # export in file
-        with open(
+
+        filename = (
             f"{directory}/stress"
             f"_{self._start_range_qubits}qubits"
             f"_{self.__t_count}T"
@@ -352,10 +378,25 @@ class QRAMCircuitStress(QRAMCircuitExperiments):
             f"_{self._shots}-shots"
             f"_{time_elapsed}"
             f"_{time_stamp_start}"
-            f"_{time_stamp_end}.csv",
-            "w",
-        ) as file:
+            f"_{time_stamp_end}.csv"
+        )
+
+        # export in file
+        with open(filename, "w") as file:
             file.write(csv)
+
+        # Success export message
+        export_success_panel = Panel(
+            f"[bold green]✅ Export Completed![/bold green]\n"
+            f"[cyan]📁 File:[/cyan] [white]{filename}[/white]\n"
+            f"[cyan]📊 Records:[/cyan] [white]{len(self._stress_assessment):,}[/white]",
+            title="[bold]Export Success",
+            border_style="green",
+            box=box.ROUNDED,
+        )
+        console.print(export_success_panel)
+        console.print("", style="white", end="")  # Reset color
+        console.print()
 
     #######################################
     # simulate circuit method

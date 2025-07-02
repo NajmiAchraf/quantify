@@ -8,7 +8,12 @@ import cirq
 import qram.bucket_brigade.main as bb
 from qram.simulator.base import QRAMSimulatorBase
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
-from utils.print_utils import colpr, message, printCircuit, printRange
+from utils.print_utils import (
+    print_colored,
+    print_message,
+    print_simulation_range,
+    render_circuit,
+)
 
 #######################################
 # QRAM Simulator Circuit Core
@@ -133,18 +138,14 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 "step_multiplier": 1,
                 "stop_multiplier": 2
                 ** (2 * (2**self._qram_bits) + self._qram_bits + extra_qubits),
-                "message": message(
-                    "Simulating the circuit ... Checking all qubits"
-                ),
+                "message": "Simulating the circuit ... Checking all qubits",
             },
             "qram": {
                 "step": 2 ** (2 * (2**self._qram_bits) + extra_qubits),
                 "step_multiplier": 2
                 ** (2 * (2**self._qram_bits) + extra_qubits),
                 "stop_multiplier": 2**self._qram_bits,
-                "message": message(
-                    "Simulating the circuit ... Checking the QRAM logic and measure all qubits"
-                ),
+                "message": "Simulating the circuit ... Checking the QRAM pattern",
             },
         }
 
@@ -217,25 +218,25 @@ class QRAMSimulatorCircuitCore(QRAMSimulatorBase):
                 else "reference"
             )
 
-            colpr("y", "\n", message, end="\n\n")
+            print_message(message)
 
-            printCircuit(
+            render_circuit(
                 self._print_circuit,
                 self._bbcircuit.circuit,
                 self._bbcircuit.qubit_order,
                 name,
             )
 
-            printCircuit(
+            render_circuit(
                 self._print_circuit,
                 self._bbcircuit_modded.circuit,
                 self._bbcircuit_modded.qubit_order,
                 "modded",
             )
 
-            printRange(sim_range[0], sim_range[-1], step)
+            print_simulation_range(sim_range, step)
 
-            colpr(
+            print_colored(
                 "c",
                 f"Simulating both the modded and {name} circuits and comparing their output vector and measurements ...",
                 end="\n\n",
