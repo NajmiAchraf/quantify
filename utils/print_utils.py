@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from datetime import timedelta
@@ -206,6 +207,7 @@ def render_circuit(
     """
     # Create action mapping with emojis
     action_info = {
+        "Hide": {"emoji": "🔍", "action": "Hiding", "color": "orange1"},
         "Print": {"emoji": "🖨️", "action": "Printing", "color": "cyan"},
         "Display": {"emoji": "🖼️", "action": "Displaying", "color": "blue"},
         "Export": {"emoji": "💾", "action": "Exporting", "color": "green"},
@@ -229,7 +231,14 @@ def render_circuit(
 
     start = time.time()
 
-    if print_circuit == "Print":
+    if print_circuit == "Hide":
+        # Hide the circuit by not printing anything
+        console.print(
+            f"[{info['color']}]Circuit {name} is hidden.[/{info['color']}]"
+        )
+        return
+
+    elif print_circuit == "Print":
         # Print the circuit with Rich formatting
         console.print(f"[{info['color']}]Circuit Diagram:[/{info['color']}]")
         # Print the actual circuit (keeping original format)
@@ -293,6 +302,7 @@ def print_qram_configuration(
     start_range_qubits: int,
     end_range_qubits: int,
     t_count: int = None,
+    cvx_id: int = None,
     min_qram_size: int = None,
     t_cancel: int = None,
     specific_simulation: str = None,
@@ -310,6 +320,7 @@ def print_qram_configuration(
         start_range_qubits (int): Start range of qubits.
         end_range_qubits (int): End range of qubits.
         t_count (int, optional): T count for QueryConfiguration.
+        cvx_id (int, optional): CVX identifier for CV_CX configurations.
         min_qram_size (int, optional): Minimum QRAM size for hierarchical decomposition.
         t_cancel (int, optional): T cancel for combinations.
         specific_simulation (str, optional): Simulation type.
@@ -330,6 +341,7 @@ def print_qram_configuration(
         else " + ".join(circuit_type)
     )
     length_circuit_type = max(15, len(circuit_type))
+
     # Create configuration table
     config_table = Table(
         show_header=True, header_style="bold white", box=box.ROUNDED
@@ -346,7 +358,7 @@ def print_qram_configuration(
     hpc_status = "✅" if hpc else "❌"
     hpc_color = "green" if hpc else "red"
     config_table.add_row(
-        "🖥️  Simulate on HPC",
+        "🖥️ Simulate on HPC",
         f"[{hpc_color}]{'Yes' if hpc else 'No'}[/{hpc_color}]",
         hpc_status,
     )
@@ -360,23 +372,38 @@ def print_qram_configuration(
     )
 
     config_table.add_row(
-        "🖼️  Circuit Display Option", f"[blue]{print_circuit}[/blue]", "🎨"
+        "🖼️ Circuit Display Option", f"[blue]{print_circuit}[/blue]", "🎨"
     )
 
-    config_table.add_row(
-        "🔢 Qubit Range Start",
-        f"[magenta]{start_range_qubits}[/magenta]",
-        "🚀",
-    )
-
-    config_table.add_row(
-        "🔢 Qubit Range End", f"[magenta]{end_range_qubits}[/magenta]", "🏁"
-    )
+    # Qubit range display
+    if start_range_qubits == end_range_qubits:
+        config_table.add_row(
+            "🔢 QRAM Bits",
+            f"[magenta]{start_range_qubits}[/magenta]",
+            "🚀",
+        )
+    else:
+        config_table.add_row(
+            "🔢 Qubit Range",
+            f"[magenta]{start_range_qubits} → {end_range_qubits}[/magenta]",
+            "🏁",
+        )
 
     # Add T count if provided
     if t_count is not None:
+        t_depth = 3 if t_count == 4 else 4
         config_table.add_row(
-            "🎯 T Count", f"[orange1]{t_count}[/orange1]", "🔢"
+            "🎯 Toffoli Config",
+            f"[orange1]AN0_TD{t_depth}_TC{t_count}_CX6[/orange1]",
+            "🔢",
+        )
+
+    # Add cvx_id index if provided
+    if cvx_id is not None:
+        config_table.add_row(
+            "🔧 CV_CX Config",
+            f"[cyan]CV_CX_QC5_{cvx_id}[/cyan]",
+            "⚙️",
         )
 
     # Add minimum QRAM size if provided and valid
@@ -395,7 +422,6 @@ def print_qram_configuration(
 
     # Add simulation-specific configuration if applicable
     if simulate and specific_simulation and print_sim:
-
         sim_table = Table(
             title="🔬 Simulation Configuration",
             show_header=True,
@@ -842,6 +868,10 @@ def print_message(message: str) -> None:
 def print_simulation_range(sim_range: "list[int]", step: int) -> None:
     """
     Print the range of simulation from an actual list in a visually appealing way with Rich formatting.
+
+    Args:
+        sim_range: List of simulation indices
+        step: Step size between tests. If 0, shows all cases with binary representation
     """
     console.print()
 
@@ -850,27 +880,111 @@ def print_simulation_range(sim_range: "list[int]", step: int) -> None:
     console.print(Panel(title, border_style="yellow"))
     console.print("", style="white", end="")  # Reset color
 
-    start = sim_range[0] if sim_range else 0
-    stop = sim_range[-1] + step if sim_range else step
+    if step == 0:
+        # New mode: Show all cases with binary representation
+        total_cases = len(sim_range)
 
-    # Create table for range parameters
-    table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
-    table.add_column("Parameter", style="bold white", width=15)
-    table.add_column(
-        "Value", style="bold red", justify="center", width=len(str(stop)) + 10
-    )
-    table.add_column("Description", style="dim", width=30)
+        # Calculate the number of bits needed for binary representation
+        max_value = max(sim_range) if sim_range else 0
+        bits_needed = max_value.bit_length()
 
-    table.add_row("🚀 Start", f"{start:,}", "Initial simulation index")
-    table.add_row("🏁 Stop", f"{sim_range[-1]:,}", "Final simulation index")
-    table.add_row("📏 Step", f"{step:,}", "Increment between tests")
+        # Create table for all simulation cases
+        table = Table(
+            title="📋 All Simulation Cases with Binary Representation",
+            show_header=True,
+            header_style="bold cyan",
+            box=box.ROUNDED,
+            title_style="bold green",
+        )
+        table.add_column(
+            "Case #", style="bold white", justify="center", width=8
+        )
+        table.add_column(
+            "Index",
+            style="bold magenta",
+            justify="center",
+            width=len(str(max_value)) + 4,
+        )
+        table.add_column(
+            "Binary",
+            style="bold blue",
+            justify="center",
+            width=bits_needed + 2,
+        )
+        table.add_column(
+            "Hex",
+            style="bold green",
+            justify="center",
+            width=len(f"0x{max_value:X}") + 2,
+        )
+        table.add_column("Pattern", style="dim", width=bits_needed + 2)
 
-    console.print(table)
+        # Add rows for each simulation case
+        for i, index in enumerate(sim_range, 1):
+            binary_repr = format(index, f"0{bits_needed}b")
+            hex_repr = f"0x{index:X}"
 
-    # Add range summary
-    total_tests = len(sim_range)
-    summary = Text(f"📊 Total Tests: {total_tests:,}", style="bold green")
-    console.print(Panel(summary, border_style="green"))
+            # Create a visual pattern representation
+            pattern = binary_repr.replace("0", "░").replace("1", "█")
+
+            table.add_row(
+                f"{i}",
+                f"{index:,}",
+                binary_repr,
+                hex_repr,
+                f"[cyan]{pattern}[/cyan]",
+            )
+
+        console.print(table)
+
+        # Add summary for binary mode
+        summary_info = (
+            f"[bold white]📊 Binary Analysis:[/bold white]\n"
+            f"[cyan]• Total Cases:[/cyan] [bold yellow]{total_cases:,}[/bold yellow]\n"
+            f"[cyan]• Qubits Required:[/cyan] [bold yellow]{bits_needed}[/bold yellow]\n"
+            f"[cyan]• Range:[/cyan] [bold yellow]{min(sim_range):,} - {max(sim_range):,}[/bold yellow]\n"
+            f"[cyan]• Pattern:[/cyan] [dim]█ = 1, ░ = 0[/dim]"
+        )
+
+        summary_panel = Panel(
+            summary_info,
+            title="[bold]🔍 Binary Summary",
+            border_style="blue",
+            box=box.ROUNDED,
+        )
+        console.print(summary_panel)
+
+    else:
+        # Existing mode: Show start, stop, step
+        start = sim_range[0] if sim_range else 0
+        stop = sim_range[-1] + step if sim_range else step
+
+        # Create table for range parameters
+        table = Table(
+            show_header=True, header_style="bold cyan", box=box.ROUNDED
+        )
+        table.add_column("Parameter", style="bold white", width=15)
+        table.add_column(
+            "Value",
+            style="bold red",
+            justify="center",
+            width=len(str(stop)) + 10,
+        )
+        table.add_column("Description", style="dim", width=30)
+
+        table.add_row("🚀 Start", f"{start:,}", "Initial simulation index")
+        table.add_row(
+            "🏁 Stop", f"{sim_range[-1]:,}", "Final simulation index"
+        )
+        table.add_row("📏 Step", f"{step:,}", "Increment between tests")
+
+        console.print(table)
+
+        # Add range summary for step mode
+        total_tests = len(sim_range)
+        summary = Text(f"📊 Total Tests: {total_tests:,}", style="bold green")
+        console.print(Panel(summary, border_style="green"))
+
     console.print("", style="white", end="")  # Reset color
     console.print()
 
@@ -1423,29 +1537,3 @@ def print_assessment_summary() -> None:
     console.print(summary_panel)
     console.print("", style="white", end="")  # Reset color
     console.print()
-
-
-#######################################
-# CLASS INTEGRATION WRAPPER
-#######################################
-
-
-def print_input_wrapper(self) -> None:
-    """
-    Wrapper function to integrate with the existing class structure.
-    This replaces the original __print_input__ method.
-    """
-    print_qram_configuration(
-        circuit_type=self._circuit_type,
-        hpc=self._hpc,
-        simulate=self._simulate,
-        print_circuit=self._print_circuit,
-        start_range_qubits=self._start_range_qubits,
-        end_range_qubits=self._end_range_qubits,
-        t_count=getattr(self, "_t_count", None),
-        min_qram_size=getattr(self, "_min_qram_size", None),
-        t_cancel=getattr(self, "_t_cancel", None),
-        specific_simulation=getattr(self, "_specific_simulation", None),
-        print_sim=getattr(self, "_print_sim", None),
-        shots=getattr(self, "_shots", None),
-    )

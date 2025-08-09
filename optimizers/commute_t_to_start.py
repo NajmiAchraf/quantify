@@ -42,7 +42,9 @@ class CommuteTGatesToStart:
                         if parallel_t_gates[0].operates_on(op.qubits):
                             parallel_t_gates.insert(0, cirq.Moment())
 
-                        parallel_t_gates[0] = parallel_t_gates[0].with_operation(op)
+                        parallel_t_gates[0] = parallel_t_gates[
+                            0
+                        ].with_operation(op)
                         circuit.clear_operations_touching(op.qubits, [mi])
                         number_t_commutes += 1
 
@@ -52,7 +54,11 @@ class CommuteTGatesToStart:
                 for op in moment:
                     futures.append(
                         executor.submit(
-                            process_operation, mi, op, circuit, parallel_t_gates
+                            process_operation,
+                            mi,
+                            op,
+                            circuit,
+                            parallel_t_gates,
                         )
                     )
             concurrent.futures.wait(futures)

@@ -54,6 +54,20 @@ def parse_t_cancel(value: str) -> int:
     return t_cancel
 
 
+def parse_cvx_id(value: str) -> int:
+    """
+    Parse the CVX identifier for CV_CX configurations.
+    Ensures the CVX identifier is between 0 and 7.
+    """
+
+    cvx_id: int = int(value)
+    if not (0 <= cvx_id <= 7):
+        raise argparse.ArgumentTypeError(
+            "The CVX identifier should be between 0 and 7."
+        )
+    return cvx_id
+
+
 def parse_print_circuit(value: str) -> str:
     """
     Parse the print circuit option.
@@ -241,14 +255,26 @@ def parser_args(qram_type: type_qram) -> argparse.ArgumentParser:
         help="Minimum QRAM size for hierarchical decomposition.",
     )
 
-    parser.add_argument(
-        "--t-count",
-        type=parse_t_count,
-        nargs="?",
-        default=7,
-        required=True,
-        help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
-    )
+    # Add t-count for all experiments except cv_cx
+    if qram_type != "experiments_cv_cx":
+        parser.add_argument(
+            "--t-count",
+            type=parse_t_count,
+            nargs="?",
+            default=7 if qram_type == "experiments_t_cx" else None,
+            required=True if qram_type == "experiments_t_cx" else False,
+            help="The T count for the QueryConfiguration it should be between 4 and 7, by default it is 7.",
+        )
+
+    # Add cvx-id for all experiments except t_cx
+    if qram_type != "experiments_t_cx":
+        parser.add_argument(
+            "--cvx-id",
+            type=parse_cvx_id,
+            nargs="?",
+            default=0 if qram_type == "experiments_cv_cx" else None,
+            help="The CVX identifier for CV_CX configurations, should be between 0 and 7, by default it is 0.",
+        )
 
     parser.add_argument(
         "--circuit-type",

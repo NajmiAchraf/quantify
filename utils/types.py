@@ -1,7 +1,14 @@
 from typing_extensions import List, Literal, Union
 
 # Define the custom type for QRAM types
-type_qram = Literal["core", "assessment", "experiments", "stress"]
+type_qram = Literal[
+    "core",
+    "assessment",
+    "experiments",
+    "experiments_t_cx",
+    "experiments_cv_cx",
+    "stress",
+]
 
 # Define the custom type for the simulation types
 type_print_circuit = Literal["Print", "Display", "Hide"]

@@ -4,6 +4,7 @@ import cirq
 
 from qram.bucket_brigade.base import BucketBrigadeBase
 from qram.bucket_brigade.decomp_type import BucketBrigadeDecompType
+from qramcircuits import ToffoliDecompType
 
 
 class BucketBrigadeQuery(BucketBrigadeBase):
@@ -57,16 +58,26 @@ class BucketBrigadeQuery(BucketBrigadeBase):
         # Wire up the query memory
         query_memory_moments = self.wiring_query_memory()
 
+        CV_CX_QC5_N = [
+            eval(f"ToffoliDecompType.CV_CX_QC5_{x}") for x in range(0, 8)
+        ]
+        permutation = (
+            [0, 1, 2]
+            if any(
+                scenario in {self.decomp_scenario.get_decomp_types()[2]}
+                for scenario in CV_CX_QC5_N
+            )
+            else [0, 2, 1]
+        )
         # Decompose the circuits with appropriate decomposition types
         memory_query_decomposed = self.decompose_parallelize_toffoli(
             query_memory_moments,
             self.decomp_scenario.dec_mem_query,
-            [0, 2, 1],  # Special permutation for query operations
+            permutation,
         )
 
         # Combine into a single circuit
-        circuit = cirq.Circuit()
-        circuit.append(memory_query_decomposed)
+        circuit = cirq.Circuit(memory_query_decomposed)
 
         if self.decomp_scenario.parallel_toffolis:
             circuit = self.stratify(circuit)

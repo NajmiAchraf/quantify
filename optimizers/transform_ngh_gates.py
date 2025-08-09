@@ -11,7 +11,7 @@ import utils.misc_utils as mu
 from .transfer_flag_optimizer import TransferFlagOptimizer
 
 
-class TransformeNghGates(TransferFlagOptimizer):
+class TransformNghGates(TransferFlagOptimizer):
     """
     This optimizer transforms (T and T) or (T^-1 and T^-1) or (S and S) or (S^-1 and S^-1) gates that are neighbor horizontally on series qubits.
 
@@ -24,6 +24,14 @@ class TransformeNghGates(TransferFlagOptimizer):
 
         q0: ───S^-1───S^-1───  =>  q0: ───Z───
 
+        q0: ───CNOT^0.5───CNOT^0.5───  =>  q0: ───CNOT───
+
+        q0: ───CNOT^-0.5───CNOT^-0.5───  =>  q0: ───CNOT───
+
+        q0: ───CX^0.5───CX^0.5───  =>  q0: ───CX───
+
+        q0: ───CX^-0.5───CX^-0.5───  =>  q0: ───CX───
+
     """
 
     def optimization_at(self, circuit, index, op):
@@ -33,6 +41,10 @@ class TransformeNghGates(TransferFlagOptimizer):
             "T^-1": cirq.T**-1,
             "S": cirq.S,
             "S^-1": cirq.S**-1,
+            "CNOT": cirq.ops.CNOT**0.5,
+            "CNOT^-1": cirq.ops.CNOT ** (-0.5),
+            "CX": cirq.ops.CX**0.5,
+            "CX^-1": cirq.ops.CX ** (-0.5),
         }
 
         for gate in gates:
@@ -52,6 +64,8 @@ class TransformeNghGates(TransferFlagOptimizer):
                 return None
 
             next_op = circuit.operation_at(op.qubits[0], n_idx)
+            if next_op is None:
+                return None
 
             if next_op.gate == gates[gate] and op.gate == gates[gate]:
 
@@ -104,6 +118,12 @@ class TransformeNghGates(TransferFlagOptimizer):
                     circuit.insert(i, cirq.S(op.qubits[0]) ** -1)
                 if sog == cirq.S or sog == cirq.S**-1:
                     circuit.insert(i, cirq.Z(op.qubits[0]))
+                if sog == cirq.ops.CNOT**0.5 or sog == cirq.ops.CNOT ** (-0.5):
+                    circuit.insert(
+                        i, cirq.ops.CNOT(op.qubits[0], op.qubits[1])
+                    )
+                if sog == cirq.ops.CX**0.5 or sog == cirq.ops.CX ** (-0.5):
+                    circuit.insert(i, cirq.ops.CX(op.qubits[0], op.qubits[1]))
 
                 new_operations = self.post_clean_up(
                     cast(Tuple[ops.Operation], opt.new_operations)

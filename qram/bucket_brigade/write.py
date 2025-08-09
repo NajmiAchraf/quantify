@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional, Callable
 
 import cirq
 
+import inspect
 from qram.bucket_brigade.base import BucketBrigadeBase
 from qram.bucket_brigade.decomp_type import BucketBrigadeDecompType
 
@@ -28,13 +29,27 @@ class BucketBrigadeWrite(BucketBrigadeBase):
         Returns:
             List of circuit moments for memory write operations
         """
-        return self._create_memory_operations(
-            all_ancillas=sorted(self.all_ancillas),
-            operation_type="write",
-            control1_getter=lambda i: sorted(self.all_ancillas)[i],
-            target_getter=lambda i: self.memory[i],
-            add_rw_x=True,
-        )
+
+        for caller_frame in inspect.stack():
+            if "bucket_brigade/main.py" in caller_frame.filename:
+                return self._create_memory_operations(
+                    all_ancillas=sorted(self.all_ancillas),
+                    operation_type="write",
+                    control1_getter=lambda i: sorted(self.all_ancillas)[i],
+                    target_getter=lambda i: self.memory[i],
+                    add_rw_x=True,
+                )
+            elif (
+                "bucket_brigade/hierarchical_network.py"
+                in caller_frame.filename
+            ) or ("bucket_brigade/hierarchical.py" in caller_frame.filename):
+                return self._create_memory_hierarchical_operations(
+                    all_ancillas=sorted(self.all_ancillas),
+                    operation_type="write",
+                    control1_getter=lambda i: sorted(self.all_ancillas)[i],
+                    target_getter=lambda i: self.memory[i],
+                    add_rw_x=True,
+                )
 
     def construct_circuit(self) -> cirq.Circuit:
         """

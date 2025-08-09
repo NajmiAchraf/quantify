@@ -21,7 +21,6 @@ class CancelNghGates(TransferFlagOptimizer):
         q0: ───S───S^-1─── =>  q0: ───
 
         q0: ───Z───Z─── =>  q0: ───
-
     """
 
     def optimization_at(self, circuit, index, op):
@@ -50,8 +49,12 @@ class CancelNghGates(TransferFlagOptimizer):
                 return None
 
             next_op = circuit.operation_at(op.qubits[0], n_idx)
+            if next_op is None:
+                return None
 
-            if (next_op.gate == gates[gate][0] and op.gate == gates[gate][1]) or (
+            if (
+                next_op.gate == gates[gate][0] and op.gate == gates[gate][1]
+            ) or (
                 next_op.gate == gates[gate][1] and op.gate == gates[gate][0]
             ):
 

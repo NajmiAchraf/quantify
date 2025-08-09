@@ -92,12 +92,12 @@ class BucketBrigade(BucketBrigadeBase):
 
     def construct_qubits(self) -> None:
         """
-        Create all the qubits needed for the circuit, conditionally creating read/write qubit.
+        Create all the qubits needed for the circuit, conditionally creating read_write qubit.
         """
         # Create address, ancilla, memory and target qubits with parent method
         super().construct_qubits()
 
-        # For BucketBrigade main class, determine if read/write is needed based on circuit_type
+        # For BucketBrigade main class, determine if read_write is needed based on circuit_type
         if self.__class__.__name__ == "BucketBrigade":
             # Check if circuit_type is already set (it won't be during parent's __init__)
             if not hasattr(self, "circuit_type"):
@@ -106,15 +106,15 @@ class BucketBrigade(BucketBrigadeBase):
                 self.read_write = None
                 return
 
-            # Check if any component needs read/write qubit
+            # Check if any component needs read_write qubit
             needs_read_write = any(
                 component in ["write", "read"]
                 for component in self.circuit_type
             )
 
-            # Create or clear read/write qubit based on need
+            # Create or clear read_write qubit based on need
             if needs_read_write:
-                self.read_write = cirq.NamedQubit("read/write")
+                self.read_write = cirq.NamedQubit("read_write")
             else:
                 self.read_write = None
 
@@ -318,9 +318,7 @@ class BucketBrigade(BucketBrigadeBase):
                     comp_fan_out = BucketBrigade.stratify(
                         compute_fanout_moments
                     )
-                    comp_fan_out = BucketBrigade.parallelize_toffolis(
-                        comp_fan_out
-                    )
+                    comp_fan_out = self.parallelize_toffolis(comp_fan_out)
 
             # Temporarily change the mode to avoid recursion issues
             original_mode = self.decomp_scenario.reverse_moments

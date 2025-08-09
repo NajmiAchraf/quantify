@@ -1,3 +1,4 @@
+import inspect
 from typing import List
 
 import cirq
@@ -42,6 +43,41 @@ class BucketBrigadeRead(BucketBrigadeBase):
             add_rw_x=False,
             #! add_rw_x=True,
         )
+
+    def wiring_read_memory(self) -> List[cirq.Moment]:
+        """
+        Read from the memory cells using the routing ancillas.
+
+        Returns:
+            List of circuit moments for memory read operations
+        """
+
+        for caller_frame in inspect.stack():
+            if "bucket_brigade/main.py" in caller_frame.filename:
+                return self._create_memory_operations(
+                    all_ancillas=sorted(
+                        self.all_ancillas
+                    ),  # Use sorted ancillas
+                    operation_type="read",
+                    control1_getter=lambda i: self.memory[i],
+                    target_getter=lambda i: sorted(self.all_ancillas)[i],
+                    add_rw_x=False,
+                    #! add_rw_x=True,
+                )
+            elif (
+                "bucket_brigade/hierarchical_network.py"
+                in caller_frame.filename
+            ) or ("bucket_brigade/hierarchical.py" in caller_frame.filename):
+                return self._create_memory_hierarchical_operations(
+                    all_ancillas=sorted(
+                        self.all_ancillas
+                    ),  # Use sorted ancillas
+                    operation_type="read",
+                    control1_getter=lambda i: self.memory[i],
+                    target_getter=lambda i: sorted(self.all_ancillas)[i],
+                    add_rw_x=False,
+                    #! add_rw_x=True,
+                )
 
     def construct_circuit(self) -> None:
         """

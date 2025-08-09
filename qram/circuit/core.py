@@ -8,8 +8,8 @@ from qram.bucket_brigade.decomp_type import (
     BucketBrigadeDecompType,
     ReverseMoments,
 )
-from qram.bucket_brigade.hierarchical_network import (
-    HierarchicalBucketBrigadeNetwork,
+from qram.bucket_brigade.hierarchical import (
+    BucketBrigadeHierarchical,
 )
 from qram.bucket_brigade.main import BucketBrigade
 from qram.circuit.simulator_manager import QRAMCircuitSimulatorManager
@@ -90,7 +90,7 @@ class QRAMCircuitCore:
     _decomp_scenario: BucketBrigadeDecompType
     _decomp_scenario_modded: BucketBrigadeDecompType
     _bbcircuit: BucketBrigade
-    _bbcircuit_modded: Union[BucketBrigade, HierarchicalBucketBrigadeNetwork]
+    _bbcircuit_modded: Union[BucketBrigade, BucketBrigadeHierarchical]
 
     _simulated: bool = False
     _simulator_manager: QRAMCircuitSimulatorManager
@@ -112,73 +112,38 @@ class QRAMCircuitCore:
             sys.exit(1)
 
         if not self._hpc:
-            print_qram_configuration(
-                circuit_type=self._circuit_type,
-                hpc=self._hpc,
-                simulate=self._simulate,
-                print_circuit=self._print_circuit,
-                start_range_qubits=self._start_range_qubits,
-                end_range_qubits=self._end_range_qubits,
-                specific_simulation=self._specific_simulation,
-                print_sim=self._print_sim,
-                shots=self._shots,
-            )
+            self.print_input_wrapper()
 
     #######################################
-    # input methods
+    # CLASS INTEGRATION WRAPPER
     #######################################
 
-    def __print_input__(self) -> None:
+    def print_input_wrapper(self) -> None:
         """
         Prints the input arguments for the experiment.
         """
 
-        print_colored(
-            "y", "========== QRAM Circuit Configuration ==========", end="\n\n"
+        args = parser_args("core").parse_known_args()[0]
+
+        print_qram_configuration(
+            circuit_type=self._circuit_type,
+            hpc=self._hpc,
+            simulate=self._simulate,
+            print_circuit=self._print_circuit,
+            start_range_qubits=self._start_range_qubits,
+            end_range_qubits=self._end_range_qubits,
+            t_count=(args.t_count if hasattr(args, "t_count") else None),
+            cvx_id=(args.cvx_id if hasattr(args, "cvx_id") else None),
+            min_qram_size=self._min_qram_size,
+            t_cancel=(args.t_cancel if hasattr(args, "t_cancel") else None),
+            specific_simulation=self._specific_simulation,
+            print_sim=self._print_sim,
+            shots=self._shots,
         )
 
-        print_colored("w", "Circuit type:", end=" ")
-        print_colored("r", f"{self._circuit_type}")
-
-        print_colored("w", "Simulate circuit on HPC:", end=" ")
-        print_colored("r", f"{'Yes' if self._hpc else 'No'}")
-
-        print_colored(
-            "w", "Simulate Toffoli decompositions and circuit:", end=" "
-        )
-        print_colored("r", f"{'Yes' if self._simulate else 'No'}")
-
-        print_colored("w", "Circuit display option:", end=" ")
-        print_colored("r", f"{self._print_circuit}")
-
-        print_colored("w", "Start range of qubits:", end=" ")
-        print_colored("r", f"{self._start_range_qubits}")
-
-        print_colored("w", "End range of qubits:", end=" ")
-        print_colored("r", f"{self._end_range_qubits}")
-
-        if self._simulate:
-
-            sim_msg = (
-                "Simulate full circuit"
-                if self._specific_simulation == "full"
-                else "Simulate QRAM pattern"
-            )
-            print_colored("w", "Simulation type:", end=" ")
-            print_colored("r", sim_msg)
-
-            print_colored("w", "Simulation display option:", end=" ")
-            print_colored("r", f"{self._print_sim}")
-
-            if self._specific_simulation != "full":
-                print_colored(
-                    "w", "Number of shots for the each simulation:", end=" "
-                )
-                print_colored("r", f"{self._shots}")
-
-        print_colored(
-            "y", "\n================================================\n"
-        )
+    #######################################
+    # input methods
+    #######################################
 
     def __arg_input__(self) -> None:
         """
@@ -372,7 +337,7 @@ class QRAMCircuitCore:
                     circuit_type=self._circuit_type,
                 )
             else:
-                self._bbcircuit_modded = HierarchicalBucketBrigadeNetwork(
+                self._bbcircuit_modded = BucketBrigadeHierarchical(
                     qram_bits=qram_bits,
                     min_qram_size=self._min_qram_size,
                     decomp_scenario=self._decomp_scenario_modded,
@@ -380,8 +345,10 @@ class QRAMCircuitCore:
                 )
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.submit(_create_bbcircuit)
-            executor.submit(_create_bbcircuit_modded)
+            future1 = executor.submit(_create_bbcircuit)
+            future2 = executor.submit(_create_bbcircuit_modded)
+            # Wait for both futures to complete
+            concurrent.futures.wait([future1, future2])
 
         self._stop_time = elapsed_time(self._start_time)
 

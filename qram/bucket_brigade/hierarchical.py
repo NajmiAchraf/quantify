@@ -1,5 +1,6 @@
 import logging
 import multiprocessing
+import traceback
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import cirq
@@ -13,6 +14,7 @@ from qram.bucket_brigade.read import BucketBrigadeRead
 from qram.bucket_brigade.write import BucketBrigadeWrite
 from qramcircuits.toffoli_decomposition import ToffoliDecomposition
 from utils.print_utils import render_circuit
+from utils.types import type_circuit
 from utils.types import type_circuit
 
 
@@ -51,44 +53,54 @@ def _create_component_mp(
     ) = args
 
     try:
+        # Create component - this will initially create it with default qubits and circuit
         if component_name == "fan_out":
             component = BucketBrigadeFanOut(bits, decomp_scenario)
-            component.address = address_qubits
-            component.all_ancillas = routing_qubits
-
         elif component_name == "write":
             component = BucketBrigadeWrite(bits, decomp_scenario)
-            component.all_ancillas = routing_qubits
-            component.memory = memory_qubits
-            component.target = target
-            component.read_write = read_write
-
         elif component_name == "query":
             component = BucketBrigadeQuery(bits, decomp_scenario)
-            component.all_ancillas = routing_qubits
-            component.memory = memory_qubits
-            component.target = target
-
         elif component_name == "fan_in":
             component = BucketBrigadeFanIn(bits, decomp_scenario)
-            component.address = address_qubits
-            component.all_ancillas = routing_qubits
-
         elif component_name == "read":
             component = BucketBrigadeRead(bits, decomp_scenario)
+        elif component_name == "fan_read":
+            component = BucketBrigadeFanRead(bits, decomp_scenario)
+        else:
+            return (component_name, None)
+
+        # Now assign the correct qubits and clear the circuit so it will be rebuilt later
+        # with the correct qubits
+        if component_name == "fan_out":
+            component.address = address_qubits
+            component.all_ancillas = routing_qubits
+        elif component_name == "write":
             component.all_ancillas = routing_qubits
             component.memory = memory_qubits
             component.target = target
             component.read_write = read_write
-
+        elif component_name == "query":
+            component.all_ancillas = routing_qubits
+            component.memory = memory_qubits
+            component.target = target
+        elif component_name == "fan_in":
+            component.address = address_qubits
+            component.all_ancillas = routing_qubits
+        elif component_name == "read":
+            component.all_ancillas = routing_qubits
+            component.memory = memory_qubits
+            component.target = target
+            component.read_write = read_write
         elif component_name == "fan_read":
-            component = BucketBrigadeFanRead(bits, decomp_scenario)
             component.address = address_qubits
             component.all_ancillas = routing_qubits
             component.target = target
             component.read_write = read_write
-        else:
-            return (component_name, None)
+
+        # Clear the circuit so it will be rebuilt later with correct qubits when construct_circuit() is called later
+        component.circuit = None
+        # Also clear the qubit order to prevent any caching of generic qubits
+        component._qubit_order = []
 
         return (component_name, component)
 
@@ -100,7 +112,7 @@ def _create_component_mp(
         return (component_name, None)
 
 
-class HierarchicalBucketBrigadeNetwork:
+class BucketBrigadeHierarchical:
     """
     Implements a hierarchical Bucket Brigade QRAM that follows the natural tree structure.
 
@@ -145,10 +157,10 @@ class HierarchicalBucketBrigadeNetwork:
         self._component_cache = {}
         self._circuit_cache = {}
 
-        # Create shared target and read/write qubits
+        # Create shared target and read_write qubits
         self.target = cirq.NamedQubit("target")
 
-        # Determine if read/write qubit is needed based on circuit_type
+        # Determine if read_write qubit is needed based on circuit_type
         self.read_write = self._create_read_write_qubit()
 
         # Create address qubits with standard naming a0, a1, a2, ...
@@ -193,11 +205,11 @@ class HierarchicalBucketBrigadeNetwork:
         )
 
     def _create_read_write_qubit(self) -> Optional[cirq.Qid]:
-        """Create read/write qubit if needed by any component in circuit_type."""
-        # Components that need read/write qubit
+        """Create read_write qubit if needed by any component in circuit_type."""
+        # Components that need read_write qubit
         needs_read_write = {"write", "read", "fan_read"}
 
-        # Parse circuit_type to check if any component needs read/write
+        # Parse circuit_type to check if any component needs read_write
         if isinstance(self.circuit_type, str):
             if self.circuit_type in needs_read_write:
                 return cirq.NamedQubit("read_write")
@@ -357,7 +369,7 @@ class HierarchicalBucketBrigadeNetwork:
         ):
             self._qubit_order.append(self.target)
 
-        # Add read/write qubit last, if it exists and is used in circuit
+        # Add read_write qubit last, if it exists and is used in circuit
         if (
             self.read_write is not None
             and self.read_write in circuit_qubits
@@ -591,10 +603,10 @@ class HierarchicalBucketBrigadeNetwork:
                 if component_name in components and components[component_name]:
                     component = components[component_name]
 
-                    # Build the component's individual circuit
+                    # Build the component's individual circuit using bits and prefix for caching
                     component_circuit = (
                         self._build_individual_component_circuit(
-                            component, component_name
+                            component, component_name, bits, prefix
                         )
                     )
 
@@ -615,7 +627,7 @@ class HierarchicalBucketBrigadeNetwork:
         return result
 
     def _build_individual_component_circuit(
-        self, component, component_name: str
+        self, component, component_name: str, bits: int, prefix: str = ""
     ) -> Optional[cirq.Circuit]:
         """
         Build the circuit for an individual component.
@@ -623,22 +635,35 @@ class HierarchicalBucketBrigadeNetwork:
         Args:
             component: The bucket brigade component instance
             component_name: Name of the component type
+            bits: Number of bits for this component (for caching)
+            prefix: Binary prefix for qubit naming (not used in caching)
 
         Returns:
             Circuit containing only this component's operations
         """
-        # Use component's identity to check cache
-        component_id = id(component)
-        if component_id in self._component_cache:
-            return self._component_cache[component_id]
+        # Create cache key based on component parameters for circuit caching
+        cache_key = f"{component_name}_{bits}_{self.decomp_scenario}"
+
+        # Check if we have a cached circuit structure
+        if cache_key in self._component_cache:
+            # We have the circuit structure cached, but we still need to construct it for this component
+            # because the component has the correct qubits assigned
+            pass
+        else:
+            # Creating new circuit structure
+            pass
 
         try:
-            # Call construct_circuit to build the component's circuit
+            # Always construct the circuit for this specific component instance
+            # Each component instance has the correct qubits assigned for its prefix
             component.construct_circuit()
 
             if hasattr(component, "circuit") and component.circuit:
-                # Cache the circuit for future reuse
-                self._component_cache[component_id] = component.circuit
+                # Cache the circuit structure for future reference (but we'll still need to construct for each instance)
+                if cache_key not in self._component_cache:
+                    self._component_cache[cache_key] = (
+                        "cached"  # Just mark as cached
+                    )
                 return component.circuit
             else:
                 self.logger.warning(
@@ -698,7 +723,7 @@ class HierarchicalBucketBrigadeNetwork:
                 if component_name in components and components[component_name]:
                     component_circuit = (
                         self._build_individual_component_circuit(
-                            components[component_name], component_name
+                            components[component_name], component_name, bits
                         )
                     )
                     if component_circuit:
@@ -727,11 +752,6 @@ class HierarchicalBucketBrigadeNetwork:
         Returns:
             Dictionary of configured components (only enabled ones)
         """
-        # Check component cache first
-        cache_key = f"{bits}_{prefix}"
-        if cache_key in self._component_cache:
-            return self._component_cache[cache_key]
-
         # Get routing qubits for this branch - they should follow the pattern b_{prefix}{binary}
         routing_qubits = []
         for i in range(2**bits):
@@ -801,6 +821,7 @@ class HierarchicalBucketBrigadeNetwork:
 
         # Use multiprocessing only if we have multiple components to create
         components = {}
+        # Use multiprocessing for any multi-component creation to improve performance
         if len(component_tasks) > 1:
             try:
                 # Determine optimal pool size
@@ -825,11 +846,9 @@ class HierarchicalBucketBrigadeNetwork:
                     components, component_tasks
                 )
         else:
-            # For a single component, just create it directly
+            # For a small number of components, create them sequentially to avoid qubit assignment issues
             self._create_components_sequentially(components, component_tasks)
 
-        # Cache the components for future use
-        self._component_cache[cache_key] = components
         return components
 
     def _create_components_sequentially(
@@ -837,9 +856,74 @@ class HierarchicalBucketBrigadeNetwork:
     ):
         """Create components sequentially as a fallback if multiprocessing fails."""
         for task in component_tasks:
-            component_name, component = _create_component_mp(task)
-            if component is not None:
+            (
+                component_name,
+                bits,
+                decomp_scenario,
+                address_qubits,
+                routing_qubits,
+                memory_qubits,
+                target,
+                read_write,
+            ) = task
+
+            try:
+                # Create component - this will initially create it with default qubits and circuit
+                if component_name == "fan_out":
+                    component = BucketBrigadeFanOut(bits, decomp_scenario)
+                elif component_name == "write":
+                    component = BucketBrigadeWrite(bits, decomp_scenario)
+                elif component_name == "query":
+                    component = BucketBrigadeQuery(bits, decomp_scenario)
+                elif component_name == "fan_in":
+                    component = BucketBrigadeFanIn(bits, decomp_scenario)
+                elif component_name == "read":
+                    component = BucketBrigadeRead(bits, decomp_scenario)
+                elif component_name == "fan_read":
+                    component = BucketBrigadeFanRead(bits, decomp_scenario)
+                else:
+                    continue
+
+                # Assign the correct qubits and clear the circuit
+                if component_name == "fan_out":
+                    component.address = address_qubits
+                    component.all_ancillas = routing_qubits
+                elif component_name == "write":
+                    component.all_ancillas = routing_qubits
+                    component.memory = memory_qubits
+                    component.target = target
+                    component.read_write = read_write
+                elif component_name == "query":
+                    component.all_ancillas = routing_qubits
+                    component.memory = memory_qubits
+                    component.target = target
+                elif component_name == "fan_in":
+                    component.address = address_qubits
+                    component.all_ancillas = routing_qubits
+                elif component_name == "read":
+                    component.all_ancillas = routing_qubits
+                    component.memory = memory_qubits
+                    component.target = target
+                    component.read_write = read_write
+                elif component_name == "fan_read":
+                    component.address = address_qubits
+                    component.all_ancillas = routing_qubits
+                    component.target = target
+                    component.read_write = read_write
+
+                # Clear the circuit and force qubit reconstruction to prevent generic qubit contamination
+                component.circuit = None
+                # Also clear the qubit order to prevent any caching of generic qubits
+                component._qubit_order = []
                 components_dict[component_name] = component
+
+            except Exception as e:
+                self.logger.error(
+                    f"Error creating {component_name} component: {e}"
+                )
+                import traceback
+
+                self.logger.error(f"Traceback: {traceback.format_exc()}")
 
     def get_subcircuit(
         self, component_type: str, level: Optional[int] = None
@@ -897,110 +981,3 @@ class HierarchicalBucketBrigadeNetwork:
     def get_qubit_order(self) -> List[cirq.Qid]:
         """Get a sensible order of qubits for visualization."""
         return self.qubit_order
-
-    def visualize(self):
-        """Visualize the hierarchical QRAM network circuit."""
-        if not self.circuit:
-            print("Circuit not yet constructed")
-            return
-
-        print(f"HIERARCHICAL BUCKET BRIGADE NETWORK:")
-        print(
-            f"Hierarchical Bucket Brigade Network with {self.qram_bits} address bits"
-        )
-        print(f"Minimum decomposition size: {self.min_qram_size}")
-        print(f"Enabled components: {self.enabled_components}")
-
-        all_qubits = self.get_all_qubits()
-        address_qubits = sorted(
-            [q for q in all_qubits if q.name.startswith("a")]
-        )
-        routing_qubits = sorted(
-            [q for q in all_qubits if q.name.startswith("b_")]
-        )
-        memory_qubits = sorted(
-            [q for q in all_qubits if q.name.startswith("m")]
-        )
-
-        print("\nAddress Qubit Hierarchy:")
-        for i, qubit in enumerate(address_qubits):
-            if i == 0:
-                print(
-                    f"  {qubit.name}: Inside bucket brigade circuits (memory access)"
-                )
-            elif i in self.controlling_bits:
-                # Correct level calculation
-                # For hierarchical control, higher index = higher level
-                # The highest controlling bit gets the highest level number
-                sorted_controlling_bits = sorted(
-                    self.controlling_bits, reverse=True
-                )
-                try:
-                    level_index = sorted_controlling_bits.index(i)
-                    level = level_index + 1
-                    print(f"  {qubit.name}: Controls level {level} branching")
-                except ValueError:
-                    print(f"  {qubit.name}: Error in level calculation")
-            else:
-                print(f"  {qubit.name}: Not used in current decomposition")
-
-        print("\nComponent Subcircuit Counts:")
-        component_counts = self.get_component_count()
-        for component_type in [
-            "fan_out",
-            "write",
-            "query",
-            "fan_in",
-            "read",
-            "fan_read",
-        ]:
-            count = component_counts[component_type]
-            status = (
-                "enabled"
-                if component_type in self.enabled_components
-                else "disabled"
-            )
-            print(f"  {component_type}: {count} subcircuits ({status})")
-
-        print("\nRouting Qubits:")
-        routing_by_level = {}
-        for qubit in routing_qubits:
-            # Extract level from b_xxx format
-            path = qubit.name[2:]  # Remove "b_"
-            level = len(path)
-            if level not in routing_by_level:
-                routing_by_level[level] = []
-            routing_by_level[level].append(qubit.name)
-
-        for level in sorted(routing_by_level.keys()):
-            qubits = routing_by_level[level][:5]  # Show first 5
-            remaining = len(routing_by_level[level]) - 5
-            print(
-                f"  Level {level}: {qubits}{f' + {remaining} more' if remaining > 0 else ''}"
-            )
-
-        print("\nMemory Qubits:")
-        memory_sample = memory_qubits[:10]  # Show first 10
-        remaining_memory = len(memory_qubits) - 10
-        print(
-            f"  {[q.name for q in memory_sample]}{f' + {remaining_memory} more' if remaining_memory > 0 else ''}"
-        )
-
-        print("\nCircuit Information:")
-        print(f"  Total qubits: {len(all_qubits)}")
-        print(f"  Circuit depth: {len(self.circuit)}")
-        print(
-            f"  Hierarchical levels: {self.qram_bits - self.min_qram_size + 1}"
-        )
-
-        print("\nCircuit Structure (component grouping):")
-        print(
-            "  Sequential order: fan_out -> write -> query -> fan_in -> read -> fan_read"
-        )
-        print(
-            "  Each group contains all subcircuits of that type across all branches"
-        )
-        print("  Disabled components are skipped (use empty circuits)")
-
-        print("\nCircuit Structure:")
-        print(self.circuit)

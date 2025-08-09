@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import cirq
 
@@ -45,7 +45,7 @@ class BucketBrigadeBase:
         self.all_ancillas: List[cirq.NamedQubit] = []
         self.memory: List[cirq.NamedQubit] = []
         self.qram_bits: int = qram_bits
-        self.decomp_scenario = decomp_scenario
+        self.decomp_scenario: BucketBrigadeDecompType = decomp_scenario
         self.target: Optional[cirq.NamedQubit] = None
         self.read_write: Optional[cirq.NamedQubit] = None
         self.circuit: Optional[cirq.Circuit] = None
@@ -56,10 +56,20 @@ class BucketBrigadeBase:
         # construct the qubits needed for the circuit
         self.construct_qubits()
 
+    @property
+    def qubit_order(self) -> List[cirq.NamedQubit]:
+        """
+        Returns the order of qubits for visualization or simulation.
+
+        Returns:
+            List of qubits in a specific order.
+        """
+        return self._qubit_order.copy()
+
     def construct_qubits(self) -> None:
         """
         Create all the qubits needed for the circuit: address register,
-        memory cells, target qubit, read/write qubit, and ancilla qubits.
+        memory cells, target qubit, read_write qubit, and ancilla qubits.
         """
         # Create address qubits
         self.address = [
@@ -93,21 +103,80 @@ class BucketBrigadeBase:
         # Create target qubit
         self.target = cirq.NamedQubit("target")
 
-        # Create read/write qubit only if needed based on the class name
+        # Create read_write qubit only if needed based on the class name
         if any(name in self.__class__.__name__ for name in ["Write", "Read"]):
-            self.read_write = cirq.NamedQubit("read/write")
+            self.read_write = cirq.NamedQubit("read_write")
         else:
             self.read_write = None
 
-    @property
-    def qubit_order(self) -> List[cirq.NamedQubit]:
+    def construct_qubit_order(self, circuit: cirq.Circuit) -> None:
         """
-        Returns the order of qubits for visualization or simulation.
+        Construct the order of qubits for circuit visualization or execution.
 
-        Returns:
-            List of qubits in a specific order.
+        Args:
+            circuit: The complete circuit
         """
-        return self._qubit_order.copy()
+        # Clear any previous ordering
+        self._qubit_order = []
+
+        # Get only qubits that are actually used in the circuit
+        circuit_qubits = circuit.all_qubits()
+
+        # Add address qubits in reverse order (LSB to MSB)
+        for qubit in reversed(self.address):
+            if qubit in circuit_qubits:
+                self._qubit_order.append(qubit)
+
+        # Add ancilla qubits in sorted order (only those used in circuit)
+        ancilla_qubits = [
+            q for q in sorted(self.all_ancillas) if q in circuit_qubits
+        ]
+        self._qubit_order.extend(ancilla_qubits)
+
+        # Add memory qubits in reverse order (only those used in circuit)
+        memory_qubits = [
+            q for q in reversed(self.memory) if q in circuit_qubits
+        ]
+        self._qubit_order.extend(memory_qubits)
+
+        # Add any Toffoli decomposition ancillas that are present in the circuit
+        try:
+            toffoli_ancillas = ToffoliDecomposition(None, None).ancilla
+            for qubit in toffoli_ancillas:
+                if qubit in circuit_qubits and qubit not in self._qubit_order:
+                    self._qubit_order.append(qubit)
+        except Exception as e:
+            # If ToffoliDecomposition fails, just log and continue
+            self.logger.debug(f"Could not get Toffoli ancillas: {e}")
+
+        # Add target qubit if used in circuit
+        if (
+            self.target is not None
+            and self.target in circuit_qubits
+            and self.target not in self._qubit_order
+        ):
+            self._qubit_order.append(self.target)
+
+        # Add read_write qubit last, if it exists and is used in circuit
+        if (
+            self.read_write is not None
+            and self.read_write in circuit_qubits
+            and self.read_write not in self._qubit_order
+        ):
+            self._qubit_order.append(self.read_write)
+
+        # Ensure we don't have duplicate qubits
+        seen = set()
+        unique_order = []
+        for qubit in self._qubit_order:
+            if qubit not in seen:
+                seen.add(qubit)
+                unique_order.append(qubit)
+        self._qubit_order = unique_order
+
+        self.logger.debug(
+            f"Constructed qubit order with {len(self._qubit_order)} qubits"
+        )
 
     def get_b_ancilla_name(self, i: int) -> str:
         """
@@ -125,9 +194,9 @@ class BucketBrigadeBase:
         self,
         all_ancillas: List[cirq.NamedQubit],
         operation_type: str,
-        control1_getter: callable[[int], cirq.NamedQubit],
-        control2_getter: Optional[callable[[int], cirq.NamedQubit]] = None,
-        target_getter: callable[
+        control1_getter: Callable[[int], cirq.NamedQubit],
+        control2_getter: Optional[Callable[[int], cirq.NamedQubit]] = None,
+        target_getter: Callable[
             [int], cirq.NamedQubit
         ] = lambda i: cirq.NamedQubit(f"m{i}"),
         add_rw_x: bool = False,
@@ -140,7 +209,7 @@ class BucketBrigadeBase:
         # Sort ancillas to ensure deterministic order
         sorted_ancillas = sorted(all_ancillas)
 
-        # Add X gate on read/write qubit if needed and available
+        # Add X gate on read_write qubit if needed and available
         if add_rw_x and self.read_write is not None:
             memory_operations.append(
                 cirq.Moment([cirq.ops.X(self.read_write)])
@@ -162,7 +231,7 @@ class BucketBrigadeBase:
             elif self.read_write is not None:
                 control2 = self.read_write
             else:
-                # Fall back to using the first address qubit if read/write is not available
+                # Fall back to using the first address qubit if read_write is not available
                 control2 = self.address[0]
 
             target = target_getter(i)
@@ -172,6 +241,62 @@ class BucketBrigadeBase:
             memory_operations.append(cirq.Moment([mem_toff]))
 
         return memory_operations
+
+    def _create_memory_hierarchical_operations(
+        self,
+        all_ancillas: List[cirq.NamedQubit],
+        operation_type: str,
+        control1_getter: Callable[[int], cirq.NamedQubit],
+        target_getter: Callable[
+            [int], cirq.NamedQubit
+        ] = lambda i: cirq.NamedQubit(f"m{i}"),
+        add_rw_x: bool = False,
+    ) -> cirq.CircuitOperation:
+        """
+        Helper method to create memory operations (write, read, query) with hierarchical control.
+        """
+        memory_operations = []
+
+        # Sort ancillas to ensure deterministic order
+        sorted_ancillas = sorted(all_ancillas)
+
+        # Create CNOT gates for each memory cell
+        for i in range(len(self.memory)):
+            # Check if we have enough ancilla qubits
+            if i >= len(sorted_ancillas):
+                raise IndexError(
+                    f"Insufficient ancilla qubits for {operation_type} operation: "
+                    f"need at least {i+1}, have {len(sorted_ancillas)}"
+                )
+
+            # Get control and target qubits
+            control1 = control1_getter(i)
+            target = target_getter(i)
+
+            # Create and add the CNOT gate
+            mem_cnot = cirq.CNOT.on(control1, target)
+            memory_operations.append(cirq.Moment([mem_cnot]))
+
+        # Create frozen circuit from the memory operations
+        frozen_circuit = cirq.FrozenCircuit(memory_operations)
+
+        circuit_op = cirq.CircuitOperation(
+            frozen_circuit, use_repetition_ids=True
+        )
+        circuit_op = circuit_op.controlled_by(
+            self.read_write, control_values=[1]
+        )
+
+        # Insert X gate if required outside the frozen circuit operation
+        if add_rw_x:
+            circuit_op = cirq.Circuit(
+                [
+                    cirq.Moment([cirq.X.on(self.read_write)]),
+                    circuit_op,
+                ]
+            )
+
+        return cirq.Circuit(circuit_op)
 
     def decompose_parallelize_toffoli(
         self,
@@ -201,26 +326,7 @@ class BucketBrigadeBase:
             )
         )
 
-        # Special optimization for memory decomposition with certain scenarios
-        if (
-            permutation == [0, 2, 1]
-            and decomp_scenario == self.decomp_scenario.dec_mem_query
-            and decomp_scenario
-            in [
-                ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_A,
-                ToffoliDecompType.FOUR_ANCILLA_TDEPTH_1_B,
-                ToffoliDecompType.AN0_TD4_TC7_CX6,
-                ToffoliDecompType.AN0_TD4_TC7_CX6_INV,
-                ToffoliDecompType.AN0_TD4_TC6_CX6,
-                ToffoliDecompType.AN0_TD4_TC5_CX6,
-                ToffoliDecompType.AN0_TD3_TC4_CX6,
-                ToffoliDecompType.TD_4_CXD_8,
-                ToffoliDecompType.TD_4_CXD_8_INV,
-                ToffoliDecompType.TD_5_CXD_6,
-                ToffoliDecompType.TD_5_CXD_6_INV,
-            ]
-        ):
-            self.optimize_clifford_t_cnot_gates(circuit)
+        self.optimize_clifford_t_cnot_gates(circuit)
 
         # Parallelize Toffoli gates if requested
         if self.decomp_scenario.parallel_toffolis:
@@ -231,40 +337,46 @@ class BucketBrigadeBase:
 
         return circuit
 
-    def construct_qubit_order(self, circuit: cirq.Circuit) -> None:
+    def parallelize_toffolis(self, circuit: cirq.Circuit) -> cirq.Circuit:
         """
-        Construct the order of qubits for circuit visualization or execution.
+        Parallelize Toffoli gate decompositions to reduce circuit depth.
 
         Args:
-            circuit: The complete circuit
-            all_ancillas: All ancilla qubits used in the bucket brigade structure
+            circuit: Circuit containing decomposed Toffoli gates
+
+        Returns:
+            Optimized circuit with parallelized gates
         """
-        # Clear any previous ordering
-        self._qubit_order = []
+        # The first and last moments typically contain Hadamards
+        # Extract the middle part for optimization
+        if len(circuit) < 3:
+            return circuit  # Not enough moments to optimize
 
-        # Add address qubits in reverse order (LSB to MSB)
-        self._qubit_order.extend(self.address[::-1])
+        CV_CX_QC5_N = [
+            eval(f"ToffoliDecompType.CV_CX_QC5_{x}") for x in range(0, 8)
+        ]
 
-        # Add ancilla qubits in sorted order
-        self._qubit_order.extend(sorted(self.all_ancillas))
+        if self.__class__.__name__ == "BucketBrigadeQuery" and any(
+            scenario in {self.decomp_scenario.dec_mem_query}
+            for scenario in CV_CX_QC5_N
+        ):
+            # Special case for CV_CX_QC5 decomposition only on query component
+            # Use the specialized CVCX to CSCX optimizer
+            # This will handle CVCX gates and parallelize them to the left
+            # while converting them to CSCX gates
+            circuit: cirq.Circuit = qopt.ParallelizeCVCXToCSCX(
+                decomposition_type=self.decomp_scenario.dec_mem_query,
+                transfer_flag=False,
+            ).optimize_circuit(circuit)
+        else:
+            # Use our generalized CNOT optimizer on any component
+            # This will handle all CNOT and CX gates
+            # and parallelize them to the left
+            circuit: cirq.Circuit = qopt.ParallelizeCNOTSToLeft(
+                transfer_flag=False
+            ).optimize_circuit(circuit)
 
-        # Add memory qubits in reverse order
-        self._qubit_order.extend(self.memory[::-1])
-
-        # Add any Toffoli decomposition ancillas that are present in the circuit
-        all_qubits = circuit.all_qubits()
-        toffoli_ancillas = ToffoliDecomposition(None, None).ancilla
-        for qubit in toffoli_ancillas:
-            if qubit in all_qubits:
-                self._qubit_order.append(qubit)
-
-        # Add target qubit
-        if self.target is not None:
-            self._qubit_order.append(self.target)
-
-        # Add read/write qubit last, if it exists
-        if self.read_write is not None:
-            self._qubit_order.append(self.read_write)
+        return BucketBrigadeBase.stratified_circuit(circuit)
 
     @staticmethod
     def optimize_clifford_t_cnot_gates(circuit: cirq.Circuit) -> None:
@@ -286,6 +398,13 @@ class BucketBrigadeBase:
                     cirq.ops.S,
                     cirq.ops.S**-1,
                     cirq.ops.Z,
+                    cirq.ops.CNOT,
+                    cirq.ops.CNOT**0.5,
+                    cirq.ops.CNOT ** (-0.5),
+                    cirq.ops.CX,
+                    cirq.ops.CX**0.5,
+                    cirq.ops.CX ** (-0.5),
+                    cirq.ops.CZ,
                 ],
             )
             previous_circuit_state = circuit.copy()
@@ -293,8 +412,11 @@ class BucketBrigadeBase:
             # Cancel adjacent gates that multiply to identity
             qopt.CancelNghGates(transfer_flag=True).optimize_circuit(circuit)
 
+            # Cancel adjacent gates that multiply to identity
+            qopt.CancelNghCNOTs(transfer_flag=True).optimize_circuit(circuit)
+
             # Transform adjacent gates using circuit identities
-            qopt.TransformeNghGates(transfer_flag=True).optimize_circuit(
+            qopt.TransformNghGates(transfer_flag=True).optimize_circuit(
                 circuit
             )
 
@@ -302,58 +424,12 @@ class BucketBrigadeBase:
             if previous_circuit_state == circuit:
                 break
 
-        # Optimize CNOT gates
-        miscutils.flag_operations(circuit, [cirq.ops.CNOT])
-        qopt.CancelNghCNOTs(transfer_flag=True).apply_until_nothing_changes(
-            circuit, count_cnot_of_circuit
-        )
-
         # Drop the negligible operations and empty moments
         circuit = cirq.drop_negligible_operations(circuit)
         circuit = cirq.drop_empty_moments(circuit)
 
         # Clean all optimization flags
         miscutils.remove_all_flags(circuit)
-
-    @staticmethod
-    def parallelize_toffolis(circuit: cirq.Circuit) -> cirq.Circuit:
-        """
-        Parallelize Toffoli gate decompositions to reduce circuit depth.
-
-        Args:
-            circuit: Circuit containing decomposed Toffoli gates
-
-        Returns:
-            Optimized circuit with parallelized gates
-        """
-        # The first and last moments typically contain Hadamards
-        # Extract the middle part for optimization
-        if len(circuit) < 3:
-            return circuit  # Not enough moments to optimize
-
-        _circuit_: cirq.Circuit = circuit[1:-1]
-
-        while True:
-            previous_circuit_state = _circuit_.copy()
-
-            # Move T gates toward the beginning
-            qopt.CommuteTGatesToStart().optimize_circuit(_circuit_)
-
-            # Clean up the circuit
-            _circuit_ = cirq.drop_negligible_operations(_circuit_)
-            _circuit_ = cirq.drop_empty_moments(_circuit_)
-
-            # Move CNOT gates to the left when possible
-            qopt.ParallelizeCNOTSToLeft().optimize_circuit(_circuit_)
-
-            # Repack circuit without stratification
-            _circuit_ = cirq.Circuit(_circuit_.all_operations())
-
-            # If no changes were made, we've reached a fixed point
-            if previous_circuit_state == _circuit_:
-                return BucketBrigadeBase.stratified_circuit(
-                    cirq.Circuit(circuit[0] + _circuit_ + circuit[-1])
-                )
 
     @staticmethod
     def stratify(circuit: cirq.Circuit) -> cirq.Circuit:

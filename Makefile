@@ -29,10 +29,19 @@ SPECIFIC = "qram"
 MEMORY = 170G
 #	NP Options: 1, 6, 32, 64
 NP = 1
+#	CPUS Options: 56, 112
+CPUS = 56
 #	QOS Options: default-cpu, long-cpu, himem-cpu or himem-gpu
 QOS = default-cpu
 # Optional reservation name
 RESERVATION ?=
+#	SLURM Job Types: assessment, experiments, stress
+SBATCH_FLAGS = --ntasks-per-node=1
+
+# Add reservation if specified
+ifneq ($(RESERVATION),)
+	SBATCH_FLAGS += --reservation=$(RESERVATION)
+endif
 
 #==============================================================================
 # DERIVED VARIABLES
@@ -41,18 +50,17 @@ RESERVATION ?=
 # SLURM time configuration
 ifeq ($(QOS), default-cpu)
 	TIME = 1-12:00:00
+	SBATCH_FLAGS += --time=$(TIME)
 	NP = 64
 else ifeq ($(QOS), long-cpu)
-	TIME = 7-00:00:00
+	SBATCH_FLAGS += --time=$(TIME)
 	NP = 32
 else ifeq ($(QOS), himem-cpu)
-	TIME = 3-00:00:00
-	NP = 6
-	MEMORY = 1.5TB
+	CPUS = 112
+	MEMORY = 1500GB
+	SBATCH_FLAGS += --partition=himem
 else ifeq ($(QOS), himem-gpu)
-	TIME = 3-00:00:00
-	NP = 6
-	MEMORY = 1.5TB
+	MEMORY = 1500GB
 endif
 
 # SLURM job configuration
@@ -63,8 +71,11 @@ ifeq ($(SLURM), assessment)
 	HPC_CMD = "srun $(QRAM_CMD)"
 else ifeq ($(SLURM), experiments)
 	JOB_NAME = "${QUBITS}Q_QD${T_COUNT}T"
-	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --print-circuit=h --print-simulation=h --specific=$(SPECIFIC)"
-	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
+#	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --min-qram-size=1 --t-count=$(T_COUNT) --print-circuit=h --print-simulation=h --specific=$(SPECIFIC)"
+#	HPC_CMD = "mpirun -np $(NP) $(QRAM_CMD)"
+	
+	QRAM_CMD = "python3 main_experiments.py --hpc --simulate --qubit-range=$(QUBITS) --min-qram-size=1 --t-count=$(T_COUNT) --print-circuit=p --print-simulation=d --circuit-type=5 --specific=$(SPECIFIC)"
+	HPC_CMD = "srun --mpi=pmix $(QRAM_CMD)"
 else ifeq ($(SLURM), stress)
 	JOB_NAME = $(QUBITS)Q_C$(T_CANCEL)T_QD$(T_COUNT)T
 	QRAM_CMD = "python3 main_stress.py --hpc --simulate --qubit-range=$(QUBITS) --t-count=$(T_COUNT) --t-cancel=$(T_CANCEL) --print-simulation=h --specific=$(SPECIFIC)"
@@ -76,12 +87,10 @@ OUTPUT_FILE = output/$(SLURM)-output-$(JOB_NAME).txt
 ERROR_FILE = error/$(SLURM)-error-$(JOB_NAME).txt
 
 # SBATCH flags
-SBATCH_FLAGS = --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --ntasks-per-node=1 --cpus-per-task=56 --mem=$(MEMORY) --output=$(OUTPUT_FILE) --error=$(ERROR_FILE) --time=$(TIME)
+# SBATCH_FLAGS += --qos=$(QOS) --job-name=$(JOB_NAME) --nodes=$(NP) --cpus-per-task=$(CPUS) --mem=$(MEMORY) --output=$(OUTPUT_FILE) --error=$(ERROR_FILE)
 
-# Add reservation if specified
-ifneq ($(RESERVATION),)
-	SBATCH_FLAGS += --reservation=$(RESERVATION)
-endif
+SBATCH_FLAGS += --qos=$(QOS) --job-name=$(JOB_NAME) --ntasks=$(NP) --cpus-per-task=$(CPUS) --mem=$(MEMORY) --output=$(OUTPUT_FILE) --error=$(ERROR_FILE)
+
 
 #==============================================================================
 # MAIN TARGETS
@@ -160,8 +169,11 @@ script:
 	@echo "Generating SLURM script $(NAME)..."
 	@echo "#!/bin/bash" > $(NAME)
 	@echo "cd /home/achraf.najmi/quantify-lab" >> $(NAME)
-	@echo "module load OpenMPI/3.1.4-GCC-8.3.0" >> $(NAME)
-	@echo "module load Python/3.11.5-GCCcore-13.2.0" >> $(NAME)
+	@echo "module purge" >> $(NAME)
+	@echo "module load GCCcore/11.3.0" >> $(NAME)
+	@echo "module load OpenMPI/4.1.4-GCC-11.3.0" >> $(NAME)
+	@echo "module load Python/3.10.4-GCCcore-11.3.0" >> $(NAME)
+	@echo "module load CMake/3.23.1-GCCcore-11.3.0" >> $(NAME)
 	@echo "source .venv/bin/activate" >> $(NAME)
 	@echo $(HPC_CMD) >> $(NAME)
 	@chmod +x $(NAME)
@@ -317,12 +329,16 @@ build_env.sh:
 	@echo '	fi' >> build_env.sh
 	@echo 'fi' >> build_env.sh
 	@echo '' >> build_env.sh
+
+	@echo 'PYTHON=python$$python_major.$$python_minor' >> build_env.sh
+	@echo 'echo "Using Python interpreter: $$PYTHON"' >> build_env.sh
+
 	@echo 'echo "Setting up Python environment..."' >> build_env.sh
 	@echo '' >> build_env.sh
 	@echo '# Create virtual environment if it doesn'\''t exist' >> build_env.sh
 	@echo 'if [ ! -d ".venv" ]; then' >> build_env.sh
 	@echo '	echo "Creating virtual environment..."' >> build_env.sh
-	@echo '	python3 -m venv .venv --clear' >> build_env.sh
+	@echo '	$$PYTHON -m venv .venv --clear' >> build_env.sh
 	@echo 'else' >> build_env.sh
 	@echo '	echo "Virtual environment already exists."' >> build_env.sh
 	@echo 'fi' >> build_env.sh
@@ -333,9 +349,9 @@ build_env.sh:
 	@echo '' >> build_env.sh
 	@echo '# Upgrade core packages and install dependencies' >> build_env.sh
 	@echo 'echo "Installing dependencies..."' >> build_env.sh
-	@echo 'python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel' >> build_env.sh
+	@echo '$$PYTHON -m pip install --no-cache-dir --upgrade pip setuptools wheel' >> build_env.sh
 	@echo 'if [ -f "requirements.txt" ]; then' >> build_env.sh
-	@echo '	python3 -m pip install --no-cache-dir -r requirements.txt' >> build_env.sh
+	@echo '	$$PYTHON -m pip install --no-cache-dir -r requirements.txt' >> build_env.sh
 	@echo '	env MPICC=mpicc pip install --no-cache-dir mpi4py' >> build_env.sh
 	@echo 'else' >> build_env.sh
 	@echo '	echo "Warning: requirements.txt not found. No packages installed."' >> build_env.sh
@@ -344,7 +360,7 @@ build_env.sh:
 	@echo '# Run setup script' >> build_env.sh
 	@echo 'if [ -f "insert_missed_code.py" ]; then' >> build_env.sh
 	@echo '	echo "Configuring the environment..."' >> build_env.sh
-	@echo '	python3 insert_missed_code.py local' >> build_env.sh
+	@echo '	$$PYTHON insert_missed_code.py local' >> build_env.sh
 	@echo 'else' >> build_env.sh
 	@echo '	echo "Warning: insert_missed_code.py not found. Skipping configuration."' >> build_env.sh
 	@echo 'fi' >> build_env.sh

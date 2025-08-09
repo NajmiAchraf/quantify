@@ -8,8 +8,8 @@ import cirq
 import numpy as np
 
 import qram.bucket_brigade.main as bb
-from qram.bucket_brigade.hierarchical_network import (
-    HierarchicalBucketBrigadeNetwork,
+from qram.bucket_brigade.hierarchical import (
+    BucketBrigadeHierarchical,
 )
 from qramcircuits.toffoli_decomposition import ToffoliDecompType
 from utils.print_utils import *
@@ -86,9 +86,7 @@ class QRAMSimulatorBase:
     _simulation_assessment: "list[str]" = []
 
     _bbcircuit: bb.BucketBrigade
-    _bbcircuit_modded: Union[
-        bb.BucketBrigade, HierarchicalBucketBrigadeNetwork
-    ]
+    _bbcircuit_modded: Union[bb.BucketBrigade, BucketBrigadeHierarchical]
     _decomp_scenario: bb.BucketBrigadeDecompType
     _decomp_scenario_modded: bb.BucketBrigadeDecompType
 
